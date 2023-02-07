@@ -7,7 +7,7 @@ func main() {
 }
 
 var (
-	Name    = "golibs"
+	Name    = "gomodules"
 	Version = "v1.1.0"
 	Date    = "2023-02-07"
 )
