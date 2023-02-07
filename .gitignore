@@ -9,12 +9,6 @@
 *.plain
 *.priv
 *.test
-
-# for goreleaser
 testdata/
-dist/
 vendor/
-test.xml
-lint.xml
-go.sum
-.docker/
+
