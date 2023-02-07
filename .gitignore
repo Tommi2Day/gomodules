@@ -1,0 +1,20 @@
+.iws
+.idea/
+.vscode/
+
+*.env
+*.pem
+*.pub
+*.pw
+*.plain
+*.priv
+*.test
+
+# for goreleaser
+testdata/
+dist/
+vendor/
+test.xml
+lint.xml
+go.sum
+.docker/
