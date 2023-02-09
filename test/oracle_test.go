@@ -23,7 +23,7 @@ const TIMEOUT = 5
 const port = "21521"
 const repo = "docker.io/gvenzl/oracle-xe"
 const repoTag = "21.3.0-slim"
-const containerName = "tnscheck-oracle"
+const containerName = "dblib-oracle"
 const containerTimeout = 240
 
 var dbhost = common.GetEnv("DB_HOST", "127.0.0.1")
@@ -31,16 +31,16 @@ var connectora = fmt.Sprintf("XE.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROT
 var target string
 
 // func TestMain(m *testing.M) {
-func prepare_container() (pool *dockertest.Pool, dbContainer *dockertest.Resource, err error) {
+func prepareContainer() (pool *dockertest.Pool, dbContainer *dockertest.Resource, err error) {
 	dbContainer = nil
 	pool = nil
 	if os.Getenv("SKIP_ORACLE") != "" {
-		err = fmt.Errorf("Skipping ORACLE Container in CI environment")
+		err = fmt.Errorf("skipping ORACLE Container in CI environment")
 		return
 	}
 	pool, err = dockertest.NewPool("")
 	if err != nil {
-		err = fmt.Errorf("Cannot attach to docker: %v", err)
+		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}
 	vendorImagePrefix := common.GetEnv("VENDOR_IMAGE_PREFIX", "")
@@ -93,7 +93,7 @@ func prepare_container() (pool *dockertest.Pool, dbContainer *dockertest.Resourc
 	err = nil
 	return
 }
-func destroy_container(pool *dockertest.Pool, dbContainer *dockertest.Resource) {
+func destroyContainer(pool *dockertest.Pool, dbContainer *dockertest.Resource) {
 	if err := pool.Purge(dbContainer); err != nil {
 		fmt.Printf("Could not purge resource: %s\n", err)
 	}
@@ -129,8 +129,8 @@ func TestWithOracle(t *testing.T) {
 	require.True(t, found, "Alias not found")
 	desc := common.RemoveSpace(e.Desc)
 
-	pool, dbContainer, err := prepare_container()
-	defer destroy_container(pool, dbContainer)
+	pool, dbContainer, err := prepareContainer()
+	defer destroyContainer(pool, dbContainer)
 	require.NotNil(t, dbContainer, "Prepare failed")
 	t.Run("Direct connect", func(t *testing.T) {
 		var db *sql.DB
