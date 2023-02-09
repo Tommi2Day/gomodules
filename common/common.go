@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -123,4 +124,15 @@ func CheckSkip(line string) (skip bool) {
 	}
 	skip = false
 	return
+}
+
+// RemoveSpace deletes all spaces and newlines from string
+func RemoveSpace(s string) string {
+	rr := make([]rune, 0, len(s))
+	for _, r := range s {
+		if !unicode.IsSpace(r) {
+			rr = append(rr, r)
+		}
+	}
+	return string(rr)
 }
