@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/Luzifer/go-openssl/v4 v4.1.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/tommi2day/gomodules/common v0.0.0-20230209110442-da975cc23502
+	github.com/tommi2day/gomodules/common v0.0.0-20230209181233-cf71fab94d23
 )
 
 require (
