@@ -10,11 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	typeGO      = "go"
-	typeOpenssl = "openssl"
-)
-
 // DecryptFile decripts an rsa protected file
 func DecryptFile() (lines []string, err error) {
 	cryptedfile := PwConfig.CryptedFile

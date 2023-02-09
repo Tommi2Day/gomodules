@@ -55,7 +55,7 @@ func TestEncryptToDecrypt(t *testing.T) {
 func TestPublicEncryptString(t *testing.T) {
 	app := "test_encrypt_String"
 	testdata := TestDir + "/testdata"
-	pwlib.SetConfig(app, testdata, testdata, "Test")
+	pwlib.SetConfig(app, testdata, testdata, "Test", typeGO)
 
 	err := os.Chdir(TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
@@ -88,7 +88,7 @@ func TestOpensslCompString(t *testing.T) {
 	testdata := TestDir + "/testdata"
 
 	// set env
-	pwlib.SetConfig(app, testdata, testdata, "Test")
+	pwlib.SetConfig(app, testdata, testdata, "Test", typeOpenssl)
 	err := os.Chdir(TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
@@ -176,7 +176,7 @@ func TestOpensslFile(t *testing.T) {
 	app := "test_openssl_file"
 	testdata := TestDir + "/testdata"
 	// set env
-	pwlib.SetConfig(app, testdata, testdata, app)
+	pwlib.SetConfig(app, testdata, testdata, app, typeOpenssl)
 	err := os.Chdir(TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := pwlib.PwConfig.PlainTextFile

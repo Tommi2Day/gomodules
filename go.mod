@@ -10,8 +10,9 @@ require (
 	github.com/golangci/golangci-lint v1.51.1
 	github.com/jstemmer/go-junit-report/v2 v2.0.0
 	github.com/mgechev/revive v1.2.5
-	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
+	github.com/tommi2day/gomodules/common v0.0.0-20230209110442-da975cc23502
+	github.com/tommi2day/gomodules/pwlib v0.0.0-20230209110442-da975cc23502
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	golang.org/x/tools v0.5.0
 )
@@ -139,6 +140,7 @@ require (
 	github.com/sashamelentyev/usestdlibvars v1.21.1 // indirect
 	github.com/securego/gosec/v2 v2.14.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
+	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/sivchari/containedctx v1.0.2 // indirect
 	github.com/sivchari/nosnakecase v1.7.0 // indirect
 	github.com/sivchari/tenv v1.7.1 // indirect

@@ -9,9 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SSLDigest variable helds common digist algor
-var SSLDigest = openssl.BytesToKeySHA256
-
 // PrivateDecryptFileSSL Decrypt a file with private key with openssl API
 func PrivateDecryptFileSSL(cryptedFile string, privateKeyFile string, keyPass string, sessionPassFile string) (content string, err error) {
 	log.Debugf("decrypt %s with private key %s in OpenSSL format", cryptedFile, privateKeyFile)

@@ -539,6 +539,10 @@ github.com/timonwong/loggercheck v0.9.3 h1:ecACo9fNiHxX4/Bc02rW2+kaJIAMAes7qJ7JK
 github.com/timonwong/loggercheck v0.9.3/go.mod h1:wUqnk9yAOIKtGA39l1KLE9Iz0QiTocu/YZoOf+OzFdw=
 github.com/tomarrell/wrapcheck/v2 v2.8.0 h1:qDzbir0xmoE+aNxGCPrn+rUSxAX+nG6vREgbbXAR81I=
 github.com/tomarrell/wrapcheck/v2 v2.8.0/go.mod h1:ao7l5p0aOlUNJKI0qVwB4Yjlqutd0IvAB9Rdwyilxvg=
+github.com/tommi2day/gomodules/common v0.0.0-20230209110442-da975cc23502 h1:GkcWkplEjtlLQSA/OxvW/LGp3Ou6BptuS5MWkz/SGXA=
+github.com/tommi2day/gomodules/common v0.0.0-20230209110442-da975cc23502/go.mod h1:tBmaQ8Phsl/Hug9TNulQwu7OFV5ZraFAycSEbhs84aE=
+github.com/tommi2day/gomodules/pwlib v0.0.0-20230209110442-da975cc23502 h1:mhdBHdQk2cc6qjRcYS24UgZu2r+mrv6t33jtk49MVpY=
+github.com/tommi2day/gomodules/pwlib v0.0.0-20230209110442-da975cc23502/go.mod h1:15gSxcqVedMAIofvAEvN3oChVmonaitz94Rke5HE5sw=
 github.com/tommy-muehle/go-mnd/v2 v2.5.1 h1:NowYhSdyE/1zwK9QCLeRb6USWdoif80Ie+v+yU8u1Zw=
 github.com/tommy-muehle/go-mnd/v2 v2.5.1/go.mod h1:WsUAkMJMYww6l/ufffCD3m+P7LEvr8TnZn9lwVDlgzw=
 github.com/ultraware/funlen v0.0.3 h1:5ylVWm8wsNwH5aWo9438pwvsK0QiqVuUrt9bn7S/iLA=

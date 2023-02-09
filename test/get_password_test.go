@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const typeGO = "go"
+const typeOpenssl = "openssl"
 const plain = `
 # Testfile
 !default:defuser2:failure
@@ -23,35 +25,39 @@ testdp:testuser:xxx:yyy
 
 func TestCrypt(t *testing.T) {
 	// prepare
-	app := "test_encrypt"
-	pwlib.SetConfig(app, TestData, TestData, app)
+	methods := []string{typeGO, typeOpenssl}
+	for _, m := range methods {
+		app := "test_encrypt_" + m
+		pwlib.SetConfig(app, TestData, TestData, app, m)
 
-	err := os.Chdir(TestDir)
-	require.NoErrorf(t, err, "ChDir failed")
-	filename := pwlib.PwConfig.PlainTextFile
-	_ = os.Remove(filename)
-	//nolint gosec
-	err = os.WriteFile(filename, []byte(plain), 0644)
-	require.NoErrorf(t, err, "Create testdata failed")
-	_, _, err = pwlib.GenRsaKey(pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
-	require.NoErrorf(t, err, "Prepare Key failed:%s", err)
+		err := os.Chdir(TestDir)
+		require.NoErrorf(t, err, "ChDir failed")
+		filename := pwlib.PwConfig.PlainTextFile
+		_ = os.Remove(filename)
+		//nolint gosec
+		err = os.WriteFile(filename, []byte(plain), 0644)
+		require.NoErrorf(t, err, "Create testdata failed")
+		_, _, err = pwlib.GenRsaKey(pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
+		require.NoErrorf(t, err, "Prepare Key failed:%s", err)
 
-	// run
-	t.Run("default Encrypt File", func(t *testing.T) {
-		err := pwlib.EncryptFile()
-		assert.NoErrorf(t, err, "Encryption failed: %s", err)
-		assert.FileExists(t, pwlib.PwConfig.CryptedFile)
-	})
-	t.Run("default Decrypt File", func(t *testing.T) {
-		plain, err := common.ReadFileByLine(pwlib.PwConfig.PlainTextFile)
-		require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
-		expected := len(plain)
-		content, err := pwlib.DecryptFile()
-		assert.NoErrorf(t, err, "Decryption failed: %s", err)
-		assert.NotEmpty(t, content)
-		actual := len(content)
-		assert.Equalf(t, expected, actual, "Lines misamtch exp:%d,act:%d", expected, actual)
-	})
+		// run
+		t.Run("default Encrypt File method "+m, func(t *testing.T) {
+			err := pwlib.EncryptFile()
+			assert.NoErrorf(t, err, "Encryption failed: %s", err)
+			assert.FileExists(t, pwlib.PwConfig.CryptedFile)
+		})
+		t.Run("default Decrypt File method "+m, func(t *testing.T) {
+			plain, err := common.ReadFileByLine(pwlib.PwConfig.PlainTextFile)
+			require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
+			expected := len(plain)
+			content, err := pwlib.DecryptFile()
+			assert.NoErrorf(t, err, "Decryption failed: %s", err)
+			assert.NotEmpty(t, content)
+			actual := len(content)
+			assert.Equalf(t, expected, actual, "Lines misamtch exp:%d,act:%d", expected, actual)
+		})
+	}
+
 }
 func TestGetPassword(t *testing.T) {
 	// prepare
@@ -63,7 +69,7 @@ func TestGetPassword(t *testing.T) {
 		hasError bool
 	}
 	app := "test_get_pass"
-	pwlib.SetConfig(app, TestData, TestData, app)
+	pwlib.SetConfig(app, TestData, TestData, app, typeGO)
 	err := os.Chdir(TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := pwlib.PwConfig.PlainTextFile
