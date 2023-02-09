@@ -1,6 +1,8 @@
 name: Go
 
 on: [push]
+env:
+  SKIP_ORACLE: true
 
 jobs:
   build:
@@ -13,8 +15,6 @@ jobs:
           go-version-file: "go.mod"
           cache: true
           check-latest: true
-      - name: Go vendor
-        run: for d in common pwlib .; do cd $d; go mod tidy; go mod vendor; cd -; done
       - name: Install dependencies
         run: go get .
       - name: Build
@@ -30,12 +30,5 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
-          cache: true
           check-latest: true
-      - name: Go mod tidy
-        run: go mod tidy
-      - name: Go Vendor
-        run: go mod vendor
-      - name: Install dependencies
-        run: go get .
-      - uses: "golangci/golangci-lint-action@v3.3.1"
+      - uses: "golangci/golangci-lint-action@v3"

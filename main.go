@@ -7,9 +7,9 @@ func main() {
 }
 
 var (
-	Name    = "gomodules"
-	Version = "v1.1.0"
-	Date    = "2023-02-07"
+	Name    = "golibs"
+	Version = "v1.3.0"
+	Date    = "2023-02-09"
 )
 
 // GetVersion extract compiled version info

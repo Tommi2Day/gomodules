@@ -135,3 +135,15 @@ func TestChdirToFile(t *testing.T) {
 		assert.Errorf(t, err, "Chdir should fail")
 	})
 }
+
+func TestRemoveSpace(t *testing.T) {
+	test := `
+# abc
+
+    def
+
+`
+	actual := common.RemoveSpace(test)
+	expected := "#abcdef"
+	assert.Equal(t, expected, actual, "Not all withespace removed")
+}
