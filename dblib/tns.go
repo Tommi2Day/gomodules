@@ -61,26 +61,28 @@ func GetEntry(alias string, entries TNSEntries, domain string) (e TNSEntry, ok b
 }
 
 // GetTnsnames map tnsnames.ora entries to an readable structure
-func GetTnsnames(filename string, recursiv bool) (TNSEntries, error) {
-	var tnsEntries = make(TNSEntries)
-	var err error
-	var content []string
+func GetTnsnames(filename string, recursiv bool) (tnsEntries TNSEntries, domain string, err error) {
 
+	domain = ""
+	var content []string
 	var reIfile = regexp.MustCompile(`(?im)^IFILE\s*=\s*(.*)$`)
 	var reNewEntry = regexp.MustCompile(`(?im)^([\w.]+)\s*=(.*)`)
 	var tnsAlias = ""
 
 	var desc = ""
 
-	// change to current file
+	// try to find sqlnet ora and read domain
+	tnsDir := filepath.Dir(filename)
+	domain = GetDefaultDomain(tnsDir)
+
+	// change to current tns file
 	wd, _ := os.Getwd()
 	log.Debugf("DEBUG: GetTns use %s, wd=%s", filename, wd)
 	err = common.ChdirToFile(filename)
 	if err != nil {
 		log.Errorf("Cannot chdir to %s", filename)
-		return tnsEntries, err
+		return
 	}
-
 	// use basename from filename to read as i am in this directory
 	f := filepath.Base(filename)
 	content, _ = common.ReadFileByLine(f)
@@ -129,14 +131,14 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, error) {
 
 	// chdir back
 	_ = os.Chdir(wd)
-	return tnsEntries, err
+	return
 }
 
 // read ifile recursive
 func getIfile(filename string, recursiv bool) (entries TNSEntries, err error) {
 	wd, _ := os.Getwd()
 	log.Debugf("read ifile %s, wd=%s", filename, wd)
-	entries, err = GetTnsnames(filename, recursiv)
+	entries, _, err = GetTnsnames(filename, recursiv)
 	return
 }
 
