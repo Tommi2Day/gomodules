@@ -61,14 +61,14 @@ func GetEntry(alias string, entries TNSEntries, domain string) (e TNSEntry, ok b
 }
 
 // GetTnsnames map tnsnames.ora entries to an readable structure
-func GetTnsnames(filename string, recursiv bool) (tnsEntries TNSEntries, domain string, err error) {
-
-	domain = ""
+func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
+	var tnsEntries = make(TNSEntries)
+	var err error
+	var domain = ""
 	var content []string
 	var reIfile = regexp.MustCompile(`(?im)^IFILE\s*=\s*(.*)$`)
 	var reNewEntry = regexp.MustCompile(`(?im)^([\w.]+)\s*=(.*)`)
 	var tnsAlias = ""
-
 	var desc = ""
 
 	// try to find sqlnet ora and read domain
@@ -81,8 +81,9 @@ func GetTnsnames(filename string, recursiv bool) (tnsEntries TNSEntries, domain 
 	err = common.ChdirToFile(filename)
 	if err != nil {
 		log.Errorf("Cannot chdir to %s", filename)
-		return
+		return tnsEntries, domain, err
 	}
+
 	// use basename from filename to read as i am in this directory
 	f := filepath.Base(filename)
 	content, _ = common.ReadFileByLine(f)
@@ -131,7 +132,7 @@ func GetTnsnames(filename string, recursiv bool) (tnsEntries TNSEntries, domain 
 
 	// chdir back
 	_ = os.Chdir(wd)
-	return
+	return tnsEntries, domain, err
 }
 
 // read ifile recursive
@@ -183,7 +184,7 @@ func GetDefaultDomain(path string) (domain string) {
 		log.Debugf("Cannot read %s, assume no default domain", filename)
 		return ""
 	}
-	reg := regexp.MustCompile((`(?im)^NAMES.DEFAULT_DOMAIN\s*=\s*([\w.]*)`))
+	reg := regexp.MustCompile(`(?im)^NAMES.DEFAULT_DOMAIN\s*=\s*([\w.]*)`)
 	result := reg.FindStringSubmatch(content)
 	if len(result) == 0 {
 		log.Debugf("no default domain defined in %s", filename)
