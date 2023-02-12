@@ -613,8 +613,8 @@ github.com/tomarrell/wrapcheck/v2 v2.8.0 h1:qDzbir0xmoE+aNxGCPrn+rUSxAX+nG6vREgb
 github.com/tomarrell/wrapcheck/v2 v2.8.0/go.mod h1:ao7l5p0aOlUNJKI0qVwB4Yjlqutd0IvAB9Rdwyilxvg=
 github.com/tommi2day/gomodules/common v0.0.0-20230209185003-c143378b8a50 h1:wS1uczfT4kO1OqZ3d2z20TH3yt/jY52QmJQkL8DepZY=
 github.com/tommi2day/gomodules/common v0.0.0-20230209185003-c143378b8a50/go.mod h1:tBmaQ8Phsl/Hug9TNulQwu7OFV5ZraFAycSEbhs84aE=
-github.com/tommi2day/gomodules/dblib v0.0.0-20230209185234-2d0f35878ef9 h1:EJlM6f40xrfZdOAgQwZMR31jJa0yq3lCVSDIxVLNnZo=
-github.com/tommi2day/gomodules/dblib v0.0.0-20230209185234-2d0f35878ef9/go.mod h1:V7ORp0FEAlHUPYl2c7LSLoUwXe/YJfQFjudL/5tyaoY=
+github.com/tommi2day/gomodules/dblib v0.0.0-20230211121340-6112885ed8de h1:87xl/dbL39ro4Nux7mArWGthguIhE2uJS16o6BPcGZQ=
+github.com/tommi2day/gomodules/dblib v0.0.0-20230211121340-6112885ed8de/go.mod h1:V7ORp0FEAlHUPYl2c7LSLoUwXe/YJfQFjudL/5tyaoY=
 github.com/tommi2day/gomodules/pwlib v0.0.0-20230209181233-cf71fab94d23 h1:FhXa1FNJw78Q50oAPQnpHCpXFt5X9+25hxtDQxH6fmk=
 github.com/tommi2day/gomodules/pwlib v0.0.0-20230209181233-cf71fab94d23/go.mod h1:8h1ozWoBZtqHD62en0dgLI2Uvjyx5mOsfixQx3NhtfA=
 github.com/tommy-muehle/go-mnd/v2 v2.5.1 h1:NowYhSdyE/1zwK9QCLeRb6USWdoif80Ie+v+yU8u1Zw=

@@ -15,7 +15,7 @@ require (
 	github.com/sijms/go-ora/v2 v2.5.27
 	github.com/stretchr/testify v1.8.1
 	github.com/tommi2day/gomodules/common v0.0.0-20230209185003-c143378b8a50
-	github.com/tommi2day/gomodules/dblib v0.0.0-20230209185234-2d0f35878ef9
+	github.com/tommi2day/gomodules/dblib v0.0.0-20230211121340-6112885ed8de
 	github.com/tommi2day/gomodules/pwlib v0.0.0-20230209181233-cf71fab94d23
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	golang.org/x/tools v0.5.0

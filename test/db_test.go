@@ -10,21 +10,12 @@ import (
 	"github.com/tommi2day/gomodules/dblib"
 
 	_ "github.com/glebarez/go-sqlite"
-	"github.com/sijms/go-ora/v2/network"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var urlOptions = map[string]string{
 	// "CONNECTION TIMEOUT": "3",
-}
-
-func makeOerr(code int, msg string) *network.OracleError {
-	e := &network.OracleError{
-		ErrCode: code,
-		ErrMsg:  msg,
-	}
-	return e
 }
 
 func newTestfile(filename string) error {

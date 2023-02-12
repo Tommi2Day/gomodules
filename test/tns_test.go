@@ -94,7 +94,7 @@ func TestParseTns(t *testing.T) {
 	t.Logf("Default Domain: '%s'", domain)
 	filename := tnsAdmin + "/tnsnames.ora"
 	t.Logf("load from %s", filename)
-	tnsEntries, err := dblib.GetTnsnames(filename, true)
+	tnsEntries, domain, err := dblib.GetTnsnames(filename, true)
 	t.Run("Parse TNSNames.ora", func(t *testing.T) {
 		require.NoErrorf(t, err, "Parsing %s failed: %s", filename, err)
 	})
