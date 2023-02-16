@@ -6,6 +6,10 @@
 ### Fixed
 ### Removed
 
+## [v1.4.0 - 2023-XX-YY]
+### New
+- add maillib
+
 ## [v1.3.0 - 2023-02-08]
 ### New
 - add encryption method option to config for go and openssl

@@ -13,11 +13,13 @@ require (
 	github.com/mgechev/revive v1.2.5
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/sijms/go-ora/v2 v2.5.27
+	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
 	github.com/tommi2day/gomodules/common v0.0.0-20230209185003-c143378b8a50
 	github.com/tommi2day/gomodules/dblib v0.0.0-20230211121340-6112885ed8de
 	github.com/tommi2day/gomodules/pwlib v0.0.0-20230209181233-cf71fab94d23
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
+	github.com/wneessen/go-mail v0.3.8
 	golang.org/x/tools v0.5.0
 )
 
@@ -163,7 +165,6 @@ require (
 	github.com/sashamelentyev/usestdlibvars v1.21.1 // indirect
 	github.com/securego/gosec/v2 v2.14.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/sivchari/containedctx v1.0.2 // indirect
 	github.com/sivchari/nosnakecase v1.7.0 // indirect
 	github.com/sivchari/tenv v1.7.1 // indirect
