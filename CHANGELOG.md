@@ -9,6 +9,7 @@
 ## [v1.4.0 - 2023-XX-YY]
 ### New
 - add maillib
+- add ExecuteOsCommand to common
 
 ## [v1.3.0 - 2023-02-08]
 ### New

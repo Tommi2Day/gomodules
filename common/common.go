@@ -3,9 +3,11 @@ package common
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -135,4 +137,20 @@ func RemoveSpace(s string) string {
 		}
 	}
 	return string(rr)
+}
+
+// ExecuteOsCommand runs an OS command and returns output
+func ExecuteOsCommand(cmdArgs []string, stdIn io.Reader) (stdOut string, stdErr string, err error) {
+	var cmdOut bytes.Buffer
+	var cmdErr bytes.Buffer
+	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+	cmdOut.Reset()
+	cmdErr.Reset()
+	cmd.Stdout = &cmdOut
+	cmd.Stderr = &cmdErr
+	cmd.Stdin = stdIn
+	err = cmd.Run()
+	stdOut = cmdOut.String()
+	stdErr = cmdErr.String()
+	return
 }
