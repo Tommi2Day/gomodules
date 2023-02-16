@@ -611,12 +611,6 @@ github.com/timonwong/loggercheck v0.9.3 h1:ecACo9fNiHxX4/Bc02rW2+kaJIAMAes7qJ7JK
 github.com/timonwong/loggercheck v0.9.3/go.mod h1:wUqnk9yAOIKtGA39l1KLE9Iz0QiTocu/YZoOf+OzFdw=
 github.com/tomarrell/wrapcheck/v2 v2.8.0 h1:qDzbir0xmoE+aNxGCPrn+rUSxAX+nG6vREgbbXAR81I=
 github.com/tomarrell/wrapcheck/v2 v2.8.0/go.mod h1:ao7l5p0aOlUNJKI0qVwB4Yjlqutd0IvAB9Rdwyilxvg=
-github.com/tommi2day/gomodules/common v0.0.0-20230216174252-04d32405ac99 h1:v4TGgytoA5gtzyrzY4BBZTc7dSyvtkhKjCcXMa3uRog=
-github.com/tommi2day/gomodules/common v0.0.0-20230216174252-04d32405ac99/go.mod h1:tBmaQ8Phsl/Hug9TNulQwu7OFV5ZraFAycSEbhs84aE=
-github.com/tommi2day/gomodules/dblib v0.0.0-20230216163515-24473ec5f32d h1:XwZ6ZKKdoP/+Ft9Lt9di/m+27xOYIkqotrs3faMzkcU=
-github.com/tommi2day/gomodules/dblib v0.0.0-20230216163515-24473ec5f32d/go.mod h1:V7ORp0FEAlHUPYl2c7LSLoUwXe/YJfQFjudL/5tyaoY=
-github.com/tommi2day/gomodules/pwlib v0.0.0-20230216174252-04d32405ac99 h1:v04w6kyqh+b9O9+SWkBuTU6GjfMRT0cHOAQ0LEEorUw=
-github.com/tommi2day/gomodules/pwlib v0.0.0-20230216174252-04d32405ac99/go.mod h1:cEaxbQ2uhDv9IVuYFyjDai+VUr/EDHzxiomzcgj353E=
 github.com/tommy-muehle/go-mnd/v2 v2.5.1 h1:NowYhSdyE/1zwK9QCLeRb6USWdoif80Ie+v+yU8u1Zw=
 github.com/tommy-muehle/go-mnd/v2 v2.5.1/go.mod h1:WsUAkMJMYww6l/ufffCD3m+P7LEvr8TnZn9lwVDlgzw=
 github.com/ultraware/funlen v0.0.3 h1:5ylVWm8wsNwH5aWo9438pwvsK0QiqVuUrt9bn7S/iLA=
