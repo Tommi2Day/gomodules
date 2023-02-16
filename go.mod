@@ -14,9 +14,10 @@ require (
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/sijms/go-ora/v2 v2.5.30
 	github.com/stretchr/testify v1.8.1
-	github.com/tommi2day/gomodules/common v0.0.0-20230216182209-98959d57d8c2
+	github.com/tommi2day/gomodules/common v0.0.0-20230216190355-f3a1bc129d43
 	github.com/tommi2day/gomodules/dblib v0.0.0-20230216184159-3fb1832f6a87
-	github.com/tommi2day/gomodules/pwlib v0.0.0-20230216184159-3fb1832f6a87
+	github.com/tommi2day/gomodules/maillib v0.0.0-20230216190355-f3a1bc129d43
+	github.com/tommi2day/gomodules/pwlib v0.0.0-20230216190355-f3a1bc129d43
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	golang.org/x/tools v0.6.0
 )
@@ -189,6 +190,7 @@ require (
 	github.com/ultraware/funlen v0.0.3 // indirect
 	github.com/ultraware/whitespace v0.0.5 // indirect
 	github.com/uudashr/gocognit v1.0.6 // indirect
+	github.com/wneessen/go-mail v0.3.8 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
