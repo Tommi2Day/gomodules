@@ -7,4 +7,5 @@ this is a collection of often used functions
 - tools: collection of often used tools as build loader
 - dblib: db related functions, esp. for oracle and tns handling
 - maillib: function to send Mails
+- ldap: base ldap functions
 

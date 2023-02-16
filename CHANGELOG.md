@@ -8,13 +8,14 @@
 
 ## [v1.4.0 - 2023-XX-YY]
 ### New
-- add maillib
+- add maillib module
+- add ldap module
 - add ExecuteOsCommand to common
 
 ## [v1.3.0 - 2023-02-08]
 ### New
 - add encryption method option to config for go and openssl
-- add dblib
+- add dblib module
 
 ## [v1.1.0 - 2023-02-07]
 ### New
