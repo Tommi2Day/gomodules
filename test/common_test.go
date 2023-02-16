@@ -4,6 +4,7 @@ import (
 	"github.com/tommi2day/gomodules/common"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -146,4 +147,20 @@ func TestRemoveSpace(t *testing.T) {
 	actual := common.RemoveSpace(test)
 	expected := "#abcdef"
 	assert.Equal(t, expected, actual, "Not all withespace removed")
+}
+
+func TestExecuteOsCommand(t *testing.T) {
+	var cmdArg []string
+	myOs := runtime.GOOS
+	switch myOs {
+	case "windows":
+		cmdArg = []string{"cmd.exe", "/c", "dir"}
+	default:
+		cmdArg = []string{"/bin/ls"}
+	}
+
+	stdout, stderr, err := common.ExecuteOsCommand(cmdArg, nil)
+	assert.NoErrorf(t, err, "Command got Error: %v", err)
+	assert.Emptyf(t, stderr, "StdErr not empty")
+	assert.NotEmpty(t, stdout, "Output is empty")
 }

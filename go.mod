@@ -12,15 +12,15 @@ require (
 	github.com/jstemmer/go-junit-report/v2 v2.0.0
 	github.com/mgechev/revive v1.2.5
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/sijms/go-ora/v2 v2.5.27
+	github.com/sijms/go-ora/v2 v2.5.30
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
-	github.com/tommi2day/gomodules/common v0.0.0-20230209185003-c143378b8a50
-	github.com/tommi2day/gomodules/dblib v0.0.0-20230211121340-6112885ed8de
-	github.com/tommi2day/gomodules/pwlib v0.0.0-20230209181233-cf71fab94d23
+	github.com/tommi2day/gomodules/common v0.0.0-20230216174252-04d32405ac99
+	github.com/tommi2day/gomodules/dblib v0.0.0-20230216163515-24473ec5f32d
+	github.com/tommi2day/gomodules/pwlib v0.0.0-20230216174252-04d32405ac99
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	github.com/wneessen/go-mail v0.3.8
-	golang.org/x/tools v0.5.0
+	golang.org/x/tools v0.6.0
 )
 
 require (
@@ -202,11 +202,11 @@ require (
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/exp/typeparams v0.0.0-20221208152030-732eee02a75a // indirect
-	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
