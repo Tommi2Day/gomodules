@@ -8,7 +8,7 @@ jobs:
   build:
     defaults:
       run:
-        working-directory: ldap
+        working-directory: ldaplib
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
   lint:
     defaults:
       run:
-        working-directory: ldap
+        working-directory: ldaplib
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v3

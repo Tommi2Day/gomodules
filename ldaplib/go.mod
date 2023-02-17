@@ -1,4 +1,4 @@
-module github.com/tommi2day/gomodules/ldap
+module github.com/tommi2day/gomodules/ldaplib
 
 go 1.19
 

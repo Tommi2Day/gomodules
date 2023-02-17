@@ -1,4 +1,4 @@
-package ldap
+package ldaplib
 
 import (
 	goldap "github.com/go-ldap/ldap/v3"
@@ -22,7 +22,7 @@ func TestBaseLdap(t *testing.T) {
 	var err error
 	var results *goldap.SearchResult
 	if os.Getenv("SKIP_LDAP") != "" {
-		t.Skip("Skipping Mail testing in CI environment")
+		t.Skip("Skipping LDAP testing in CI environment")
 	}
 	server := os.Getenv("LDAP_SERVER")
 	base := os.Getenv("LDAP_BASEDN")
@@ -33,13 +33,13 @@ func TestBaseLdap(t *testing.T) {
 		base = ""
 	}
 	SetConfig(server, 389, false)
-	t.Run("Anonym Connect", func(t *testing.T) {
+	t.Run("Anonymous Connect", func(t *testing.T) {
 		l, err = Connect("", "")
 		require.NoErrorf(t, err, "anonymous Connect returned error %v", err)
 		assert.NotNilf(t, l, "Ldap Connect is nil")
 		assert.IsType(t, &goldap.Conn{}, l, "returned object ist not ldap connection")
 	})
-	t.Run("Search", func(t *testing.T) {
+	t.Run("BaseDN Search", func(t *testing.T) {
 		results, err = Search(l, base, "(objectclass=*)", []string{"DN"}, goldap.ScopeBaseObject, goldap.DerefInSearching)
 		require.NoErrorf(t, err, "Search returned error:%v", err)
 		count := len(results.Entries)
