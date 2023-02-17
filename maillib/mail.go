@@ -22,15 +22,7 @@ type MailConfigType struct {
 }
 
 // mailConfig holds Mails Server Config
-var mailConfig = MailConfigType{
-	Server:      "127.0.0.1",
-	Port:        25,
-	Username:    "",
-	Password:    "",
-	Tls:         false,
-	Maxsize:     5120000,
-	ContentType: mail.TypeTextPlain,
-}
+var mailConfig MailConfigType
 
 var files []string = nil
 var sendCC []string = nil
@@ -39,22 +31,16 @@ var sendFrom = ""
 
 // SetConfig set Mail server parameter
 func SetConfig(server string, port int, username string, password string, tls bool) {
-	if len(server) > 0 {
-		mailConfig.Server = server
-	}
-	if port > 0 {
-		mailConfig.Port = port
-	}
-	if len(username) > 0 && len(password) > 0 {
-		mailConfig.Username = username
-		mailConfig.Password = password
-	}
-	if tls {
-		mailConfig.Tls = tls
-	}
+	mailConfig.Server = server
+	mailConfig.Port = port
+	mailConfig.Username = username
+	mailConfig.Password = password
+	mailConfig.Tls = tls
 	files = nil
 	sendCC = nil
 	sendBcc = nil
+	mailConfig.Maxsize = 0
+	mailConfig.ContentType = mail.TypeTextPlain
 }
 
 // Cc sets the list of comma seperated CC'ed recipents
@@ -65,11 +51,6 @@ func Cc(cclist string) {
 // Bcc sets the list of comma seperated Bcc'ed recipents
 func Bcc(bcclist string) {
 	sendBcc = strings.Split(strings.TrimSpace(bcclist), ",")
-}
-
-// From changes the From Mail header
-func From(from string) {
-	sendFrom = from
 }
 
 // Attach ads list of files (comma seperated full path)
@@ -93,11 +74,12 @@ func GetConfig() MailConfigType {
 }
 
 // SendMail send a mail with the given content
-func SendMail(to string, subject string, text string) (err error) {
+func SendMail(from string, to string, subject string, text string) (err error) {
 	var errtxt string
-	var sendTo []string = nil
+	var sendTo []string
 	var c *mail.Client
 	sendTo = strings.Split(strings.TrimSpace(to), ",")
+	sendFrom = strings.TrimSpace(from)
 	if sendTo == nil {
 		errtxt = "Cannot send Mail without email address"
 		err = errors.New(errtxt)
@@ -112,39 +94,40 @@ func SendMail(to string, subject string, text string) (err error) {
 	// set from address
 	if len(sendFrom) > 0 {
 		if err = m.From(sendFrom); err != nil {
-			errtxt = fmt.Sprintf("failed to set From address: %s", sendFrom)
+			errtxt = fmt.Sprintf("failed to set From address %s:%v", sendFrom, err)
 			log.Warn(errtxt)
 		}
 		_ = m.ReplyTo(sendFrom)
 	}
 	// add recipients
-	for _, to := range sendTo {
-		if err = m.AddTo(to); err != nil {
-			errtxt = fmt.Sprintf("failed to set To address: %s", to)
+	for _, r := range sendTo {
+		if err = m.AddTo(r); err != nil {
+			errtxt = fmt.Sprintf("failed to set To address %s:%v", r, err)
 			err = errors.New(errtxt)
 			log.Errorf(errtxt)
-			return
 		}
 	}
 	if len(sendCC) > 0 {
 		for _, cc := range sendCC {
 			if err = m.AddCc(cc); err != nil {
-				errtxt = fmt.Sprintf("failed to set CC address: %s", cc)
+				errtxt = fmt.Sprintf("failed to set CC address%s:%v", cc, err)
 				err = errors.New(errtxt)
 				log.Errorf(errtxt)
-				return
 			}
 		}
 	}
 	if len(sendBcc) > 0 {
 		for _, bcc := range sendBcc {
 			if err = m.AddBcc(bcc); err != nil {
-				errtxt = fmt.Sprintf("failed to set bcc address: %s", bcc)
+				errtxt = fmt.Sprintf("failed to set bcc address %s:%v", bcc, err)
 				err = errors.New(errtxt)
 				log.Errorf(errtxt)
 				return
 			}
 		}
+	}
+	if err != nil {
+		return
 	}
 	log.Debug("Mail: Recipients added")
 
@@ -155,23 +138,28 @@ func SendMail(to string, subject string, text string) (err error) {
 	// handle Attachments
 	if len(files) > 0 {
 		maxsize := mailConfig.Maxsize
+		if maxsize > 0 {
+			log.Debugf("Mail: File Limit %d", maxsize)
+		}
 		for _, fn := range files {
-
+			log.Debugf("Attach %s", fn)
 			if maxsize == 0 {
 				m.AttachFile(fn, mail.WithFileName(filepath.Base(fn)))
 			} else {
-				f, err := os.Open(fn)
-				if err != nil {
-					errtxt = fmt.Sprintf("Cannot read %s: %v", fn, err)
+				f, oserr := os.Open(fn)
+				if oserr != nil {
+					errtxt = fmt.Sprintf("Cannot read %s: %v", fn, oserr)
 					err = errors.New(errtxt)
 					log.Error(errtxt)
 					return
+				} else {
+					lr := io.LimitReader(f, maxsize)
+					m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
+					_ = f.Close()
 				}
-				lr := io.LimitReader(f, maxsize)
-				m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
-				_ = f.Close()
+
 			}
-			log.Debugf("Mail: Attach %s", fn)
+
 		}
 	}
 
