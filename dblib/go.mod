@@ -8,9 +8,7 @@ require (
 	github.com/sijms/go-ora/v2 v2.5.30
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
-	github.com/tommi2day/gomodules v1.3.2
 	github.com/tommi2day/gomodules/common v0.0.0-20230216182209-98959d57d8c2
-
 )
 
 require (
@@ -26,6 +24,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect

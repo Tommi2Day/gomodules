@@ -6,7 +6,6 @@ require (
 	github.com/Luzifer/go-openssl/v4 v4.1.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
-	github.com/tommi2day/gomodules v1.3.2
 	github.com/tommi2day/gomodules/common v0.0.0-20230217182016-331647e65f4a
 )
 

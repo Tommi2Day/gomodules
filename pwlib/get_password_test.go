@@ -2,7 +2,6 @@ package pwlib
 
 import (
 	"github.com/tommi2day/gomodules/common"
-	"github.com/tommi2day/gomodules/test"
 	"os"
 	"testing"
 
@@ -26,9 +25,9 @@ func TestCrypt(t *testing.T) {
 	methods := []string{typeGO, typeOpenssl}
 	for _, m := range methods {
 		app := "test_encrypt_" + m
-		SetConfig(app, test.TestData, test.TestData, app, m)
+		SetConfig(app, TestData, TestData, app, m)
 
-		err := os.Chdir(test.TestDir)
+		err := os.Chdir(TestDir)
 		require.NoErrorf(t, err, "ChDir failed")
 		filename := PwConfig.PlainTextFile
 		_ = os.Remove(filename)
@@ -67,8 +66,8 @@ func TestGetPassword(t *testing.T) {
 		hasError bool
 	}
 	app := "test_get_pass"
-	SetConfig(app, test.TestData, test.TestData, app, typeGO)
-	err := os.Chdir(test.TestDir)
+	SetConfig(app, TestData, TestData, app, typeGO)
+	err := os.Chdir(TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := PwConfig.PlainTextFile
 	_ = os.Remove(filename)
