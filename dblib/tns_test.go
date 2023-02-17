@@ -1,9 +1,9 @@
-package test
+package dblib
 
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tommi2day/gomodules/dblib"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"strings"
 	"testing"
@@ -74,7 +74,7 @@ const entryCount = 5
 func TestParseTns(t *testing.T) {
 	var err error
 
-	err = os.Chdir(TestDir)
+	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
 	tnsAdmin := "testdata"
@@ -90,11 +90,11 @@ func TestParseTns(t *testing.T) {
 	err = os.WriteFile(tnsAdmin+"/ifile.ora", []byte(ifileora), 0644)
 	require.NoErrorf(t, err, "Create test ifile.ora failed")
 
-	domain := dblib.GetDefaultDomain(tnsAdmin)
+	domain := GetDefaultDomain(tnsAdmin)
 	t.Logf("Default Domain: '%s'", domain)
 	filename := tnsAdmin + "/tnsnames.ora"
 	t.Logf("load from %s", filename)
-	tnsEntries, domain, err := dblib.GetTnsnames(filename, true)
+	tnsEntries, domain, err := GetTnsnames(filename, true)
 	t.Run("Parse TNSNames.ora", func(t *testing.T) {
 		require.NoErrorf(t, err, "Parsing %s failed: %s", filename, err)
 	})
@@ -115,7 +115,7 @@ func TestParseTns(t *testing.T) {
 			success bool
 			service string
 		}
-		for _, test := range []testTableType{
+		for _, testconfig := range []testTableType{
 			{
 				name:    "XE-full",
 				alias:   "XE.local",
@@ -153,15 +153,15 @@ func TestParseTns(t *testing.T) {
 				service: "",
 			},
 		} {
-			t.Run(test.name, func(t *testing.T) {
-				e, ok := dblib.GetEntry(test.alias, tnsEntries, domain)
-				if test.success {
-					assert.True(t, ok, "Alias %s not found", test.alias)
+			t.Run(testconfig.name, func(t *testing.T) {
+				e, ok := GetEntry(testconfig.alias, tnsEntries, domain)
+				if testconfig.success {
+					assert.True(t, ok, "Alias %s not found", testconfig.alias)
 					name := strings.ToUpper(e.Name)
-					assert.True(t, strings.HasPrefix(name, strings.ToUpper(test.alias)), "entry not related to given alias %s", test.alias)
-					assert.Equalf(t, test.service, e.Service, "entry returned wrong service ('%s' <>'%s)", e.Service, test.service)
+					assert.True(t, strings.HasPrefix(name, strings.ToUpper(testconfig.alias)), "entry not related to given alias %s", testconfig.alias)
+					assert.Equalf(t, testconfig.service, e.Service, "entry returned wrong service ('%s' <>'%s)", e.Service, testconfig.service)
 				} else {
-					assert.False(t, ok, "Alias %s found, but shouldnt be", test.alias)
+					assert.False(t, ok, "Alias %s found, but shouldnt be", testconfig.alias)
 				}
 			})
 		}
@@ -169,7 +169,7 @@ func TestParseTns(t *testing.T) {
 
 	alias := "XE"
 	t.Run("Check entry value", func(t *testing.T) {
-		e, ok := dblib.GetEntry(alias, tnsEntries, domain)
+		e, ok := GetEntry(alias, tnsEntries, domain)
 		assert.True(t, ok, "Alias %s not found", alias)
 		actualDesc := e.Desc
 		expectedDesc := `(DESCRIPTION =

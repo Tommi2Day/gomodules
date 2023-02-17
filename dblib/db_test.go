@@ -1,4 +1,4 @@
-package test
+package dblib
 
 import (
 	"database/sql"
@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	ora "github.com/sijms/go-ora/v2"
-
-	"github.com/tommi2day/gomodules/dblib"
 
 	_ "github.com/glebarez/go-sqlite"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +30,7 @@ func newTestfile(filename string) error {
 
 func TestDBConnect(t *testing.T) {
 	t.Run("Test DB Connect Memory", func(t *testing.T) {
-		db, err := dblib.DBConnect("sqlite", ":memory:", 5)
+		db, err := DBConnect("sqlite", ":memory:", 5)
 		defer func(db *sql.DB) {
 			_ = db.Close()
 		}(db)
@@ -43,7 +41,7 @@ func TestDBConnect(t *testing.T) {
 	t.Run("Test DB Connect noexisting oracle", func(t *testing.T) {
 		service := "xxx"
 		connect := ora.BuildJDBC("dummy", "dummy", service, urlOptions)
-		_, err := dblib.DBConnect("oracle", connect, 5)
+		_, err := DBConnect("oracle", connect, 5)
 		assert.Error(t, err, "DB Open oracle should fail")
 	})
 
@@ -53,7 +51,7 @@ func TestDBConnect(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Cannot create sqlite file")
 		}
-		db, err := dblib.DBConnect("sqlite", filename, 5)
+		db, err := DBConnect("sqlite", filename, 5)
 		require.NoError(t, err, "DB Open sqlite %s failed")
 		assert.NotEmpty(t, db, "DB Handle missed")
 		e := db.Close()
@@ -71,7 +69,7 @@ func TestSelectOneStringValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot create sqlite file")
 	}
-	db, err := dblib.DBConnect("sqlite", filename, 5)
+	db, err := DBConnect("sqlite", filename, 5)
 	defer func(db *sql.DB) {
 		e := db.Close()
 		if e == nil {
@@ -87,14 +85,14 @@ func TestSelectOneStringValue(t *testing.T) {
 
 	t.Run("Test Select Singlerow", func(t *testing.T) {
 		mysql := "select sqlite_version()"
-		actual, err = dblib.SelectOneStringValue(db, mysql)
+		actual, err = SelectOneStringValue(db, mysql)
 		assert.NoErrorf(t, err, "Querry returned error %s", err)
 		assert.NotEmpty(t, actual, "Select value empty")
 		t.Logf("Version %s", actual)
 	})
 	t.Run("Test wrong sql", func(t *testing.T) {
 		mysql := "seleccct sqlite_version()"
-		_, err = dblib.SelectOneStringValue(db, mysql)
+		_, err = SelectOneStringValue(db, mysql)
 		assert.Error(t, err, "Query returned no error, but should")
 	})
 }

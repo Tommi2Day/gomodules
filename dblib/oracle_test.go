@@ -1,4 +1,4 @@
-package test
+package dblib
 
 import (
 	"database/sql"
@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tommi2day/gomodules/common"
-	"github.com/tommi2day/gomodules/dblib"
 	"os"
 	"testing"
 	"time"
@@ -122,10 +121,10 @@ func TestWithOracle(t *testing.T) {
 	_ = os.WriteFile(filename, []byte(connectora), 0644)
 
 	t.Logf("load from %s", filename)
-	domain := dblib.GetDefaultDomain(tnsAdmin)
+	domain := GetDefaultDomain(tnsAdmin)
 	t.Logf("Default Domain: '%s'", domain)
 
-	tnsEntries, d2, err := dblib.GetTnsnames(filename, true)
+	tnsEntries, d2, err := GetTnsnames(filename, true)
 	t.Run("Parse TNSNames.ora", func(t *testing.T) {
 		require.NoErrorf(t, err, "Parsing %s failed: %s", filename, err)
 	})
@@ -135,7 +134,7 @@ func TestWithOracle(t *testing.T) {
 	}
 
 	assert.Equalf(t, domain, d2, "Domain name mismatch '%s' -> '%s'", domain, d2)
-	e, found := dblib.GetEntry(alias, tnsEntries, domain)
+	e, found := GetEntry(alias, tnsEntries, domain)
 	require.True(t, found, "Alias not found")
 	desc := common.RemoveSpace(e.Desc)
 
@@ -158,10 +157,10 @@ func TestWithOracle(t *testing.T) {
 
 		connect := target
 		t.Logf("connect with %s\n", connect)
-		db, err = dblib.DBConnect("oracle", connect, TIMEOUT)
+		db, err = DBConnect("oracle", connect, TIMEOUT)
 		assert.NoErrorf(t, err, "Connect failed: %v", err)
 		assert.IsType(t, &sql.DB{}, db, "Returned wrong type")
-		result, err := dblib.SelectOneStringValue(db, "select to_char(sysdate,'YYYY-MM-DD HH24:MI:SS') from dual")
+		result, err := SelectOneStringValue(db, "select to_char(sysdate,'YYYY-MM-DD HH24:MI:SS') from dual")
 		assert.NoErrorf(t, err, "Select returned error::%v", err)
 		assert.NotEmpty(t, result)
 		t.Logf("Sysdate: %s", result)
@@ -171,7 +170,7 @@ func TestWithOracle(t *testing.T) {
 
 		connect := ora.BuildJDBC(DBUSER, DBPASSWORD, desc, urlOptions)
 		t.Logf("connect with %s\n", connect)
-		db, err = dblib.DBConnect("oracle", connect, TIMEOUT)
+		db, err = DBConnect("oracle", connect, TIMEOUT)
 		assert.NoErrorf(t, err, "Connect failed: %s", err)
 		assert.IsType(t, &sql.DB{}, db, "Returned wrong type")
 	})
@@ -179,7 +178,7 @@ func TestWithOracle(t *testing.T) {
 		var db *sql.DB
 		connect := ora.BuildJDBC("dummy", "dummy", desc, urlOptions)
 		t.Logf("connect with dummy user to %s\n", desc)
-		db, err = dblib.DBConnect("oracle", connect, TIMEOUT)
+		db, err = DBConnect("oracle", connect, TIMEOUT)
 		assert.ErrorContainsf(t, err, "ORA-01017", "returned unexpected error: %v", err)
 		assert.IsType(t, &sql.DB{}, db, "Returned wrong type")
 	})
@@ -193,7 +192,7 @@ func TestHaveOerr(t *testing.T) {
 		expectedCode := 1017
 		expectedMsg := "ORA-01017: Invalid User or Password"
 		oerr = makeOerr(expectedCode, expectedMsg)
-		isOerr, actualCode, actualMsg := dblib.HaveOerr(oerr)
+		isOerr, actualCode, actualMsg := HaveOerr(oerr)
 		assert.True(t, isOerr, "Oerr not detected")
 		assert.Equal(t, expectedCode, actualCode, "Code doesnt match")
 		assert.Equal(t, expectedMsg, actualMsg, "Msg doesnt match")
@@ -201,7 +200,7 @@ func TestHaveOerr(t *testing.T) {
 	t.Run("Non Oracle Error", func(t *testing.T) {
 		expectedCode := 0
 		expectedMsg := ""
-		isOerr, actualCode, actualMsg := dblib.HaveOerr(testErr)
+		isOerr, actualCode, actualMsg := HaveOerr(testErr)
 		assert.False(t, isOerr, "Oerr false detected")
 		assert.Equal(t, expectedCode, actualCode, "Code doesnt match")
 		assert.Equal(t, expectedMsg, actualMsg, "Empty Msg expected")
