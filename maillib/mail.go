@@ -5,7 +5,10 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/wneessen/go-mail"
+	"io"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 type MailConfigType struct {
@@ -14,12 +17,12 @@ type MailConfigType struct {
 	Username    string
 	Password    string
 	Tls         bool
-	Maxsize     int
+	Maxsize     int64
 	ContentType mail.ContentType
 }
 
-// MailConfig holds Mails Server Config
-var MailConfig = MailConfigType{
+// mailConfig holds Mails Server Config
+var mailConfig = MailConfigType{
 	Server:      "127.0.0.1",
 	Port:        25,
 	Username:    "",
@@ -29,29 +32,73 @@ var MailConfig = MailConfigType{
 	ContentType: mail.TypeTextPlain,
 }
 
-// SetMailConfig set Mail server parameter
-func SetMailConfig(server string, port int, username string, password string, tls bool) {
+var files []string = nil
+var sendCC []string = nil
+var sendBcc []string = nil
+var sendFrom = ""
+
+// SetConfig set Mail server parameter
+func SetConfig(server string, port int, username string, password string, tls bool) {
 	if len(server) > 0 {
-		MailConfig.Server = server
+		mailConfig.Server = server
 	}
 	if port > 0 {
-		MailConfig.Port = port
+		mailConfig.Port = port
 	}
 	if len(username) > 0 && len(password) > 0 {
-		MailConfig.Username = username
-		MailConfig.Password = password
+		mailConfig.Username = username
+		mailConfig.Password = password
 	}
 	if tls {
-		MailConfig.Tls = tls
+		mailConfig.Tls = tls
 	}
+	files = nil
+	sendCC = nil
+	sendBcc = nil
+}
+
+// Cc sets the list of comma seperated CC'ed recipents
+func Cc(cclist string) {
+	sendCC = strings.Split(strings.TrimSpace(cclist), ",")
+}
+
+// Bcc sets the list of comma seperated Bcc'ed recipents
+func Bcc(bcclist string) {
+	sendBcc = strings.Split(strings.TrimSpace(bcclist), ",")
+}
+
+// From changes the From Mail header
+func From(from string) {
+	sendFrom = from
+}
+
+// Attach ads list of files (comma seperated full path)
+func Attach(filelist string) {
+	files = strings.Split(strings.TrimSpace(filelist), ",")
+}
+
+// SetMaxSize limits the size of attached files, 0 to disable
+func SetMaxSize(maxsize int64) {
+	mailConfig.Maxsize = maxsize
+}
+
+// SetContentType allows to modify the Content type of the mail
+func SetContentType(contentType mail.ContentType) {
+	mailConfig.ContentType = contentType
+}
+
+// GetConfig returns current Mail conf
+func GetConfig() MailConfigType {
+	return mailConfig
 }
 
 // SendMail send a mail with the given content
-func SendMail(sendFrom string, sendTo []string, subject string, text string, files []string,
-	sendCC []string, sendBcc []string) (err error) {
+func SendMail(to string, subject string, text string) (err error) {
 	var errtxt string
+	var sendTo []string = nil
 	var c *mail.Client
-	if len(sendTo) == 0 {
+	sendTo = strings.Split(strings.TrimSpace(to), ",")
+	if sendTo == nil {
 		errtxt = "Cannot send Mail without email address"
 		err = errors.New(errtxt)
 		log.Errorf(errtxt)
@@ -103,32 +150,46 @@ func SendMail(sendFrom string, sendTo []string, subject string, text string, fil
 
 	// set content
 	m.Subject(subject)
-	m.SetBodyString(MailConfig.ContentType, text)
+	m.SetBodyString(mailConfig.ContentType, text)
 
 	// handle Attachments
 	if len(files) > 0 {
+		maxsize := mailConfig.Maxsize
 		for _, fn := range files {
-			// ToDo: Limit Filesize
-			m.AttachFile(fn, mail.WithFileName(filepath.Base(fn)))
+
+			if maxsize == 0 {
+				m.AttachFile(fn, mail.WithFileName(filepath.Base(fn)))
+			} else {
+				f, err := os.Open(fn)
+				if err != nil {
+					errtxt = fmt.Sprintf("Cannot read %s: %v", fn, err)
+					err = errors.New(errtxt)
+					log.Error(errtxt)
+					return
+				}
+				lr := io.LimitReader(f, maxsize)
+				m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
+				_ = f.Close()
+			}
 			log.Debugf("Mail: Attach %s", fn)
 		}
 	}
 
 	// create mail client
-	c, err = mail.NewClient(MailConfig.Server, mail.WithPort(MailConfig.Port))
+	c, err = mail.NewClient(mailConfig.Server, mail.WithPort(mailConfig.Port))
 	if err != nil {
 		errtxt = fmt.Sprintf("failed to create mail client: %s", err)
 		err = errors.New(errtxt)
 		log.Error(errtxt)
 		return
 	}
-	if MailConfig.Tls {
-		c.SetSSL(MailConfig.Tls)
+	if mailConfig.Tls {
+		c.SetSSL(mailConfig.Tls)
 		log.Debug("Mail: Use SSL")
 	}
-	if len(MailConfig.Username) > 0 && len(MailConfig.Password) > 0 {
-		c.SetUsername(MailConfig.Username)
-		c.SetPassword(MailConfig.Password)
+	if len(mailConfig.Username) > 0 && len(mailConfig.Password) > 0 {
+		c.SetUsername(mailConfig.Username)
+		c.SetPassword(mailConfig.Password)
 		c.SetSMTPAuth(mail.SMTPAuthPlain)
 		log.Debug("Mail: Use Authentication")
 	}
