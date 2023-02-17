@@ -1,4 +1,4 @@
-package test
+package pwlib
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/tommi2day/gomodules/common"
-	"github.com/tommi2day/gomodules/pwlib"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"os/exec"
 	"strings"
@@ -37,12 +37,12 @@ testdp:testuser:xxx:yyy
 
 func TestEncryptToDecrypt(t *testing.T) {
 	o := openssl.New()
-	enc, err := o.EncryptBytes(passphrase, []byte(plaintext), pwlib.SSLDigest)
+	enc, err := o.EncryptBytes(passphrase, []byte(plaintext), SSLDigest)
 	if err != nil {
 		t.Fatalf("Test errored at encrypt: %s", err)
 	}
 
-	dec, err := o.DecryptBytes(passphrase, enc, pwlib.SSLDigest)
+	dec, err := o.DecryptBytes(passphrase, enc, SSLDigest)
 	if err != nil {
 		t.Fatalf("Test errored at decrypt: %s", err)
 	}
@@ -54,15 +54,15 @@ func TestEncryptToDecrypt(t *testing.T) {
 
 func TestPublicEncryptString(t *testing.T) {
 	app := "test_encrypt_String"
-	testdata := TestDir + "/testdata"
-	pwlib.SetConfig(app, testdata, testdata, "Test", typeGO)
+	testdata := test.TestDir + "/testdata"
+	SetConfig(app, testdata, testdata, "Test", typeGO)
 
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
-	_, _, err = pwlib.GenRsaKey(pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
+	_, _, err = GenRsaKey(PwConfig.PubKeyFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
 	require.NoErrorf(t, err, "Prepare Key failed:%s", err)
 
-	crypted, err := pwlib.PublicEncryptString(plaintext, pwlib.PwConfig.PubKeyFile)
+	crypted, err := PublicEncryptString(plaintext, PwConfig.PubKeyFile)
 	// run
 	t.Run("default Encrypt String", func(t *testing.T) {
 		assert.NoErrorf(t, err, "Encryption failed: %s", err)
@@ -70,7 +70,7 @@ func TestPublicEncryptString(t *testing.T) {
 	})
 
 	t.Run("default Decrypt String", func(t *testing.T) {
-		actual, err := pwlib.PrivateDecryptString(crypted, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
+		actual, err := PrivateDecryptString(crypted, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
 		expected := plaintext
 		assert.NoErrorf(t, err, "Decryption failed: %s", err)
 		assert.NotEmpty(t, actual)
@@ -85,21 +85,21 @@ func TestOpensslCompString(t *testing.T) {
 	var cmdout bytes.Buffer
 	var cmderr bytes.Buffer
 	app := "test_openssl_string"
-	testdata := TestDir + "/testdata"
+	testdata := test.TestDir + "/testdata"
 
 	// set env
-	pwlib.SetConfig(app, testdata, testdata, "Test", typeOpenssl)
-	err := os.Chdir(TestDir)
+	SetConfig(app, testdata, testdata, "Test", typeOpenssl)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
 	// prepare keys
-	_, _, err = pwlib.GenRsaKey(pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
+	_, _, err = GenRsaKey(PwConfig.PubKeyFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
 	require.NoErrorf(t, err, "Prepare Key failed:%s", err)
 	t.Run("Encrypt_Openssl-Decrypt_String", func(t *testing.T) {
 		// encrypt using openssl os cmd
 		cmdArgs := []string{
 			"openssl", "rsautl",
-			"-inkey", pwlib.PwConfig.PubKeyFile,
+			"-inkey", PwConfig.PubKeyFile,
 			"-pubin",
 			"-pkcs",
 			"-encrypt",
@@ -119,7 +119,7 @@ func TestOpensslCompString(t *testing.T) {
 		crypted := base64.StdEncoding.EncodeToString(cmdout.Bytes())
 
 		// decode openssl encoded string with go functions
-		actual, err := pwlib.PrivateDecryptString(crypted, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
+		actual, err := PrivateDecryptString(crypted, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
 		if err != nil {
 			t.Fatalf("Decryprion failed: %v", err)
 		}
@@ -131,7 +131,7 @@ func TestOpensslCompString(t *testing.T) {
 
 	t.Run("Encrypt_String-OpenSSL_decrypt", func(t *testing.T) {
 		// encode string with go functions
-		crypted, err := pwlib.PublicEncryptString(plaintext, pwlib.PwConfig.PubKeyFile)
+		crypted, err := PublicEncryptString(plaintext, PwConfig.PubKeyFile)
 		if err != nil {
 			t.Fatalf("Encryprion failed: %v", err)
 		}
@@ -145,10 +145,10 @@ func TestOpensslCompString(t *testing.T) {
 		// decode crypted string in bin format using openssl os cmd
 		cmdArgs := []string{
 			"openssl", "rsautl",
-			"-inkey", pwlib.PwConfig.PrivateKeyFile,
+			"-inkey", PwConfig.PrivateKeyFile,
 			"-pkcs",
 			"-decrypt",
-			"-passin", fmt.Sprintf("pass:%s", pwlib.PwConfig.KeyPass),
+			"-passin", fmt.Sprintf("pass:%s", PwConfig.KeyPass),
 		}
 		// nolint gosec
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
@@ -174,31 +174,31 @@ func TestOpensslFile(t *testing.T) {
 	var cmderr bytes.Buffer
 
 	app := "test_openssl_file"
-	testdata := TestDir + "/testdata"
+	testdata := test.TestDir + "/testdata"
 	// set env
-	pwlib.SetConfig(app, testdata, testdata, app, typeOpenssl)
-	err := os.Chdir(TestDir)
+	SetConfig(app, testdata, testdata, app, typeOpenssl)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
-	filename := pwlib.PwConfig.PlainTextFile
+	filename := PwConfig.PlainTextFile
 	_ = os.Remove(filename)
 	//nolint gosec
 	err = os.WriteFile(filename, []byte(plainfile), 0644)
 	require.NoErrorf(t, err, "Create testdata failed")
 
 	// prepare keys
-	_, _, err = pwlib.GenRsaKey(pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass)
+	_, _, err = GenRsaKey(PwConfig.PubKeyFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
 	require.NoErrorf(t, err, "Prepare Key failed:%s", err)
 	// run
 	t.Run("default Encrypt File", func(t *testing.T) {
-		err := pwlib.PubEncryptFileSSL(pwlib.PwConfig.PlainTextFile, pwlib.PwConfig.CryptedFile, pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.SessionPassFile)
+		err := PubEncryptFileSSL(PwConfig.PlainTextFile, PwConfig.CryptedFile, PwConfig.PubKeyFile, PwConfig.SessionPassFile)
 		assert.NoErrorf(t, err, "Encryption failed: %s", err)
-		assert.FileExists(t, pwlib.PwConfig.CryptedFile)
+		assert.FileExists(t, PwConfig.CryptedFile)
 	})
 	t.Run("default Decrypt File", func(t *testing.T) {
-		plaintxt, err := common.ReadFileToString(pwlib.PwConfig.PlainTextFile)
+		plaintxt, err := common.ReadFileToString(PwConfig.PlainTextFile)
 		require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
 		expected := len(plaintxt)
-		content, err := pwlib.PrivateDecryptFileSSL(pwlib.PwConfig.CryptedFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass, pwlib.PwConfig.SessionPassFile)
+		content, err := PrivateDecryptFileSSL(PwConfig.CryptedFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass, PwConfig.SessionPassFile)
 		assert.NoErrorf(t, err, "Decryption failed: %s", err)
 		assert.NotEmpty(t, content)
 		actual := len(content)
@@ -214,18 +214,18 @@ func TestOpensslFile(t *testing.T) {
 			t.Fatalf("Cannot generate session key:%s", err)
 		}
 		sessionKey := base64.StdEncoding.EncodeToString(random)
-		t.Logf("Create Random SessionKeyin  %s: %s", pwlib.PwConfig.SessionPassFile, sessionKey)
+		t.Logf("Create Random SessionKeyin  %s: %s", PwConfig.SessionPassFile, sessionKey)
 
 		// encrypt session key and save to file
 		// echo -n sessionKey |openssl rsautl -encrypt -pkcs -inkey PubKeyFile -pubin |openssl enc -base64 -out SessionPassFile
-		crypted, err = pwlib.PublicEncryptString(sessionKey, pwlib.PwConfig.PubKeyFile)
+		crypted, err = PublicEncryptString(sessionKey, PwConfig.PubKeyFile)
 		if err != nil {
 			t.Fatalf("Encrypting Keyfile failed: %v", err)
 		}
 		//nolint gosec
-		err = os.WriteFile(pwlib.PwConfig.SessionPassFile, []byte(crypted), 0644)
+		err = os.WriteFile(PwConfig.SessionPassFile, []byte(crypted), 0644)
 		if err != nil {
-			t.Fatalf("Cannot write session Key file %s:%v", pwlib.PwConfig.SessionPassFile, err)
+			t.Fatalf("Cannot write session Key file %s:%v", PwConfig.SessionPassFile, err)
 		}
 
 		// encrypt using openssl cmd
@@ -235,8 +235,8 @@ func TestOpensslFile(t *testing.T) {
 			"-base64",
 			"-pass", fmt.Sprintf("pass:%s", sessionKey),
 			"-md", "sha256",
-			"-in", pwlib.PwConfig.PlainTextFile,
-			"-out", pwlib.PwConfig.CryptedFile,
+			"-in", PwConfig.PlainTextFile,
+			"-out", PwConfig.CryptedFile,
 		}
 		// nolint gosec
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
@@ -250,7 +250,7 @@ func TestOpensslFile(t *testing.T) {
 		}
 
 		// decrypt openssl encoded data using API
-		actual, err = pwlib.PrivateDecryptFileSSL(pwlib.PwConfig.CryptedFile, pwlib.PwConfig.PrivateKeyFile, pwlib.PwConfig.KeyPass, pwlib.PwConfig.SessionPassFile)
+		actual, err = PrivateDecryptFileSSL(PwConfig.CryptedFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass, PwConfig.SessionPassFile)
 
 		// compare
 		expected := plainfile
@@ -259,7 +259,7 @@ func TestOpensslFile(t *testing.T) {
 	})
 	t.Run("Encrypt_API-Decrypt_openssl", func(t *testing.T) {
 		// encrypt using api
-		err := pwlib.PubEncryptFileSSL(pwlib.PwConfig.PlainTextFile, pwlib.PwConfig.CryptedFile, pwlib.PwConfig.PubKeyFile, pwlib.PwConfig.SessionPassFile)
+		err := PubEncryptFileSSL(PwConfig.PlainTextFile, PwConfig.CryptedFile, PwConfig.PubKeyFile, PwConfig.SessionPassFile)
 		assert.NoErrorf(t, err, "Cannot Encrypt using API:%s", err)
 		if err != nil {
 			t.Fatalf("Cannot Encrypt using API:%s", err)
@@ -268,9 +268,9 @@ func TestOpensslFile(t *testing.T) {
 		// verify witch openssl cmd
 		// read session pass file
 		//nolint gosec
-		data, err := os.ReadFile(pwlib.PwConfig.SessionPassFile)
+		data, err := os.ReadFile(PwConfig.SessionPassFile)
 		if err != nil {
-			t.Fatalf("Cannot Read SessionPassFile %s:%v", pwlib.PwConfig.SessionPassFile, err)
+			t.Fatalf("Cannot Read SessionPassFile %s:%v", PwConfig.SessionPassFile, err)
 		}
 		cryptedKey := string(data)
 		// revert base64 encoding
@@ -282,10 +282,10 @@ func TestOpensslFile(t *testing.T) {
 		// decode crypted string in bin format using openssl os cmd
 		cmdArgs := []string{
 			"openssl", "rsautl",
-			"-inkey", pwlib.PwConfig.PrivateKeyFile,
+			"-inkey", PwConfig.PrivateKeyFile,
 			"-pkcs",
 			"-decrypt",
-			"-passin", fmt.Sprintf("pass:%s", pwlib.PwConfig.KeyPass),
+			"-passin", fmt.Sprintf("pass:%s", PwConfig.KeyPass),
 		}
 		// nolint gosec
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
@@ -309,7 +309,7 @@ func TestOpensslFile(t *testing.T) {
 			"-A",
 			"-pass", fmt.Sprintf("pass:%s", sessionKey),
 			"-md", "sha256",
-			"-in", pwlib.PwConfig.CryptedFile,
+			"-in", PwConfig.CryptedFile,
 		}
 		// nolint gosec
 		cmd = exec.Command(cmdArgs[0], cmdArgs[1:]...)

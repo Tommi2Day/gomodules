@@ -5,9 +5,15 @@ go 1.19
 require (
 	github.com/Luzifer/go-openssl/v4 v4.1.0
 	github.com/sirupsen/logrus v1.9.0
+	github.com/stretchr/testify v1.8.1
+	github.com/tommi2day/gomodules v1.3.2
+	github.com/tommi2day/gomodules/common v0.0.0-20230217182016-331647e65f4a
 )
 
 require (
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9 // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

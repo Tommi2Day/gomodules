@@ -1,7 +1,6 @@
-package test
+package pwlib
 
 import (
-	"github.com/tommi2day/gomodules/pwlib"
 	"testing"
 )
 
@@ -22,13 +21,13 @@ func TestGenPassword(t *testing.T) {
 			"Default Techuser",
 			true,
 			true,
-			pwlib.TechProfile.Length,
-			pwlib.TechProfile.Upper,
-			pwlib.TechProfile.Lower,
-			pwlib.TechProfile.Digits,
-			pwlib.TechProfile.Special,
-			pwlib.TechProfile.Firstchar,
-			pwlib.AllChars,
+			TechProfile.Length,
+			TechProfile.Upper,
+			TechProfile.Lower,
+			TechProfile.Digits,
+			TechProfile.Special,
+			TechProfile.Firstchar,
+			AllChars,
 		},
 		{
 			"InvalidGenZeroLength",
@@ -40,19 +39,19 @@ func TestGenPassword(t *testing.T) {
 			0,
 			0,
 			false,
-			pwlib.AllChars,
+			AllChars,
 		},
 		{
 			"Personal User",
 			true,
 			true,
-			pwlib.UserProfile.Length,
-			pwlib.UserProfile.Upper,
-			pwlib.UserProfile.Lower,
-			pwlib.UserProfile.Digits,
-			pwlib.UserProfile.Special,
-			pwlib.UserProfile.Firstchar,
-			pwlib.AllChars,
+			UserProfile.Length,
+			UserProfile.Upper,
+			UserProfile.Lower,
+			UserProfile.Digits,
+			UserProfile.Special,
+			UserProfile.Firstchar,
+			AllChars,
 		},
 		{
 			"User-16-2-2-2-2-1",
@@ -64,7 +63,7 @@ func TestGenPassword(t *testing.T) {
 			2,
 			2,
 			true,
-			pwlib.AllChars,
+			AllChars,
 		},
 		{
 			"Only-8-UpperAndDigits",
@@ -76,16 +75,16 @@ func TestGenPassword(t *testing.T) {
 			1,
 			0,
 			false,
-			pwlib.UpperChar + pwlib.Digits,
+			UpperChar + Digits,
 		},
 	}
 
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
-			newPassword, err := pwlib.GenPassword(c.length, c.uc, c.lc, c.num, c.sp, c.first)
+			newPassword, err := GenPassword(c.length, c.uc, c.lc, c.num, c.sp, c.first)
 			t.Logf("generated Password: '%s'\n", newPassword)
 			if err == nil {
-				ok := pwlib.DoPasswordCheck(newPassword, c.length, c.uc, c.lc, c.num, c.sp, c.first, c.chars)
+				ok := DoPasswordCheck(newPassword, c.length, c.uc, c.lc, c.num, c.sp, c.first, c.chars)
 				if ok != c.valid {
 					t.Fatalf("invalid password '%s'", newPassword)
 				}
