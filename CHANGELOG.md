@@ -6,11 +6,13 @@
 ### Fixed
 ### Removed
 
-## [v1.4.0 - 2023-XX-YY]
+## [v1.4.0 - 2023-02-21]
 ### New
 - add maillib module
 - add ldap module
 - add ExecuteOsCommand to common
+- move tests to there modules
+- add workflows for sub directories
 
 ## [v1.3.0 - 2023-02-08]
 ### New

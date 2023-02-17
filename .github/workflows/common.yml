@@ -1,10 +1,11 @@
-name: Go
+name: Go Common
 
 on: [push]
-env:
-  SKIP_ORACLE: true
 
 jobs:
+  defaults:
+    run:
+      working-directory: common
   build:
     runs-on: ubuntu-latest
     steps:

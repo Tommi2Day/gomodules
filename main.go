@@ -8,8 +8,8 @@ func main() {
 
 var (
 	Name    = "golibs"
-	Version = "v1.3.0"
-	Date    = "2023-02-09"
+	Version = "v1.4.0"
+	Date    = "2023-02-21"
 )
 
 // GetVersion extract compiled version info
