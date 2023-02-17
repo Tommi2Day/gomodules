@@ -3,10 +3,10 @@ name: Go Common
 on: [push]
 
 jobs:
-  defaults:
-    run:
-      working-directory: common
   build:
+    defaults:
+      run:
+        working-directory: common
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -24,6 +24,9 @@ jobs:
         run: go test -v ./...
 
   lint:
+    defaults:
+      run:
+        working-directory: common
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v3

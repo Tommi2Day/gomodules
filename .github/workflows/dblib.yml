@@ -5,10 +5,10 @@ env:
   SKIP_ORACLE: true
 
 jobs:
-  defaults:
-    run:
-      working-directory: dblib
   build:
+    defaults:
+      run:
+        working-directory: dblib
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,6 +26,9 @@ jobs:
         run: go test -v ./...
 
   lint:
+    defaults:
+      run:
+        working-directory: dblib
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v3

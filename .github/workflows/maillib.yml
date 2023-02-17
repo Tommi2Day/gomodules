@@ -5,10 +5,10 @@ env:
   SKIP_MAIL: true
 
 jobs:
-  defaults:
-    run:
-      working-directory: maillib
   build:
+    defaults:
+      run:
+        working-directory: maillib
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,6 +26,9 @@ jobs:
         run: go test -v ./...
 
   lint:
+    defaults:
+      run:
+        working-directory: maillib
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v3
