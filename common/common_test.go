@@ -1,7 +1,7 @@
-package test
+package common
 
 import (
-	"github.com/tommi2day/gomodules/common"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,7 +36,7 @@ testdp:testuser:xxx:yyy
 func TestReadFileToString(t *testing.T) {
 	// prepare
 	filename := "testdata/stringtest.test"
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	_ = os.Remove(filename)
 	//nolint gosec
@@ -45,18 +45,18 @@ func TestReadFileToString(t *testing.T) {
 
 	// run
 	t.Run("Read File to String", func(t *testing.T) {
-		err := common.ChdirToFile(filename)
+		err := ChdirToFile(filename)
 		if err != nil {
 			t.Fatalf("Cannot chdir to %s", filename)
 		}
 		wd, _ := os.Getwd()
-		// use basename from filename to read as i am in this directory
+		// use basename from filename to read as I am in this directory
 		f := filepath.Base(filename)
 		info, err := os.Stat(f)
 		if err != nil {
 			t.Fatalf("File %s/%s not found: %s", wd, f, err)
 		}
-		content, err := common.ReadFileToString(f)
+		content, err := ReadFileToString(f)
 		expected := info.Size()
 		// need to convert to int64 type to be equal
 		actual := int64(len(content))
@@ -68,7 +68,7 @@ func TestReadFileToString(t *testing.T) {
 func TestReadFileByLine(t *testing.T) {
 	// prepare
 	filename := "testdata/linetest.test"
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	_ = os.Remove(filename)
 	//nolint gosec
@@ -80,17 +80,17 @@ func TestReadFileByLine(t *testing.T) {
 	t.Run("Read File By Lines", func(t *testing.T) {
 		wd, _ := os.Getwd()
 		t.Logf("work in %s", wd)
-		err := common.ChdirToFile(filename)
+		err := ChdirToFile(filename)
 		if err != nil {
 			t.Fatalf("Cannot chdir to %s", filename)
 		}
-		// use basename from filename to read as i am in this directory
+		// use basename from filename to read as I am in this directory
 		f := filepath.Base(filename)
 		_, err = os.Stat(f)
 		if err != nil {
 			t.Fatalf("File %s/%s not found: %s", wd, f, err)
 		}
-		content, err := common.ReadFileByLine(f)
+		content, err := ReadFileByLine(f)
 		expected := len(lines)
 		actual := len(content)
 		assert.NoErrorf(t, err, "Error: %s", err)
@@ -104,19 +104,19 @@ func TestGetEnv(t *testing.T) {
 	fallback := "NotFound"
 	_ = os.Setenv(key, expected)
 	t.Run("Test existing Env", func(t *testing.T) {
-		actual := common.GetEnv(key, fallback)
+		actual := GetEnv(key, fallback)
 		assert.NotEmpty(t, actual, "Value Empty")
 		assert.Equal(t, expected, actual, "value not expected")
 	})
 	t.Run("Test nonexisting Env", func(t *testing.T) {
-		actual := common.GetEnv("NoKey", fallback)
+		actual := GetEnv("NoKey", fallback)
 		assert.NotEmpty(t, actual, "Value Empty")
 		assert.Equal(t, fallback, actual, "value not expected")
 	})
 }
 
 func TestChdirToFile(t *testing.T) {
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := "testdata/chdir.test"
 	wd, _ := os.Getwd()
@@ -125,26 +125,26 @@ func TestChdirToFile(t *testing.T) {
 	expected := filepath.Dir(full)
 
 	t.Run("Test chDir", func(t *testing.T) {
-		err := common.ChdirToFile(filename)
+		err := ChdirToFile(filename)
 		actual, _ := os.Getwd()
 		assert.NoErrorf(t, err, "Chdir failed")
 		assert.NotEmpty(t, actual, "WD Empty")
 		assert.Equalf(t, expected, actual, "value not expected E:%s, A:%s", expected, actual)
 	})
 	t.Run("Test nonexisting Dir", func(t *testing.T) {
-		err := common.ChdirToFile("../xxx/yyy")
+		err := ChdirToFile("../xxx/yyy")
 		assert.Errorf(t, err, "Chdir should fail")
 	})
 }
 
 func TestRemoveSpace(t *testing.T) {
-	test := `
+	d := `
 # abc
 
     def
 
 `
-	actual := common.RemoveSpace(test)
+	actual := RemoveSpace(d)
 	expected := "#abcdef"
 	assert.Equal(t, expected, actual, "Not all withespace removed")
 }
@@ -159,7 +159,7 @@ func TestExecuteOsCommand(t *testing.T) {
 		cmdArg = []string{"/bin/ls"}
 	}
 
-	stdout, stderr, err := common.ExecuteOsCommand(cmdArg, nil)
+	stdout, stderr, err := ExecuteOsCommand(cmdArg, nil)
 	assert.NoErrorf(t, err, "Command got Error: %v", err)
 	assert.Emptyf(t, stderr, "StdErr not empty")
 	assert.NotEmpty(t, stdout, "Output is empty")
