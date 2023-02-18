@@ -3,9 +3,10 @@ package pwlib
 import (
 	"errors"
 	"fmt"
-	"github.com/tommi2day/gomodules/common"
 	"os"
 	"strings"
+
+	"github.com/tommi2day/gomodules/common"
 
 	log "github.com/sirupsen/logrus"
 )

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tommi2day/gomodules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +37,7 @@ testdp:testuser:xxx:yyy
 func TestReadFileToString(t *testing.T) {
 	// prepare
 	filename := "testdata/stringtest.test"
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	_ = os.Remove(filename)
 	//nolint gosec
@@ -67,7 +69,7 @@ func TestReadFileToString(t *testing.T) {
 func TestReadFileByLine(t *testing.T) {
 	// prepare
 	filename := "testdata/linetest.test"
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	_ = os.Remove(filename)
 	//nolint gosec
@@ -115,7 +117,7 @@ func TestGetEnv(t *testing.T) {
 }
 
 func TestChdirToFile(t *testing.T) {
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := "testdata/chdir.test"
 	wd, _ := os.Getwd()

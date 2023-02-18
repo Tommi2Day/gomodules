@@ -11,8 +11,6 @@
 - add maillib module
 - add ldaplib module
 - add ExecuteOsCommand to common
-- move tests to there modules
-- add workflows for sub directories
 
 ## [v1.3.0 - 2023-02-08]
 ### New

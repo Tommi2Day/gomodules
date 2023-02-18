@@ -5,11 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/tommi2day/gomodules/common"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/tommi2day/gomodules/common"
 
 	openssl "github.com/Luzifer/go-openssl/v4"
 	"github.com/stretchr/testify/assert"
@@ -53,10 +55,10 @@ func TestEncryptToDecrypt(t *testing.T) {
 
 func TestPublicEncryptString(t *testing.T) {
 	app := "test_encrypt_String"
-	testdata := TestDir + "/testdata"
+	testdata := test.TestDir + "/testdata"
 	SetConfig(app, testdata, testdata, "Test", typeGO)
 
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	_, _, err = GenRsaKey(PwConfig.PubKeyFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
 	require.NoErrorf(t, err, "Prepare Key failed:%s", err)
@@ -84,11 +86,11 @@ func TestOpensslCompString(t *testing.T) {
 	var cmdout bytes.Buffer
 	var cmderr bytes.Buffer
 	app := "test_openssl_string"
-	testdata := TestDir + "/testdata"
+	testdata := test.TestDir + "/testdata"
 
 	// set env
 	SetConfig(app, testdata, testdata, "Test", typeOpenssl)
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
 	// prepare keys
@@ -173,10 +175,10 @@ func TestOpensslFile(t *testing.T) {
 	var cmderr bytes.Buffer
 
 	app := "test_openssl_file"
-	testdata := TestDir + "/testdata"
+	testdata := test.TestDir + "/testdata"
 	// set env
 	SetConfig(app, testdata, testdata, app, typeOpenssl)
-	err := os.Chdir(TestDir)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := PwConfig.PlainTextFile
 	_ = os.Remove(filename)

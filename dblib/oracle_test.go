@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	ora "github.com/sijms/go-ora/v2"
@@ -11,9 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tommi2day/gomodules/common"
-	"os"
-	"testing"
-	"time"
 )
 
 const DBUSER = "system"
@@ -24,6 +25,7 @@ const repo = "docker.io/gvenzl/oracle-xe"
 const repoTag = "21.3.0-slim"
 const containerName = "dblib-oracle"
 const containerTimeout = 240
+const TESTDATA = "testdata"
 
 var dbhost = common.GetEnv("DB_HOST", "127.0.0.1")
 var connectora = fmt.Sprintf("XE.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=XEPDB1)))", dbhost, port)
@@ -105,7 +107,6 @@ func destroyContainer(pool *dockertest.Pool, dbContainer *dockertest.Resource) {
 	if err := pool.Purge(dbContainer); err != nil {
 		fmt.Printf("Could not purge resource: %s\n", err)
 	}
-
 }
 
 func TestWithOracle(t *testing.T) {
@@ -114,7 +115,7 @@ func TestWithOracle(t *testing.T) {
 	}
 	const alias = "XE.local"
 
-	tnsAdmin := "testdata"
+	tnsAdmin := TESTDATA
 	filename := tnsAdmin + "/connect.ora"
 	//_ = os.Chdir(tnsAdmin)
 	//nolint gosec
@@ -144,7 +145,6 @@ func TestWithOracle(t *testing.T) {
 
 	t.Run("Direct connect", func(t *testing.T) {
 		var db *sql.DB
-
 		t.Logf("connect to %s\n", target)
 		db, err = sql.Open("oracle", target)
 		assert.NoErrorf(t, err, "Open failed: %s", err)
@@ -154,7 +154,6 @@ func TestWithOracle(t *testing.T) {
 	})
 	t.Run("connect with function", func(t *testing.T) {
 		var db *sql.DB
-
 		connect := target
 		t.Logf("connect with %s\n", connect)
 		db, err = DBConnect("oracle", connect, TIMEOUT)
@@ -167,7 +166,6 @@ func TestWithOracle(t *testing.T) {
 	})
 	t.Run("Check tns connect", func(t *testing.T) {
 		var db *sql.DB
-
 		connect := ora.BuildJDBC(DBUSER, DBPASSWORD, desc, urlOptions)
 		t.Logf("connect with %s\n", connect)
 		db, err = DBConnect("oracle", connect, TIMEOUT)

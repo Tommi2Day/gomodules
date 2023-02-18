@@ -2,12 +2,13 @@
 package dblib
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/tommi2day/gomodules/common"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/tommi2day/gomodules/common"
 )
 
 type address struct {
@@ -64,7 +65,6 @@ func GetEntry(alias string, entries TNSEntries, domain string) (e TNSEntry, ok b
 func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	var tnsEntries = make(TNSEntries)
 	var err error
-	var domain = ""
 	var content []string
 	var reIfile = regexp.MustCompile(`(?im)^IFILE\s*=\s*(.*)$`)
 	var reNewEntry = regexp.MustCompile(`(?im)^([\w.]+)\s*=(.*)`)
@@ -73,7 +73,7 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 	// try to find sqlnet ora and read domain
 	tnsDir := filepath.Dir(filename)
-	domain = GetDefaultDomain(tnsDir)
+	domain := GetDefaultDomain(tnsDir)
 
 	// change to current tns file
 	wd, _ := os.Getwd()

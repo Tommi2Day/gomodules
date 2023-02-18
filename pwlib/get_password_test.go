@@ -1,9 +1,11 @@
 package pwlib
 
 import (
-	"github.com/tommi2day/gomodules/common"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"testing"
+
+	"github.com/tommi2day/gomodules/common"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,9 +27,9 @@ func TestCrypt(t *testing.T) {
 	methods := []string{typeGO, typeOpenssl}
 	for _, m := range methods {
 		app := "test_encrypt_" + m
-		SetConfig(app, TestData, TestData, app, m)
+		SetConfig(app, test.TestData, test.TestData, app, m)
 
-		err := os.Chdir(TestDir)
+		err := os.Chdir(test.TestDir)
 		require.NoErrorf(t, err, "ChDir failed")
 		filename := PwConfig.PlainTextFile
 		_ = os.Remove(filename)
@@ -54,8 +56,8 @@ func TestCrypt(t *testing.T) {
 			assert.Equalf(t, expected, actual, "Lines misamtch exp:%d,act:%d", expected, actual)
 		})
 	}
-
 }
+
 func TestGetPassword(t *testing.T) {
 	// prepare
 	type testTableType struct {
@@ -66,8 +68,8 @@ func TestGetPassword(t *testing.T) {
 		hasError bool
 	}
 	app := "test_get_pass"
-	SetConfig(app, TestData, TestData, app, typeGO)
-	err := os.Chdir(TestDir)
+	SetConfig(app, test.TestData, test.TestData, app, typeGO)
+	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := PwConfig.PlainTextFile
 	_ = os.Remove(filename)

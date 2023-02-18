@@ -1,11 +1,13 @@
 package dblib
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const tnsnamesora = `
@@ -73,7 +75,7 @@ const entryCount = 5
 func TestParseTns(t *testing.T) {
 	var err error
 
-	err = os.Chdir(TestDir)
+	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
 	tnsAdmin := "testdata"

@@ -1,11 +1,12 @@
 package ldaplib
 
 import (
-	goldap "github.com/go-ldap/ldap/v3"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	ldap "github.com/go-ldap/ldap/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLdapConfig(t *testing.T) {
@@ -18,9 +19,9 @@ func TestLdapConfig(t *testing.T) {
 	})
 }
 func TestBaseLdap(t *testing.T) {
-	var l *goldap.Conn
+	var l *ldap.Conn
 	var err error
-	var results *goldap.SearchResult
+	var results *ldap.SearchResult
 	if os.Getenv("SKIP_LDAP") != "" {
 		t.Skip("Skipping LDAP testing in CI environment")
 	}
@@ -37,10 +38,10 @@ func TestBaseLdap(t *testing.T) {
 		l, err = Connect("", "")
 		require.NoErrorf(t, err, "anonymous Connect returned error %v", err)
 		assert.NotNilf(t, l, "Ldap Connect is nil")
-		assert.IsType(t, &goldap.Conn{}, l, "returned object ist not ldap connection")
+		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
 	})
 	t.Run("BaseDN Search", func(t *testing.T) {
-		results, err = Search(l, base, "(objectclass=*)", []string{"DN"}, goldap.ScopeBaseObject, goldap.DerefInSearching)
+		results, err = Search(l, base, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
 		require.NoErrorf(t, err, "Search returned error:%v", err)
 		count := len(results.Entries)
 		assert.Greaterf(t, count, 0, "Zero Entries")
@@ -50,5 +51,4 @@ func TestBaseLdap(t *testing.T) {
 			assert.Equal(t, base, dn, "DN not equal to base")
 		}
 	})
-
 }

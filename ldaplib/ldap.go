@@ -1,10 +1,13 @@
+// Package ldaplib collects ldap related functions
 package ldaplib
 
 import (
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
+
+	ldap "github.com/go-ldap/ldap/v3"
 )
 
+// ConfigType helds config properties
 type ConfigType struct {
 	Server       string
 	Port         int
@@ -28,10 +31,13 @@ func SetConfig(server string, port int, tls bool) {
 	ldapConfig.Port = port
 	ldapConfig.TLS = tls
 }
+
+// GetConfig retrievs actual config
 func GetConfig() ConfigType {
 	return ldapConfig
 }
 
+// Connect will authorize to the ldap server
 func Connect(bindDN string, bindPassword string) (*ldap.Conn, error) {
 	// You can also use IP instead of FQDN
 	l, err := ldap.DialURL(fmt.Sprintf("ldap://%s:%d", ldapConfig.Server, ldapConfig.Port))
@@ -69,7 +75,6 @@ func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, sco
 
 	if len(result.Entries) > 0 {
 		return result, nil
-	} else {
-		return nil, fmt.Errorf("no entries found")
 	}
+	return nil, fmt.Errorf("no entries found")
 }

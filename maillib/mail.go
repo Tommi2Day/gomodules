@@ -1,22 +1,25 @@
+// Package maillib collect functions for sending mails
 package maillib
 
 import (
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/wneessen/go-mail"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/wneessen/go-mail"
 )
 
+// MailConfigType stuct for config properties
 type MailConfigType struct {
 	Server      string
 	Port        int
 	Username    string
 	Password    string
-	Tls         bool
+	TLS         bool
 	Maxsize     int64
 	ContentType mail.ContentType
 }
@@ -24,9 +27,10 @@ type MailConfigType struct {
 // mailConfig holds Mails Server Config
 var mailConfig MailConfigType
 
-var files []string = nil
-var sendCC []string = nil
-var sendBcc []string = nil
+var files []string
+var sendTo []string
+var sendCC []string
+var sendBcc []string
 var sendFrom = ""
 
 // SetConfig set Mail server parameter
@@ -35,7 +39,7 @@ func SetConfig(server string, port int, username string, password string, tls bo
 	mailConfig.Port = port
 	mailConfig.Username = username
 	mailConfig.Password = password
-	mailConfig.Tls = tls
+	mailConfig.TLS = tls
 	files = nil
 	sendCC = nil
 	sendBcc = nil
@@ -43,17 +47,17 @@ func SetConfig(server string, port int, username string, password string, tls bo
 	mailConfig.ContentType = mail.TypeTextPlain
 }
 
-// Cc sets the list of comma seperated CC'ed recipents
+// Cc sets the list of comma delimited CC'ed recipents
 func Cc(cclist string) {
 	sendCC = strings.Split(strings.TrimSpace(cclist), ",")
 }
 
-// Bcc sets the list of comma seperated Bcc'ed recipents
+// Bcc sets the list of comma delimited Bcc'ed recipents
 func Bcc(bcclist string) {
 	sendBcc = strings.Split(strings.TrimSpace(bcclist), ",")
 }
 
-// Attach ads list of files (comma seperated full path)
+// Attach ads list of files (comma delimited full path)
 func Attach(filelist string) {
 	files = strings.Split(strings.TrimSpace(filelist), ",")
 }
@@ -73,38 +77,16 @@ func GetConfig() MailConfigType {
 	return mailConfig
 }
 
-// SendMail send a mail with the given content
-func SendMail(from string, to string, subject string, text string) (err error) {
+// buildRecipients add recipients to mail
+func buildRecipients(m *mail.Msg) (err error) {
 	var errtxt string
-	var sendTo []string
-	var c *mail.Client
-	sendTo = strings.Split(strings.TrimSpace(to), ",")
-	sendFrom = strings.TrimSpace(from)
-	if sendTo == nil {
-		errtxt = "Cannot send Mail without email address"
-		err = errors.New(errtxt)
-		log.Errorf(errtxt)
-		return
-	}
-
-	// create message
-	m := mail.NewMsg()
-	m.SetDate()
-
-	// set from address
-	if len(sendFrom) > 0 {
-		if err = m.From(sendFrom); err != nil {
-			errtxt = fmt.Sprintf("failed to set From address %s:%v", sendFrom, err)
-			log.Warn(errtxt)
-		}
-		_ = m.ReplyTo(sendFrom)
-	}
 	// add recipients
 	for _, r := range sendTo {
 		if err = m.AddTo(r); err != nil {
 			errtxt = fmt.Sprintf("failed to set To address %s:%v", r, err)
 			err = errors.New(errtxt)
 			log.Errorf(errtxt)
+			return
 		}
 	}
 	if len(sendCC) > 0 {
@@ -113,6 +95,7 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 				errtxt = fmt.Sprintf("failed to set CC address%s:%v", cc, err)
 				err = errors.New(errtxt)
 				log.Errorf(errtxt)
+				return
 			}
 		}
 	}
@@ -130,7 +113,38 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 		return
 	}
 	log.Debug("Mail: Recipients added")
+	return
+}
 
+// SendMail send a mail with the given content
+func SendMail(from string, to string, subject string, text string) (err error) {
+	var errtxt string
+	var c *mail.Client
+	sendTo = strings.Split(strings.TrimSpace(to), ",")
+	sendFrom = strings.TrimSpace(from)
+	if sendTo == nil {
+		errtxt = "cannot send Mail without email address"
+		err = errors.New(errtxt)
+		log.Errorf(errtxt)
+		return
+	}
+
+	// create message
+	m := mail.NewMsg()
+	m.SetDate()
+
+	// set from address
+	if len(sendFrom) > 0 {
+		if err = m.From(sendFrom); err != nil {
+			errtxt = fmt.Sprintf("failed to set From address %s:%v", sendFrom, err)
+			log.Warn(errtxt)
+		}
+		_ = m.ReplyTo(sendFrom)
+	}
+
+	if err = buildRecipients(m); err != nil {
+		return
+	}
 	// set content
 	m.Subject(subject)
 	m.SetBodyString(mailConfig.ContentType, text)
@@ -146,20 +160,18 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 			if maxsize == 0 {
 				m.AttachFile(fn, mail.WithFileName(filepath.Base(fn)))
 			} else {
+				//nolint gosec
 				f, oserr := os.Open(fn)
 				if oserr != nil {
 					errtxt = fmt.Sprintf("Cannot read %s: %v", fn, oserr)
 					err = errors.New(errtxt)
 					log.Error(errtxt)
 					return
-				} else {
-					lr := io.LimitReader(f, maxsize)
-					m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
-					_ = f.Close()
 				}
-
+				lr := io.LimitReader(f, maxsize)
+				m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
+				_ = f.Close()
 			}
-
 		}
 	}
 
@@ -171,8 +183,8 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 		log.Error(errtxt)
 		return
 	}
-	if mailConfig.Tls {
-		c.SetSSL(mailConfig.Tls)
+	if mailConfig.TLS {
+		c.SetSSL(mailConfig.TLS)
 		log.Debug("Mail: Use SSL")
 	}
 	if len(mailConfig.Username) > 0 && len(mailConfig.Password) > 0 {

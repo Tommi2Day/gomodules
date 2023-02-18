@@ -143,6 +143,7 @@ func RemoveSpace(s string) string {
 func ExecuteOsCommand(cmdArgs []string, stdIn io.Reader) (stdOut string, stdErr string, err error) {
 	var cmdOut bytes.Buffer
 	var cmdErr bytes.Buffer
+	//nolint gosec
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	cmdOut.Reset()
 	cmdErr.Reset()

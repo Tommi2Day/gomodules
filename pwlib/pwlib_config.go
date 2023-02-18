@@ -1,8 +1,9 @@
 package pwlib
 
 import (
-	"github.com/Luzifer/go-openssl/v4"
 	"os"
+
+	"github.com/Luzifer/go-openssl/v4"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -12,6 +13,8 @@ const (
 	typeGO            = "go"
 	typeOpenssl       = "openssl"
 	defaultMethod     = typeGO
+	extGo             = "gp"
+	extOpenssl        = "pw"
 )
 
 // PassConfig Type for encryption configuration
@@ -40,10 +43,10 @@ var SSLDigest = openssl.BytesToKeySHA256
 
 // SetConfig set encryption configuration
 func SetConfig(appname string, datadir string, keydir string, keypass string, method string) {
+	var ext string
 	log.Debug("SetConfig entered")
 	log.Debugf("A:%s, P:%s, D:%s, K:%s, M:%s", appname, keypass, datadir, keydir, method)
 	// default names
-	ext := "gp"
 	wd, _ := os.Getwd()
 	etc := wd + "/etc"
 	if datadir == "" {
@@ -58,14 +61,15 @@ func SetConfig(appname string, datadir string, keydir string, keypass string, me
 	if method == "" {
 		method = defaultMethod
 	}
-	if method == typeOpenssl {
-		ext = "pw"
-	} else if method == typeGO {
-		ext = "gp"
-	} else {
+	switch method {
+	case typeOpenssl:
+		ext = extOpenssl
+	case typeGO:
+		ext = extGo
+	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)
 		method = defaultMethod
-		ext = "gp"
+		ext = extGo
 	}
 	cryptedfile := datadir + "/" + appname + "." + ext
 	privatekeyfile := keydir + "/" + appname + ".pem"

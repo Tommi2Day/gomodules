@@ -2,10 +2,11 @@ package maillib
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const FROM = "golibtest@localhost"
@@ -17,7 +18,7 @@ func TestSetMailConfig(t *testing.T) {
 		assert.Equal(t, "127.0.0.1", actual.Server, "Server default entry not equal")
 		assert.Equal(t, 25, actual.Port, "Port entry should be default")
 		assert.Empty(t, actual.Username, "Username entry should not set")
-		assert.False(t, actual.Tls, "TLS entry should be false")
+		assert.False(t, actual.TLS, "TLS entry should be false")
 	})
 	t.Run("Test SetConfig", func(t *testing.T) {
 		SetConfig("test.example.com", 587, "testuser", "Testpass", true)
@@ -26,7 +27,7 @@ func TestSetMailConfig(t *testing.T) {
 		assert.Equal(t, 587, actual.Port, "Port entry not equal")
 		assert.Equal(t, "testuser", actual.Username, "Username entry not equal")
 		assert.Equal(t, "Testpass", actual.Password, "Password entry not equal")
-		assert.True(t, actual.Tls, "TLS entry not set")
+		assert.True(t, actual.TLS, "TLS entry not set")
 	})
 	t.Run("Check SetMaxsize", func(t *testing.T) {
 		SetMaxSize(2048)
@@ -38,11 +39,11 @@ func TestSetMailConfig(t *testing.T) {
 func TestSendMailError(t *testing.T) {
 	SetConfig("test.example.com", 587, "testuser", "Testpass", true)
 	t.Run("Send Mail with wrong email", func(t *testing.T) {
-		err := SendMail("dummy.local", "root", "TestMail", "My Message")
+		err := SendMail("dummy@local", "root", "TestMail", "My Message")
 		assert.Errorf(t, err, "Error: %v", err)
 	})
 	t.Run("Send Mail with Send Error", func(t *testing.T) {
-		err := SendMail("dummy.local", "root@example.com", "TestMail", "My Message")
+		err := SendMail("dummy@local", "root@example.com", "TestMail", "My Message")
 		assert.Errorf(t, err, "Error: %v", err)
 	})
 }
