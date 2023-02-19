@@ -2,6 +2,7 @@
 package ldaplib
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	ldap "github.com/go-ldap/ldap/v3"
@@ -9,17 +10,17 @@ import (
 
 // ConfigType helds config properties
 type ConfigType struct {
-	Server       string
-	Port         int
-	TLS          bool
-	BindDN       string
-	BindPassword string
+	Server   string
+	Port     int
+	URL      string
+	TLS      bool
+	Insecure bool
 }
 
 var ldapConfig ConfigType
 
 // SetConfig defines common connection parameter
-func SetConfig(server string, port int, tls bool) {
+func SetConfig(server string, port int, tls bool, insecure bool) {
 	if port == 0 {
 		if tls {
 			port = 636
@@ -30,6 +31,11 @@ func SetConfig(server string, port int, tls bool) {
 	ldapConfig.Server = server
 	ldapConfig.Port = port
 	ldapConfig.TLS = tls
+	ldapConfig.Insecure = insecure
+	ldapConfig.URL = fmt.Sprintf("ldap://%s:%d", ldapConfig.Server, ldapConfig.Port)
+	if tls {
+		ldapConfig.URL = fmt.Sprintf("ldaps://%s:%d", ldapConfig.Server, ldapConfig.Port)
+	}
 }
 
 // GetConfig retrievs actual config
@@ -38,9 +44,15 @@ func GetConfig() ConfigType {
 }
 
 // Connect will authorize to the ldap server
-func Connect(bindDN string, bindPassword string) (*ldap.Conn, error) {
+func Connect(bindDN string, bindPassword string) (l *ldap.Conn, err error) {
 	// You can also use IP instead of FQDN
-	l, err := ldap.DialURL(fmt.Sprintf("ldap://%s:%d", ldapConfig.Server, ldapConfig.Port))
+	if ldapConfig.Insecure {
+		//nolint gosec
+		l, err = ldap.DialURL(ldapConfig.URL, ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: true}))
+	} else {
+		l, err = ldap.DialURL(ldapConfig.URL)
+	}
+
 	if err != nil {
 		return nil, err
 	}
