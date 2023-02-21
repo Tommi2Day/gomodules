@@ -183,9 +183,13 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 		log.Error(errtxt)
 		return
 	}
+	c.SetSSL(mailConfig.TLS)
 	if mailConfig.TLS {
-		c.SetSSL(mailConfig.TLS)
+		c.SetTLSPolicy(mail.TLSOpportunistic)
 		log.Debug("Mail: Use SSL")
+	} else {
+		c.SetTLSPolicy(mail.NoTLS)
+		log.Debug("Mail: Not Using SSL")
 	}
 	if len(mailConfig.Username) > 0 && len(mailConfig.Password) > 0 {
 		c.SetUsername(mailConfig.Username)

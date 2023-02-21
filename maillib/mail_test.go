@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const FROM = "golibtest@localhost"
+const FROM = "golibtest@intern.tdressler.net"
 
 func TestSetMailConfig(t *testing.T) {
 	t.Run("Test mailConfig defaults", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TestSetMailConfig(t *testing.T) {
 }
 
 func TestSendMailError(t *testing.T) {
-	SetConfig("test.example.com", 587, "testuser", "Testpass", true)
+	SetConfig("test.example.com", 25, "testuser", "Testpass", true)
 	t.Run("Send Mail with wrong email", func(t *testing.T) {
 		err := SendMail("dummy@local", "root", "TestMail", "My Message")
 		assert.Errorf(t, err, "Error: %v", err)
@@ -53,12 +53,25 @@ func TestSendMail(t *testing.T) {
 		t.Skip("Skipping Mail testing in CI environment")
 	}
 	server := os.Getenv("MAIL_SERVER")
+	to := os.Getenv("MAIL_TO")
 	if len(server) == 0 {
 		server = "localhost"
 	}
-	SetConfig(server, 25, "", "", false)
-	h := time.Now()
-	timeStr := h.Format("15:04:05")
-	err := SendMail(FROM, "root@localhost", "Testmail", fmt.Sprintf("Test at %s", timeStr))
-	assert.NoErrorf(t, err, "Sendmail returned error %v", err)
+	if len(to) == 0 {
+		to = "root@localhost"
+	}
+	t.Run("Send Mail anonym", func(t *testing.T) {
+		SetConfig(server, 25, "", "", false)
+		h := time.Now()
+		timeStr := h.Format("15:04:05")
+		err := SendMail(FROM, to, "Testmail", fmt.Sprintf("Test at %s", timeStr))
+		assert.NoErrorf(t, err, "Sendmail returned error %v", err)
+	})
+	t.Run("Send Mail anonym TLS", func(t *testing.T) {
+		SetConfig(server, 465, "", "", true)
+		h := time.Now()
+		timeStr := h.Format("15:04:05")
+		err := SendMail(FROM, to, "Testmail", fmt.Sprintf("Test with ssl at %s", timeStr))
+		assert.NoErrorf(t, err, "Sendmail returned error %v", err)
+	})
 }
