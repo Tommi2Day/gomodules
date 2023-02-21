@@ -1,4 +1,4 @@
-name: Go Main
+name: CI
 
 on: [push]
 

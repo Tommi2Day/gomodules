@@ -1,4 +1,8 @@
-# Common Go Libraries
+# Go Modules
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/tommi2day/gomodules)](https://goreportcard.com/report/github.com/tommi2day/gomodules) 
+![CI](https://github.com/tommi2day/gomodules/actions/workflows/main.yml/badge.svg)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/tommi2day/gomodules)
 
 this is a collection of often used functions
 
