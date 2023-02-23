@@ -15,12 +15,13 @@ type ConfigType struct {
 	URL      string
 	TLS      bool
 	Insecure bool
+	BaseDN   string
 }
 
 var ldapConfig ConfigType
 
 // SetConfig defines common connection parameter
-func SetConfig(server string, port int, tls bool, insecure bool) {
+func SetConfig(server string, port int, tls bool, insecure bool, basedn string) {
 	if port == 0 {
 		if tls {
 			port = 636
@@ -36,6 +37,7 @@ func SetConfig(server string, port int, tls bool, insecure bool) {
 	if tls {
 		ldapConfig.URL = fmt.Sprintf("ldaps://%s:%d", ldapConfig.Server, ldapConfig.Port)
 	}
+	ldapConfig.BaseDN = basedn
 }
 
 // GetConfig retrievs actual config
@@ -68,7 +70,12 @@ func Connect(bindDN string, bindPassword string) (l *ldap.Conn, err error) {
 }
 
 // Search do a search on ldap
-func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, scope int, deref int) (*ldap.SearchResult, error) {
+func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, scope int, deref int) (entries []*ldap.Entry, err error) {
+	var result *ldap.SearchResult
+	if l == nil {
+		err = fmt.Errorf("ldap delete no valid ldap handler")
+		return
+	}
 	searchReq := ldap.NewSearchRequest(
 		baseDN,
 		scope, // https://pkg.go.dev/github.com/go-ldap/ldap/v3@v3.4.4#ScopeWholeSubtree
@@ -80,13 +87,99 @@ func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, sco
 		attributes,
 		nil,
 	)
-	result, err := l.Search(searchReq)
-	if err != nil {
-		return nil, fmt.Errorf("search Error: %s", err)
-	}
 
-	if len(result.Entries) > 0 {
-		return result, nil
+	result, err = l.Search(searchReq)
+	if err != nil {
+		if ldap.IsErrorWithCode(err, 32) {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return nil, fmt.Errorf("no entries found")
+	entries = result.Entries
+	return
+}
+
+func DeleteEntry(l *ldap.Conn, dn string) (err error) {
+	if l == nil {
+		err = fmt.Errorf("ldap delete no valid ldap handler")
+		return
+	}
+	if len(dn) == 0 {
+		err = fmt.Errorf("ldap delete dn empty")
+		return
+	}
+	req := ldap.NewDelRequest(dn, nil)
+	err = l.Del(req)
+	return
+}
+
+func AddEntry(l *ldap.Conn, dn string, attr []ldap.Attribute) (err error) {
+	if l == nil {
+		err = fmt.Errorf("ldap delete no valid ldap handler")
+		return
+	}
+	if len(dn) == 0 {
+		err = fmt.Errorf("ldap delete dn empty")
+		return
+	}
+	if len(attr) == 0 {
+		err = fmt.Errorf("ldap add attributes empty")
+		return
+	}
+	req := ldap.NewAddRequest(dn, nil)
+	for _, a := range attr {
+		req.Attribute(a.Type, a.Vals)
+	}
+	err = l.Add(req)
+	return
+}
+
+func ModifyAttribute(l *ldap.Conn, dn string, modtype string, name string, values []string) (err error) {
+	if l == nil {
+		err = fmt.Errorf("ldap modify no valid ldap handler")
+		return
+	}
+	if len(dn) == 0 {
+		err = fmt.Errorf("ldap modify dn empty")
+		return
+	}
+	if len(name) == 0 {
+		err = fmt.Errorf("ldap modify attribute name empty")
+		return
+	}
+	if len(values) == 0 {
+		err = fmt.Errorf("ldap modify values empty")
+		return
+	}
+	req := ldap.NewModifyRequest(dn, nil)
+	switch modtype {
+	case "add":
+		req.Add(name, values)
+	case "modify":
+		req.Replace(name, values)
+	case "replace":
+		req.Replace(name, values)
+	case "delete":
+		req.Delete(name, values)
+	case "increment":
+		req.Increment(name, values[0])
+	default:
+		err = fmt.Errorf("ldap modify unknow type %s", modtype)
+		return
+	}
+	err = l.Modify(req)
+	return
+}
+
+// SetPassword changes an existing password to the given or generated value
+func SetPassword(l *ldap.Conn, dn string, oldPass string, newPass string) (generatedPass string, err error) {
+	passwdModReq := ldap.NewPasswordModifyRequest(dn, oldPass, newPass)
+	passwdModResp, err := l.PasswordModify(passwdModReq)
+	if err != nil {
+		return
+	}
+	if newPass == "" {
+		generatedPass = passwdModResp.GeneratedPassword
+	}
+	return
 }
