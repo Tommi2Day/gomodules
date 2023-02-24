@@ -8,6 +8,8 @@ import (
 )
 
 // DoPasswordCheck Checks a password to given criteria
+//
+//gocyclo:ignore
 func DoPasswordCheck(password string, length int, upper int, lower int, numeric int, special int, firstCharCheck bool, allowedChars string) bool {
 	// var ls = true
 	var ucs = true

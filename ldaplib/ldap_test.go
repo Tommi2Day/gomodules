@@ -80,15 +80,14 @@ func TestBaseLdap(t *testing.T) {
 	userPass := "testPass"
 
 	t.Run("Add Entry", func(t *testing.T) {
-		var Attributes []ldap.Attribute
-		Attributes = append(Attributes, ldap.Attribute{Type: "objectClass", Vals: []string{"top", "iNetOrgPerson"}})
-		Attributes = append(Attributes, ldap.Attribute{Type: "cn", Vals: []string{"testuser"}})
-		Attributes = append(Attributes, ldap.Attribute{Type: "sn", Vals: []string{"User"}})
-		Attributes = append(Attributes, ldap.Attribute{Type: "gn", Vals: []string{"Test"}})
-		// Attributes =append(Attributes,ldap.Attribute{Type: "uid", Vals: []string{ "c666f5ab-1b26-4421-9eb1-50775ed96hf6" }})
-		Attributes = append(Attributes, ldap.Attribute{Type: "mail", Vals: []string{"testuser@" + LdapDomain}})
-		//Attributes = append(Attributes, ldap.Attribute{Type: "userPassword", Vals: []string{"{crypt}x"}})
-		err = AddEntry(l, userDN, Attributes)
+		var attributes []ldap.Attribute
+		attributes = append(attributes, ldap.Attribute{Type: "objectClass", Vals: []string{"top", "iNetOrgPerson"}})
+		attributes = append(attributes, ldap.Attribute{Type: "cn", Vals: []string{"testuser"}})
+		attributes = append(attributes, ldap.Attribute{Type: "sn", Vals: []string{"User"}})
+		attributes = append(attributes, ldap.Attribute{Type: "gn", Vals: []string{"Test"}})
+		attributes = append(attributes, ldap.Attribute{Type: "mail", Vals: []string{"testuser@" + LdapDomain}})
+
+		err = AddEntry(l, userDN, attributes)
 		assert.NoErrorf(t, err, "Add User failed")
 		_, err = SetPassword(l, userDN, "", userPass)
 		require.NoErrorf(t, err, "Test Bind fix Pass returned error %v", err)
@@ -124,7 +123,7 @@ func TestBaseLdap(t *testing.T) {
 		t.Logf("generated Password: %s", genPass)
 		l.Close()
 
-		//reconnect with new password
+		// reconnect with new password
 		l, err = Connect(userDN, genPass)
 		assert.NoErrorf(t, err, "Test Bind with generated password returned error %v", err)
 		if l != nil {
@@ -138,6 +137,8 @@ func TestBaseLdap(t *testing.T) {
 		assert.NotNilf(t, l, "Ldap Connect is nil")
 		err = DeleteEntry(l, userDN)
 		assert.NoErrorf(t, err, "Deleting failed")
+
+		// check if we can find the dropped DN
 		entries, err = Search(l, userDN, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
 		assert.NoErrorf(t, err, "Should not return any error as no data error was removed")
 		assert.Equalf(t, 0, len(entries), "Should return no one entry")

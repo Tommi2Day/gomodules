@@ -6,6 +6,11 @@
 ### Fixed
 ### Removed
 
+## [v1.5.0 - 2023-02-24]
+### New
+- ldaplib: add write functions and tests
+- dblib: add TNS Ldap read and write functions and tests
+
 ## [v1.4.0 - 2023-02-21]
 ### New
 - add maillib module

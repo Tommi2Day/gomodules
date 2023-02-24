@@ -28,21 +28,39 @@ type TNSEntry struct {
 // TNSEntries Map of tns entries
 type TNSEntries map[string]TNSEntry
 
-func checkSkip(line string) (skip bool) {
-	skip = true
-	found := false
-	reEmpty := regexp.MustCompile(`\S`)
-	reComment := regexp.MustCompile(`^#`)
-	found = reEmpty.MatchString(line)
-	if !found {
-		return
+// BuildTnsEntry build map for entry
+func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
+	var service = ""
+	reService := regexp.MustCompile(`(?mi)SERVICE_NAME\s*=\s*([\w.]+)`)
+	s := reService.FindStringSubmatch(desc)
+	if len(s) > 1 {
+		service = s[1]
 	}
-	found = reComment.MatchString(line)
-	if found {
-		return
+	entry := TNSEntry{Name: tnsAlias, Desc: desc, File: filename, Service: service, Servers: getServers(desc)}
+	log.Debugf("found TNS Alias %s", tnsAlias)
+	return entry
+}
+
+// GetDefaultDomain extract names_default_domain from sqlnet.ora
+func GetDefaultDomain(path string) (domain string) {
+	filename := "sqlnet.ora"
+	if path != "" {
+		filename = path + "/" + filename
 	}
-	skip = false
-	return
+	content, err := common.ReadFileToString(filename)
+	if err != nil {
+		log.Debugf("Cannot read %s, assume no default domain", filename)
+		return ""
+	}
+	reg := regexp.MustCompile(`(?im)^NAMES.DEFAULT_DOMAIN\s*=\s*([\w.]*)`)
+	result := reg.FindStringSubmatch(content)
+	if len(result) == 0 {
+		log.Debugf("no default domain defined in %s", filename)
+		return ""
+	}
+	domain = result[1]
+	log.Infof("default domain: %s", domain)
+	return domain
 }
 
 // GetEntry matches given string to tns entries using with domain part and without
@@ -113,7 +131,7 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 		if i > 0 {
 			// save previous entry
 			if len(tnsAlias) > 0 && len(desc) > 0 {
-				tnsEntries[tnsAlias] = buildEntry(filename, desc, tnsAlias)
+				tnsEntries[tnsAlias] = BuildTnsEntry(filename, desc, tnsAlias)
 			}
 			// new entry
 			tnsAlias = strings.ToUpper(newEntry[1])
@@ -127,7 +145,7 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 	// save last entry
 	if len(tnsAlias) > 0 && len(desc) > 0 {
-		tnsEntries[tnsAlias] = buildEntry(filename, desc, tnsAlias)
+		tnsEntries[tnsAlias] = BuildTnsEntry(filename, desc, tnsAlias)
 	}
 
 	// chdir back
@@ -135,7 +153,25 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	return tnsEntries, domain, err
 }
 
-// read ifile recursive
+// checkSkip returns if a line might be skipped
+func checkSkip(line string) (skip bool) {
+	skip = true
+	found := false
+	reEmpty := regexp.MustCompile(`\S`)
+	reComment := regexp.MustCompile(`^#`)
+	found = reEmpty.MatchString(line)
+	if !found {
+		return
+	}
+	found = reComment.MatchString(line)
+	if found {
+		return
+	}
+	skip = false
+	return
+}
+
+// getIfile read ifile recursive
 func getIfile(filename string, recursiv bool) (entries TNSEntries, err error) {
 	wd, _ := os.Getwd()
 	log.Debugf("read ifile %s, wd=%s", filename, wd)
@@ -143,20 +179,7 @@ func getIfile(filename string, recursiv bool) (entries TNSEntries, err error) {
 	return
 }
 
-// build map for entry
-func buildEntry(filename string, desc string, tnsAlias string) TNSEntry {
-	var service = ""
-	reService := regexp.MustCompile(`(?mi)SERVICE_NAME\s*=\s*([\w.]+)`)
-	s := reService.FindStringSubmatch(desc)
-	if len(s) > 1 {
-		service = s[1]
-	}
-	entry := TNSEntry{Name: tnsAlias, Desc: desc, File: filename, Service: service, Servers: getServers(desc)}
-	log.Debugf("found TNS Alias %s", tnsAlias)
-	return entry
-}
-
-// extract address part
+// getServers extract address part
 func getServers(tnsDesc string) (servers []address) {
 	re := regexp.MustCompile(`(?m)HOST\s*=\s*([\w.]+)\s*\)\s*\(\s*PORT\s*=\s*(\d+)`)
 	match := re.FindAllStringSubmatch(tnsDesc, -1)
@@ -171,26 +194,4 @@ func getServers(tnsDesc string) (servers []address) {
 		}
 	}
 	return
-}
-
-// GetDefaultDomain extract names_default_domain from sqlnet.ora
-func GetDefaultDomain(path string) (domain string) {
-	filename := "sqlnet.ora"
-	if path != "" {
-		filename = path + "/" + filename
-	}
-	content, err := common.ReadFileToString(filename)
-	if err != nil {
-		log.Debugf("Cannot read %s, assume no default domain", filename)
-		return ""
-	}
-	reg := regexp.MustCompile(`(?im)^NAMES.DEFAULT_DOMAIN\s*=\s*([\w.]*)`)
-	result := reg.FindStringSubmatch(content)
-	if len(result) == 0 {
-		log.Debugf("no default domain defined in %s", filename)
-		return ""
-	}
-	domain = result[1]
-	log.Infof("default domain: %s", domain)
-	return domain
 }

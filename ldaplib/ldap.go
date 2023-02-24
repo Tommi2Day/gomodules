@@ -99,6 +99,7 @@ func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, sco
 	return
 }
 
+// DeleteEntry deletes given DN from Ldap
 func DeleteEntry(l *ldap.Conn, dn string) (err error) {
 	if l == nil {
 		err = fmt.Errorf("ldap delete no valid ldap handler")
@@ -113,6 +114,7 @@ func DeleteEntry(l *ldap.Conn, dn string) (err error) {
 	return
 }
 
+// AddEntry creates a new Entry
 func AddEntry(l *ldap.Conn, dn string, attr []ldap.Attribute) (err error) {
 	if l == nil {
 		err = fmt.Errorf("ldap delete no valid ldap handler")
@@ -134,6 +136,7 @@ func AddEntry(l *ldap.Conn, dn string, attr []ldap.Attribute) (err error) {
 	return
 }
 
+// ModifyAttribute add, replaces or deletes one Attribute of an Entry
 func ModifyAttribute(l *ldap.Conn, dn string, modtype string, name string, values []string) (err error) {
 	if l == nil {
 		err = fmt.Errorf("ldap modify no valid ldap handler")
