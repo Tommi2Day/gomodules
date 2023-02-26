@@ -25,9 +25,9 @@ type TWorkStatus map[string]int
 
 // LdapServer  covers properties from one server in ldap.ora
 type LdapServer struct {
-	hostname string
-	port     int
-	sslport  int
+	Hostname string
+	Port     int
+	SSLPort  int
 }
 
 // ReadLdapTns read tns entries from ldap
@@ -93,7 +93,7 @@ func ReadLdapOra(path string) (ctx string, servers []LdapServer) {
 		if len(f) > 2 {
 			ssl, _ = strconv.Atoi(f[2])
 		}
-		server := LdapServer{hostname: host, port: port, sslport: ssl}
+		server := LdapServer{Hostname: host, Port: port, SSLPort: ssl}
 		servers = append(servers, server)
 	}
 	log.Debugf("CTX: %s, Servers %v", ctx, servers)

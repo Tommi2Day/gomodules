@@ -77,11 +77,11 @@ func TestOracleLdap(t *testing.T) {
 		if l == e {
 			s := ldapservers[0]
 			expected := "oid:1389:1636"
-			actual := fmt.Sprintf("%s:%d:%d", s.hostname, s.port, s.sslport)
+			actual := fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
 			assert.Equal(t, expected, actual, "ldap entry 1 not match")
 			s = ldapservers[1]
 			expected = "ldap:389:0"
-			actual = fmt.Sprintf("%s:%d:%d", s.hostname, s.port, s.sslport)
+			actual = fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
 			assert.Equal(t, expected, actual, "ldap entry 2 not match")
 		}
 	})
