@@ -44,7 +44,7 @@ func TestWithOracle(t *testing.T) {
 	_ = os.WriteFile(filename, []byte(connectora), 0644)
 
 	t.Logf("load from %s", filename)
-	domain := GetDefaultDomain(tnsAdmin)
+	domain, _ := ReadSqlnetOra(tnsAdmin)
 	t.Logf("Default Domain: '%s'", domain)
 
 	tnsEntries, d2, err := GetTnsnames(filename, true)

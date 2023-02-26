@@ -2,6 +2,8 @@ package dblib
 
 import (
 	"fmt"
+	"gopkg.in/ini.v1"
+	"strconv"
 	"strings"
 
 	ldap "github.com/go-ldap/ldap/v3"
@@ -19,6 +21,11 @@ const (
 
 // TWorkStatus structure to handover statistics
 type TWorkStatus map[string]int
+type LdapServer struct {
+	hostname string
+	port     int
+	sslport  int
+}
 
 // ReadLdapTns read tns entries from ldap
 func ReadLdapTns(ldapCon *ldap.Conn, contextDN string) (TNSEntries, error) {
@@ -58,6 +65,38 @@ func ReadLdapTns(ldapCon *ldap.Conn, contextDN string) (TNSEntries, error) {
 	return tnsEntries, nil
 }
 
+// ReadLdapOra Reads ldap ora and returns servers and context
+func ReadLdapOra(path string) (ctx string, servers []LdapServer) {
+	filename := path + "/ldap.ora"
+	ctx = ""
+	host := ""
+	port := 0
+	ssl := 0
+	cfg, err := ini.InsensitiveLoad(filename)
+	if err != nil {
+		log.Debugf("Cannot Read ldap.ora at %s", filename)
+		return
+	}
+	ctx = cfg.Section("").Key(strings.ToLower("DEFAULT_ADMIN_CONTEXT")).String()
+	srv := cfg.Section("").Key(strings.ToLower("DIRECTORY_SERVERS")).String()
+	replacer := strings.NewReplacer("(", "", ")", "", " ", "")
+	srv = replacer.Replace(srv)
+	srvs := strings.Split(srv, ",")
+	for _, e := range srvs {
+		f := strings.Split(e, ":")
+		host = f[0]
+		port, _ = strconv.Atoi(f[1])
+		ssl = 0
+		if len(f) > 2 {
+			ssl, _ = strconv.Atoi(f[2])
+		}
+		server := LdapServer{hostname: host, port: port, sslport: ssl}
+		servers = append(servers, server)
+	}
+	log.Debugf("CTX: %s, Servers %v", ctx, servers)
+	return
+}
+
 // GetOracleContext retrieve next OracleContext Object from LDAP
 func GetOracleContext(ldapCon *ldap.Conn, basedn string) (contextDN string, err error) {
 	ldapFilter := fmt.Sprintf("(objectClass=%s)", ldap.EscapeFilter("orclContext"))
@@ -76,7 +115,7 @@ func GetOracleContext(ldapCon *ldap.Conn, basedn string) (contextDN string, err 
 	return
 }
 
-// buildstatus creates a ops task map to handle
+// buildstatus creates ops task map to handle
 func buildStatusMap(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, contextDN string) (TNSEntries, map[string]string, error) {
 	var alias string
 	ldapstatus := map[string]string{}
@@ -94,7 +133,8 @@ func buildStatusMap(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, co
 		alias = t.Name
 		l, valid := GetEntry(alias, ldapTNS, domain)
 		if valid {
-			if l.Desc == t.Desc {
+			comp := strings.Compare(l.Desc, t.Desc)
+			if comp == 0 {
 				ldapstatus[alias] = sOK
 				log.Debugf("Alias %s exists and is equal", alias)
 				continue
@@ -205,7 +245,7 @@ func AddLdapTNSEntry(ldapCon *ldap.Conn, context string, alias string, desc stri
 // ModifyLdapTNSEntry replace n existing entry
 func ModifyLdapTNSEntry(ldapCon *ldap.Conn, dn string, alias string, desc string) (err error) {
 	log.Debugf("Add Ldap Entry for alias %s", alias)
-	err = ldaplib.ModifyAttribute(ldapCon, dn, "replace", "orclNetDescStrin", []string{desc})
+	err = ldaplib.ModifyAttribute(ldapCon, dn, "replace", "orclNetDescString", []string{desc})
 	return
 }
 

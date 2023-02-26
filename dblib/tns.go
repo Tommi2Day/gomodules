@@ -2,6 +2,8 @@
 package dblib
 
 import (
+	"fmt"
+	"gopkg.in/ini.v1"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,7 +13,7 @@ import (
 	"github.com/tommi2day/gomodules/common"
 )
 
-type address struct {
+type TNSAddress struct {
 	Host string
 	Port string
 }
@@ -22,7 +24,7 @@ type TNSEntry struct {
 	Desc    string
 	File    string
 	Service string
-	Servers []address
+	Servers []TNSAddress
 }
 
 // TNSEntries Map of tns entries
@@ -36,31 +38,26 @@ func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
 	if len(s) > 1 {
 		service = s[1]
 	}
-	entry := TNSEntry{Name: tnsAlias, Desc: desc, File: filename, Service: service, Servers: getServers(desc)}
+	servers := getServers(desc)
+	entry := TNSEntry{Name: tnsAlias, Desc: desc, File: filename, Service: service, Servers: servers}
 	log.Debugf("found TNS Alias %s", tnsAlias)
 	return entry
 }
-
-// GetDefaultDomain extract names_default_domain from sqlnet.ora
-func GetDefaultDomain(path string) (domain string) {
-	filename := "sqlnet.ora"
-	if path != "" {
-		filename = path + "/" + filename
-	}
-	content, err := common.ReadFileToString(filename)
+func ReadSqlnetOra(path string) (domain string, namesPath []string) {
+	filename := path + "/sqlnet.ora"
+	domain = ""
+	cfg, err := ini.InsensitiveLoad(filename)
 	if err != nil {
-		log.Debugf("Cannot read %s, assume no default domain", filename)
-		return ""
+		log.Debugf("cannot Read %s", filename)
+		return
 	}
-	reg := regexp.MustCompile(`(?im)^NAMES.DEFAULT_DOMAIN\s*=\s*([\w.]*)`)
-	result := reg.FindStringSubmatch(content)
-	if len(result) == 0 {
-		log.Debugf("no default domain defined in %s", filename)
-		return ""
-	}
-	domain = result[1]
-	log.Infof("default domain: %s", domain)
-	return domain
+	// all keys are lowwer case
+	domain = cfg.Section("").Key(strings.ToLower("NAMES.DEFAULT_DOMAIN")).String()
+	names := cfg.Section("").Key(strings.ToLower("NAMES.DIRECTORY_PATH")).String()
+	replacer := strings.NewReplacer("(", "", ")", "", " ", "")
+	names = replacer.Replace(names)
+	namesPath = strings.Split(names, ",")
+	return
 }
 
 // GetEntry matches given string to tns entries using with domain part and without
@@ -79,7 +76,7 @@ func GetEntry(alias string, entries TNSEntries, domain string) (e TNSEntry, ok b
 	return
 }
 
-// GetTnsnames map tnsnames.ora entries to an readable structure
+// GetTnsnames map tnsnames.ora entries to a readable structure
 func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	var tnsEntries = make(TNSEntries)
 	var err error
@@ -91,7 +88,7 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 	// try to find sqlnet ora and read domain
 	tnsDir := filepath.Dir(filename)
-	domain := GetDefaultDomain(tnsDir)
+	domain, _ := ReadSqlnetOra(tnsDir)
 
 	// change to current tns file
 	wd, _ := os.Getwd()
@@ -99,10 +96,10 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	err = common.ChdirToFile(filename)
 	if err != nil {
 		log.Errorf("Cannot chdir to %s", filename)
-		return tnsEntries, domain, err
+
 	}
 
-	// use basename from filename to read as i am in this directory
+	// use basename from filename to read as I am in this directory
 	f := filepath.Base(filename)
 	content, _ = common.ReadFileByLine(f)
 
@@ -114,13 +111,12 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 		// find and load ifiles
 		ifile := reIfile.FindStringSubmatch(line)
+		var ifileEntries TNSEntries
 		if len(ifile) > 0 {
 			fn := ifile[1]
-			ifileEntries, err := getIfile(fn, recursiv)
-			if err == nil {
-				for k, v := range ifileEntries {
-					tnsEntries[k] = v
-				}
+			ifileEntries, err = getIfile(fn, recursiv)
+			for k, v := range ifileEntries {
+				tnsEntries[k] = v
 			}
 			continue
 		}
@@ -148,6 +144,34 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 		tnsEntries[tnsAlias] = BuildTnsEntry(filename, desc, tnsAlias)
 	}
 
+	// sanity check
+	d := 0
+	for k, e := range tnsEntries {
+		se := 0
+		if len(e.Name) == 0 {
+			log.Errorf("Entry %s has no name set", k)
+			se++
+		}
+		if len(e.Desc) == 0 {
+			log.Errorf("Entry %s has no description set", k)
+			se++
+		}
+		if len(e.Service) == 0 {
+			log.Errorf("Entry %s has no Service set", k)
+			se++
+		}
+		if len(e.Servers) == 0 {
+			log.Errorf("Entry %s has no Oracle Host set", k)
+			se++
+		}
+		if se > 0 {
+			delete(tnsEntries, k)
+			d++
+		}
+	}
+	if d > 0 {
+		err = fmt.Errorf("%s had %d parsing errors", filename, d)
+	}
 	// chdir back
 	_ = os.Chdir(wd)
 	return tnsEntries, domain, err
@@ -179,15 +203,15 @@ func getIfile(filename string, recursiv bool) (entries TNSEntries, err error) {
 	return
 }
 
-// getServers extract address part
-func getServers(tnsDesc string) (servers []address) {
+// getServers extract TNSAddress part
+func getServers(tnsDesc string) (servers []TNSAddress) {
 	re := regexp.MustCompile(`(?m)HOST\s*=\s*([\w.]+)\s*\)\s*\(\s*PORT\s*=\s*(\d+)`)
 	match := re.FindAllStringSubmatch(tnsDesc, -1)
 	for _, a := range match {
 		if len(a) > 1 {
 			host := a[1]
 			port := a[2]
-			servers = append(servers, address{
+			servers = append(servers, TNSAddress{
 				Host: host, Port: port,
 			})
 			log.Debugf("parsed Host: %s, Port %s", host, port)

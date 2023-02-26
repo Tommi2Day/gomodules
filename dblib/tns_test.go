@@ -65,12 +65,17 @@ XE.local =(DESCRIPTION =
 XE1 =(DESCRIPTION =
 	(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 	(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE1))
-)`
+)
+XE.error = Error
+`
+
 const sqlnetora = `
 NAMES.DEFAULT_DOMAIN=local
-NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
+NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT,LDAP)
 `
 const entryCount = 5
+
+var tnsAdmin = "testdata"
 
 func TestParseTns(t *testing.T) {
 	var err error
@@ -78,7 +83,6 @@ func TestParseTns(t *testing.T) {
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
-	tnsAdmin := "testdata"
 	//nolint gosec
 	err = os.WriteFile(tnsAdmin+"/sqlnet.ora", []byte(sqlnetora), 0644)
 	require.NoErrorf(t, err, "Create test sqlnet.ora failed")
@@ -88,19 +92,21 @@ func TestParseTns(t *testing.T) {
 	//nolint gosec
 	err = os.WriteFile(tnsAdmin+"/ifile.ora", []byte(ifileora), 0644)
 	require.NoErrorf(t, err, "Create test ifile.ora failed")
-
-	domain := GetDefaultDomain(tnsAdmin)
+	t.Run("Parse SQLNet.Ora", func(t *testing.T) {
+		namesDomain, namesPath := ReadSqlnetOra(tnsAdmin)
+		assert.NotEmpty(t, namesDomain, "Names domain should not empty")
+		expected := 3
+		actual := len(namesPath)
+		assert.Equal(t, expected, actual, "NamesPath should have %d entries", expected)
+	})
+	domain, _ := ReadSqlnetOra(tnsAdmin)
 	t.Logf("Default Domain: '%s'", domain)
 	filename := tnsAdmin + "/tnsnames.ora"
 	t.Logf("load from %s", filename)
 	tnsEntries, domain, err := GetTnsnames(filename, true)
 	t.Run("Parse TNSNames.ora", func(t *testing.T) {
-		require.NoErrorf(t, err, "Parsing %s failed: %s", filename, err)
+		require.Error(t, err, "Parsing should have an error")
 	})
-	if err != nil {
-		t.Logf("load returned error: %s ", err)
-		return
-	}
 	t.Run("Count Entries", func(t *testing.T) {
 		countEntries := len(tnsEntries)
 		expected := entryCount
