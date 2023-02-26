@@ -2,12 +2,13 @@ package dblib
 
 import (
 	"fmt"
-	"github.com/tommi2day/gomodules/test"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/ory/dockertest/v3"

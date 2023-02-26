@@ -2,9 +2,10 @@ package dblib
 
 import (
 	"fmt"
-	"gopkg.in/ini.v1"
 	"strconv"
 	"strings"
+
+	"gopkg.in/ini.v1"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +22,8 @@ const (
 
 // TWorkStatus structure to handover statistics
 type TWorkStatus map[string]int
+
+// LdapServer  covers properties from one server in ldap.ora
 type LdapServer struct {
 	hostname string
 	port     int

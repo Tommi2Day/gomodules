@@ -2,9 +2,10 @@ package dblib
 
 import (
 	"fmt"
-	"github.com/tommi2day/gomodules/test"
 	"os"
 	"testing"
+
+	"github.com/tommi2day/gomodules/test"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
@@ -207,5 +208,4 @@ func TestOracleLdap(t *testing.T) {
 		assert.Equal(t, 1, d, "One del expected")
 		assert.Equal(t, 0, s, "One skip expected")
 	})
-
 }

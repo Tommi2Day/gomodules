@@ -5,11 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/tommi2day/gomodules/test"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/tommi2day/gomodules/common"
 

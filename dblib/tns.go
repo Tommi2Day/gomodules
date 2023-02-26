@@ -3,16 +3,18 @@ package dblib
 
 import (
 	"fmt"
-	"gopkg.in/ini.v1"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"gopkg.in/ini.v1"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/tommi2day/gomodules/common"
 )
 
+// TNSAddress holds  host/port of an address section
 type TNSAddress struct {
 	Host string
 	Port string
@@ -43,6 +45,8 @@ func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
 	log.Debugf("found TNS Alias %s", tnsAlias)
 	return entry
 }
+
+// ReadSqlnetOra reads a sqlnet.ora and returns default domain and names path
 func ReadSqlnetOra(path string) (domain string, namesPath []string) {
 	filename := path + "/sqlnet.ora"
 	domain = ""
@@ -96,7 +100,6 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	err = common.ChdirToFile(filename)
 	if err != nil {
 		log.Errorf("Cannot chdir to %s", filename)
-
 	}
 
 	// use basename from filename to read as I am in this directory
@@ -146,7 +149,19 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 	// sanity check
 	d := 0
-	for k, e := range tnsEntries {
+	tnsEntries, d = tnsSanity(tnsEntries)
+	if d > 0 {
+		err = fmt.Errorf("%s had %d parsing errors", filename, d)
+	}
+	// chdir back
+	_ = os.Chdir(wd)
+	return tnsEntries, domain, err
+}
+
+func tnsSanity(entries TNSEntries) (tnsEntries TNSEntries, deletes int) {
+	// sanity check
+	d := 0
+	for k, e := range entries {
 		se := 0
 		if len(e.Name) == 0 {
 			log.Errorf("Entry %s has no name set", k)
@@ -165,16 +180,11 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 			se++
 		}
 		if se > 0 {
-			delete(tnsEntries, k)
+			delete(entries, k)
 			d++
 		}
 	}
-	if d > 0 {
-		err = fmt.Errorf("%s had %d parsing errors", filename, d)
-	}
-	// chdir back
-	_ = os.Chdir(wd)
-	return tnsEntries, domain, err
+	return entries, d
 }
 
 // checkSkip returns if a line might be skipped

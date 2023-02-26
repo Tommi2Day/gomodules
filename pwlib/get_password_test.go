@@ -1,9 +1,10 @@
 package pwlib
 
 import (
-	"github.com/tommi2day/gomodules/test"
 	"os"
 	"testing"
+
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/tommi2day/gomodules/common"
 
