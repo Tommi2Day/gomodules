@@ -2,14 +2,19 @@ name: CI
 
 on: [push]
 
-env:
-  SKIP_LDAP: true
-  SKIP_MAIL: true
-  SKIP_ORACLE: true
+# env:
+#  SKIP_LDAP: true
+#  SKIP_MAIL: true
+#  SKIP_ORACLE: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      dind:
+        image: docker:dind-rootless
+        ports:
+          - 2375:2375
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
