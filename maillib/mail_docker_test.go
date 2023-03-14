@@ -1,6 +1,7 @@
 package maillib
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 
@@ -15,7 +16,6 @@ import (
 
 const mailRepo = "docker.io/mailserver/docker-mailserver"
 const mailRepoTag = "latest"
-const mailServer = "127.0.0.1"
 const smtpPort = 31025
 const imapPort = 31143
 const sslPort = 31465
@@ -26,6 +26,7 @@ const containerTimeout = 120
 var mailContainerName string
 var mailPool *dockertest.Pool
 var mailContainer *dockertest.Resource
+var mailServer = "localhost"
 
 // prepareContainer create an Oracle Docker Container
 func prepareMailContainer() (container *dockertest.Resource, err error) {
@@ -33,6 +34,11 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	if os.Getenv("SKIP_MAIL") != "" {
 		err = fmt.Errorf("skipping Mail Container in CI environment")
 		return
+	}
+	// align hostname in CI
+	host := os.Getenv("MAIL_HOST")
+	if host != "" {
+		mailServer = host
 	}
 	mailContainerName = os.Getenv("MAIL_CONTAINER_NAME")
 	if mailContainerName == "" {
@@ -58,7 +64,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		Tag:        mailRepoTag,
 
 		Env: []string{
-			"LOG_LEVEL=info",
+			"LOG_LEVEL=debug",
 			"ONE_DIR=1",
 			"POSTFIX_INET_PROTOCOLS=ipv4",
 			"PERMIT_DOCKER=connected-networks",
@@ -74,11 +80,11 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		Mounts: []string{
 			test.TestDir + "/mail/config:/tmp/docker-mailserver/",
 			test.TestDir + "/mail/ssl:/tmp/custom-certs/:ro",
-			"/etc/localtime:/etc/localtime:ro",
 		},
 		CapAdd: []string{
 			"NET_ADMIN",
 		},
+
 		ExposedPorts: []string{"25", "143", "465", "587", "993"},
 		PortBindings: map[docker.Port][]docker.PortBinding{
 			"25": {
@@ -99,33 +105,37 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		},
 	}, func(config *docker.HostConfig) {
 		// set AutoRemove to true so that stopped container goes away by itself
-		config.AutoRemove = false
+		config.AutoRemove = true
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 
 	if err != nil {
-		err = fmt.Errorf("error starting ldap docker container: %v", err)
+		err = fmt.Errorf("error starting mailserver docker container: %v", err)
 		return
 	}
 
 	mailPool.MaxWait = containerTimeout * time.Second
 
-	fmt.Printf("Wait to successfully connect to Mailserver with localhost:%d (max %ds)...\n", smtpPort, containerTimeout)
+	fmt.Printf("Wait to successfully connect to Mailserver with %s:%d (max %ds)...\n", mailServer, tlsPort, containerTimeout)
 	start := time.Now()
 	var c net.Conn
 	if err = mailPool.Retry(func() error {
-		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", "127.0.0.1", tlsPort))
+		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", mailServer, tlsPort))
 		return err
 	}); err != nil {
 		fmt.Printf("Could not connect to Mail Container: %s", err)
 		return
 	}
 	_ = c.Close()
+
+	execCmd(container, []string{"bash", "-c", "env|sort"})
 	// wait 20s to init container
 	time.Sleep(20 * time.Second)
 	elapsed := time.Since(start)
 	fmt.Printf("Mail Container is available after %s\n", elapsed.Round(time.Millisecond))
-	// container.Exec()
+
+	// execCmd(container, []string{"cat", "/etc/postfix/main.cf"})
+
 	err = nil
 	return
 }
@@ -133,5 +143,16 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 func destroyMailContainer(container *dockertest.Resource) {
 	if err := mailPool.Purge(container); err != nil {
 		fmt.Printf("Could not purge resource: %s\n", err)
+	}
+}
+
+func execCmd(container *dockertest.Resource, cmd []string) {
+	var cmdout bytes.Buffer
+	cmdout.Reset()
+	_, err := container.Exec(cmd, dockertest.ExecOptions{StdOut: &cmdout})
+	if err != nil {
+		fmt.Printf("Exec Error %s", err)
+	} else {
+		fmt.Printf("Env:\n %s", cmdout.String())
 	}
 }

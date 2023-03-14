@@ -2,12 +2,12 @@ package maillib
 
 import (
 	"fmt"
+	"github.com/tommi2day/gomodules/test"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tommi2day/gomodules/test"
 	"github.com/wneessen/go-mail"
 
 	"github.com/stretchr/testify/assert"
@@ -68,11 +68,11 @@ func TestMail(t *testing.T) {
 	}
 	var err error
 	mailContainer, err = prepareMailContainer()
-	require.NoErrorf(t, err, "Mailserver not available")
+	require.NoErrorf(t, err, "Mailserver not available: %s", err)
 	require.NotNil(t, mailContainer, "Prepare failed")
 	defer destroyMailContainer(mailContainer)
 
-	t.Logf("Send mail to %s:%d", mailServer, smtpPort)
+	t.Logf("Send tests to %s:%d", mailServer, smtpPort)
 	t.Run("Send Mail anonym", func(t *testing.T) {
 		SetConfig(mailServer, smtpPort, "", "")
 		h := time.Now()
@@ -81,8 +81,9 @@ func TestMail(t *testing.T) {
 		err := SendMail(FROM, TO, "Testmail1", fmt.Sprintf("<html><body>Test at %s</body></html>", timeStr))
 		assert.NoErrorf(t, err, "Sendmail anonym returned error %v", err)
 	})
-	t.Run("Send Mail with login", func(t *testing.T) {
+	t.Run("Send Mail TLS 25", func(t *testing.T) {
 		SetConfig(mailServer, smtpPort, FROM, rootPass)
+		EnableTLS(true)
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
 		Cc(FROM)
@@ -97,8 +98,8 @@ func TestMail(t *testing.T) {
 		timeStr := h.Format("15:04:05")
 		Bcc(FROM)
 		Attach([]string{
-			test.TestDir + "/mail/ssl/ca.crt",
-			test.TestDir + "/mail/sslmail.test.local.crt",
+			test.TestDir + "/tests/ssl/ca.crt",
+			test.TestDir + "/tests/sslmail.test.local.crt",
 		})
 		err := SendMail(FROM, TO, "Testmail3", fmt.Sprintf("Test with ssl at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail SSL returned error %v", err)

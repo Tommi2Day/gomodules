@@ -99,7 +99,7 @@ func SetMaxSize(maxsize int64) {
 	mailConfig.Maxsize = maxsize
 }
 
-// SetContentType allows to modify the Content type of the mail
+// SetContentType allows to modify the Content type of the tests
 func SetContentType(contentType mail.ContentType) {
 	mailConfig.ContentType = contentType
 }
@@ -115,7 +115,7 @@ func GetConfig() MailConfigType {
 	return mailConfig
 }
 
-// buildRecipients add recipients to mail
+// buildRecipients add recipients to tests
 func buildRecipients(m *mail.Msg) (err error) {
 	var errtxt string
 	// add recipients
@@ -201,7 +201,7 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 	// create mail client
 	c, err = mail.NewClient(mailConfig.Server, mail.WithPort(mailConfig.Port), mail.WithTimeout(mailConfig.Timeout))
 	if err != nil {
-		errtxt = fmt.Sprintf("failed to create mail client: %s", err)
+		errtxt = fmt.Sprintf("failed to create tests client: %s", err)
 		err = errors.New(errtxt)
 		log.Error(errtxt)
 		return
@@ -224,7 +224,7 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 		log.Debug("Mail: Use Authentication")
 	}
 	if err = c.DialAndSend(m); err != nil {
-		errtxt = fmt.Sprintf("failed to send mail: %s", err)
+		errtxt = fmt.Sprintf("failed to send tests: %s", err)
 		err = errors.New(errtxt)
 		log.Error(errtxt)
 		return
