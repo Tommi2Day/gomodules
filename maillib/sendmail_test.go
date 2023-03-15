@@ -25,16 +25,16 @@ const mailHostname = "mail." + mailDomain
 
 func TestSetMailConfig(t *testing.T) {
 	t.Run("Test mailConfig defaults", func(t *testing.T) {
-		SetConfig("127.0.0.1", 25, "", "")
-		actual := GetConfig()
+		c := NewConfig("127.0.0.1", 25, "", "")
+		actual := c.GetConfig()
 		assert.Equal(t, "127.0.0.1", actual.Server, "Server default entry not equal")
 		assert.Equal(t, 25, actual.Port, "Port entry should be default")
 		assert.Empty(t, actual.Username, "Username entry should not set")
 	})
-	t.Run("Test SetConfig", func(t *testing.T) {
-		SetConfig("test.example.com", sslPort, "testuser", "Testpass")
-		EnableSSL(true)
-		actual := GetConfig()
+	t.Run("Test NewConfig", func(t *testing.T) {
+		s := NewSendMailConfig("test.example.com", sslPort, "testuser", "Testpass")
+		s.serverConfig.EnableSSL(true)
+		actual := s.GetConfig().serverConfig
 		assert.Equal(t, "test.example.com", actual.Server, "Server entry not equal")
 		assert.Equal(t, sslPort, actual.Port, "Port entry not equal")
 		assert.Equal(t, "testuser", actual.Username, "Username entry not equal")
@@ -44,20 +44,23 @@ func TestSetMailConfig(t *testing.T) {
 		assert.False(t, actual.StartTLS, "StartTLS should not set")
 	})
 	t.Run("Check SetMaxsize", func(t *testing.T) {
-		SetMaxSize(2048)
-		actual := GetConfig()
-		assert.Equal(t, int64(2048), actual.Maxsize)
+		s := NewSendMailConfig("test.example.com", sslPort, "testuser", "Testpass")
+		s.SetMaxSize(2048)
+		actual := s.GetConfig()
+		assert.Equal(t, int64(2048), actual.maxSize)
 	})
 }
 
 func TestSendMailError(t *testing.T) {
-	SetConfig("test.example.com", 25, "testuser", "Testpass")
+	s := NewSendMailConfig("test.example.com", 25, "testuser", "Testpass")
 	t.Run("Send Mail with wrong email", func(t *testing.T) {
-		err := SendMail("dummy@local", "root", "TestMail", "My Message")
+		l := NewMail("dummy@local", "root")
+		err := s.SendMail(l, "TestMail", "My Message")
 		assert.Errorf(t, err, "Error: %v", err)
 	})
 	t.Run("Send Mail with Send Error", func(t *testing.T) {
-		err := SendMail("dummy@local", "root@example.com", "TestMail", "My Message")
+		l := NewMail("dummy@local", "root@example.com")
+		err := s.SendMail(l, "TestMail2", "Email Address Test")
 		assert.Errorf(t, err, "Error: %v", err)
 	})
 }
@@ -73,44 +76,49 @@ func TestMail(t *testing.T) {
 	defer destroyMailContainer(mailContainer)
 
 	t.Logf("Send tests to %s:%d", mailServer, smtpPort)
+
 	t.Run("Send Mail anonym", func(t *testing.T) {
-		SetConfig(mailServer, smtpPort, "", "")
+		s := NewSendMailConfig(mailServer, smtpPort, "", "")
+		l := NewMail(FROM, TO)
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
-		SetContentType(mail.TypeTextHTML)
-		err := SendMail(FROM, TO, "Testmail1", fmt.Sprintf("<html><body>Test at %s</body></html>", timeStr))
+		s.SetContentType(mail.TypeTextHTML)
+		err := s.SendMail(l, "Testmail1", fmt.Sprintf("<html><body>Test at %s</body></html>", timeStr))
 		assert.NoErrorf(t, err, "Sendmail anonym returned error %v", err)
 	})
 	t.Run("Send Mail TLS 25", func(t *testing.T) {
-		SetConfig(mailServer, smtpPort, FROM, rootPass)
-		EnableTLS(true)
+		s := NewSendMailConfig(mailServer, smtpPort, FROM, rootPass)
+		s.serverConfig.EnableTLS(true)
+		l := NewMail(FROM, TO)
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
-		Cc(FROM)
-		err := SendMail(FROM, TO, "Testmail2", fmt.Sprintf("Test at %s", timeStr))
+		l.Cc(FROM)
+		err := s.SendMail(l, "Testmail2", fmt.Sprintf("Test at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail with login returned error %v", err)
 	})
 
 	t.Run("Send Mail SSL 465", func(t *testing.T) {
-		SetConfig(mailServer, sslPort, FROM, rootPass)
-		EnableSSL(true)
+		s := NewSendMailConfig(mailServer, sslPort, FROM, rootPass)
+		s.serverConfig.EnableSSL(true)
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
-		Bcc(FROM)
-		Attach([]string{
-			test.TestDir + "/tests/ssl/ca.crt",
-			test.TestDir + "/tests/sslmail.test.local.crt",
+		l := NewMail(FROM, TO)
+		l.Bcc(FROM)
+		l.Attach([]string{
+			test.TestDir + "/mail/ssl/ca.crt",
+			test.TestDir + "/mail/ssl/mail.test.local.crt",
 		})
-		err := SendMail(FROM, TO, "Testmail3", fmt.Sprintf("Test with ssl at %s", timeStr))
+		err := s.SendMail(l, "Testmail3", fmt.Sprintf("Test with ssl at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail SSL returned error %v", err)
 	})
 	t.Run("Send Mail TLS 587", func(t *testing.T) {
-		SetConfig(mailServer, tlsPort, FROM, rootPass)
-		EnableTLS(true)
-		SetTimeout(20)
+		s := NewSendMailConfig(mailServer, tlsPort, FROM, rootPass)
+		s.serverConfig.EnableTLS(true)
+		s.serverConfig.SetTimeout(20)
+		l := NewMail(FROM, TO)
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
-		err := SendMail(FROM, TO, "Testmail4", fmt.Sprintf("Test with tls at %s", timeStr))
+		err := s.SendMail(l, "Testmail4", fmt.Sprintf("Test with tls at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail TLS returned error %v", err)
 	})
 }

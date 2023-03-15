@@ -2,133 +2,95 @@
 package maillib
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/wneessen/go-mail"
 )
 
-// MailConfigType stuct for config properties
-type MailConfigType struct {
-	Server      string
-	Port        int
-	Username    string
-	Password    string
-	Maxsize     int64
-	ContentType mail.ContentType
-	SSLinsecure bool
-	SSL         bool
-	StartTLS    bool
-	Timeout     time.Duration
+// SendMailConfigType Server Config for sending Mails
+type SendMailConfigType struct {
+	maxSize         int64
+	mailContentType mail.ContentType
+	serverConfig    *MailConfigType
 }
 
-// mailConfig holds Mails Server Config
-var mailConfig MailConfigType
-
-var files []string
-var sendTo []string
-var sendCC []string
-var sendBcc []string
-var sendFrom = ""
-var tlsConfig *tls.Config
-
-// EnableSSL allows usage SMTPS Connections (e.g. Port 465)
-func EnableSSL(insecure bool) {
-	tlsConfig = &tls.Config{
-		//nolint gosec
-		InsecureSkipVerify: true,
-	}
-	mailConfig.StartTLS = false
-	mailConfig.SSLinsecure = insecure
-	mailConfig.SSL = true
+// AddressListType collects all recipients of a mail and attachment
+type AddressListType struct {
+	files    []string
+	sendTo   []string
+	sendCC   []string
+	sendBcc  []string
+	sendFrom string
 }
 
-// EnableTLS allows usage of STARTTLS (e.g. Port 587)
-func EnableTLS(insecure bool) {
-	tlsConfig = &tls.Config{
-		//nolint gosec
-		InsecureSkipVerify: true,
-	}
-	mailConfig.StartTLS = true
-	mailConfig.SSLinsecure = insecure
-	mailConfig.SSL = false
+// NewSendMailConfig prepares a new configuration object for sending mails
+func NewSendMailConfig(server string, port int, username string, password string) *SendMailConfigType {
+	var config SendMailConfigType
+	config.serverConfig = NewConfig(server, port, username, password)
+	config.maxSize = 5120000
+	config.mailContentType = mail.TypeTextPlain
+	return &config
 }
 
-// SetConfig set Mail server parameter
-func SetConfig(server string, port int, username string, password string) {
-	mailConfig.Server = server
-	mailConfig.Port = port
-	mailConfig.Username = username
-	mailConfig.Password = password
-	mailConfig.StartTLS = false
-	mailConfig.SSLinsecure = false
-	mailConfig.SSL = false
-	mailConfig.Timeout = 15 * time.Second
+// NewMail perepare a new Mail Address List
+func NewMail(from string, toList string) *AddressListType {
+	al := AddressListType{}
+	al.To(toList)
+	al.sendFrom = from
+	return &al
+}
 
-	files = nil
-	sendCC = nil
-	sendBcc = nil
-	mailConfig.Maxsize = 0
-	mailConfig.ContentType = mail.TypeTextPlain
+// To sets the list of comma delimited recipents
+func (l *AddressListType) To(tolist string) {
+	l.sendTo = strings.Split(strings.TrimSpace(tolist), ",")
 }
 
 // Cc sets the list of comma delimited CC'ed recipents
-func Cc(cclist string) {
-	sendCC = strings.Split(strings.TrimSpace(cclist), ",")
+func (l *AddressListType) Cc(cclist string) {
+	l.sendCC = strings.Split(strings.TrimSpace(cclist), ",")
 }
 
 // Bcc sets the list of comma delimited Bcc'ed recipents
-func Bcc(bcclist string) {
-	sendBcc = strings.Split(strings.TrimSpace(bcclist), ",")
+func (l *AddressListType) Bcc(bcclist string) {
+	l.sendBcc = strings.Split(strings.TrimSpace(bcclist), ",")
 }
 
 // Attach adds list of files (comma delimited full path)
-func Attach(filelist []string) {
-	files = filelist
+func (l *AddressListType) Attach(filelist []string) {
+	l.files = filelist
 }
 
 // SetMaxSize limits the size of attached files, 0 to disable
-func SetMaxSize(maxsize int64) {
-	mailConfig.Maxsize = maxsize
+func (config *SendMailConfigType) SetMaxSize(maxsize int64) {
+	config.maxSize = maxsize
 }
 
 // SetContentType allows to modify the Content type of the tests
-func SetContentType(contentType mail.ContentType) {
-	mailConfig.ContentType = contentType
-}
-
-// SetTimeout configure max time to connect
-func SetTimeout(seconds uint) {
-	timeout := time.Second * time.Duration(seconds)
-	mailConfig.Timeout = timeout
-}
-
-// GetConfig returns current Mail conf
-func GetConfig() MailConfigType {
-	return mailConfig
+func (config *SendMailConfigType) SetContentType(contentType mail.ContentType) {
+	config.mailContentType = contentType
 }
 
 // buildRecipients add recipients to tests
-func buildRecipients(m *mail.Msg) (err error) {
+func (l *AddressListType) buildRecipients(m *mail.Msg) (c int, err error) {
 	var errtxt string
 	// add recipients
-	for _, r := range sendTo {
+	for _, r := range l.sendTo {
 		if err = m.AddTo(r); err != nil {
 			errtxt = fmt.Sprintf("failed to set To address %s:%v", r, err)
 			err = errors.New(errtxt)
 			log.Errorf(errtxt)
 			return
 		}
+		c++
 	}
-	if len(sendCC) > 0 {
-		for _, cc := range sendCC {
+	if len(l.sendCC) > 0 {
+		for _, cc := range l.sendCC {
 			if err = m.AddCc(cc); err != nil {
 				errtxt = fmt.Sprintf("failed to set CC address%s:%v", cc, err)
 				err = errors.New(errtxt)
@@ -136,9 +98,10 @@ func buildRecipients(m *mail.Msg) (err error) {
 				return
 			}
 		}
+		c++
 	}
-	if len(sendBcc) > 0 {
-		for _, bcc := range sendBcc {
+	if len(l.sendBcc) > 0 {
+		for _, bcc := range l.sendBcc {
 			if err = m.AddBcc(bcc); err != nil {
 				errtxt = fmt.Sprintf("failed to set bcc address %s:%v", bcc, err)
 				err = errors.New(errtxt)
@@ -146,6 +109,7 @@ func buildRecipients(m *mail.Msg) (err error) {
 				return
 			}
 		}
+		c++
 	}
 	if err != nil {
 		return
@@ -155,12 +119,13 @@ func buildRecipients(m *mail.Msg) (err error) {
 }
 
 // SendMail send a mail with the given content
-func SendMail(from string, to string, subject string, text string) (err error) {
+func (config *SendMailConfigType) SendMail(addresses *AddressListType, subject string, text string) (err error) {
 	var errtxt string
 	var c *mail.Client
-	sendTo = strings.Split(strings.TrimSpace(to), ",")
-	sendFrom = strings.TrimSpace(from)
-	if sendTo == nil {
+
+	// collect addresses
+	sendFrom := strings.TrimSpace(addresses.sendFrom)
+	if addresses.sendTo == nil {
 		errtxt = "cannot send Mail without email address"
 		err = errors.New(errtxt)
 		log.Errorf(errtxt)
@@ -180,16 +145,18 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 		_ = m.ReplyTo(sendFrom)
 	}
 
-	if err = buildRecipients(m); err != nil {
+	// build address list
+	ac := 0
+	if ac, err = addresses.buildRecipients(m); err != nil || ac == 0 {
 		return
 	}
 	// set content
 	m.Subject(subject)
-	m.SetBodyString(mailConfig.ContentType, text)
+	m.SetBodyString(config.mailContentType, text)
 
 	// handle Attachments
-	if len(files) > 0 {
-		err = attachFiles(m)
+	if len(addresses.files) > 0 {
+		err = addresses.attachFiles(m, config.maxSize)
 		if err != nil {
 			errtxt = fmt.Sprintf("failed to attach a file: %s", err)
 			err = errors.New(errtxt)
@@ -199,7 +166,7 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 	}
 
 	// create mail client
-	c, err = mail.NewClient(mailConfig.Server, mail.WithPort(mailConfig.Port), mail.WithTimeout(mailConfig.Timeout))
+	c, err = mail.NewClient(config.serverConfig.Server, mail.WithPort(config.serverConfig.Port), mail.WithTimeout(config.serverConfig.Timeout))
 	if err != nil {
 		errtxt = fmt.Sprintf("failed to create tests client: %s", err)
 		err = errors.New(errtxt)
@@ -207,22 +174,23 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 		return
 	}
 
-	c.SetSSL(mailConfig.SSL)
+	// set ssl
+	c.SetSSL(config.serverConfig.SSL)
 	c.SetTLSPolicy(mail.NoTLS)
-	if mailConfig.SSLinsecure {
-		_ = c.SetTLSConfig(tlsConfig)
-	}
-	if mailConfig.StartTLS {
+	_ = c.SetTLSConfig(config.serverConfig.tlsConfig)
+	if config.serverConfig.StartTLS {
 		c.SetTLSPolicy(mail.TLSMandatory)
 	}
-	log.Debug("Mail: Use SSL")
 
-	if len(mailConfig.Username) > 0 && len(mailConfig.Password) > 0 {
-		c.SetUsername(mailConfig.Username)
-		c.SetPassword(mailConfig.Password)
+	// login to server if defined
+	if len(config.serverConfig.Username) > 0 && len(config.serverConfig.Password) > 0 {
+		c.SetUsername(config.serverConfig.Username)
+		c.SetPassword(config.serverConfig.Password)
 		c.SetSMTPAuth(mail.SMTPAuthPlain)
 		log.Debug("Mail: Use Authentication")
 	}
+
+	// send mail
 	if err = c.DialAndSend(m); err != nil {
 		errtxt = fmt.Sprintf("failed to send tests: %s", err)
 		err = errors.New(errtxt)
@@ -232,14 +200,14 @@ func SendMail(from string, to string, subject string, text string) (err error) {
 	return
 }
 
-func attachFiles(m *mail.Msg) error {
-	maxsize := mailConfig.Maxsize
-	if maxsize > 0 {
-		log.Debugf("Mail: File Limit %d", maxsize)
+// add files to mail
+func (l AddressListType) attachFiles(m *mail.Msg, maxSize int64) error {
+	if maxSize > 0 {
+		log.Debugf("Mail: File Limit %d", maxSize)
 	}
-	for _, fn := range files {
+	for _, fn := range l.files {
 		log.Debugf("Attach %s", fn)
-		if maxsize == 0 {
+		if maxSize == 0 {
 			m.AttachFile(fn, mail.WithFileName(filepath.Base(fn)))
 		} else {
 			//nolint gosec
@@ -250,10 +218,14 @@ func attachFiles(m *mail.Msg) error {
 				log.Error(errtxt)
 				return err
 			}
-			lr := io.LimitReader(f, maxsize)
+			lr := io.LimitReader(f, maxSize)
 			m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
-			_ = f.Close()
 		}
 	}
 	return nil
+}
+
+// GetConfig returns current Mail conf
+func (config *SendMailConfigType) GetConfig() *SendMailConfigType {
+	return config
 }
