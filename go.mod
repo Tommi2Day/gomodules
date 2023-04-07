@@ -5,6 +5,8 @@ go 1.19
 require (
 	github.com/Luzifer/go-openssl/v4 v4.1.0
 	github.com/boumenot/gocover-cobertura v1.2.0
+	github.com/emersion/go-imap v1.2.1
+	github.com/emersion/go-message v0.16.0
 	github.com/glebarez/go-sqlite v1.20.3
 	github.com/go-ldap/ldap/v3 v3.4.4
 	github.com/golangci/golangci-lint v1.51.1
@@ -57,6 +59,8 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 // indirect
+	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
 	github.com/fatih/color v1.14.1 // indirect

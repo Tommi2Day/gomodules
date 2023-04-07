@@ -3,9 +3,8 @@ package maillib
 import (
 	"bytes"
 	"fmt"
-	"net"
-
 	"github.com/tommi2day/gomodules/test"
+	"net"
 
 	"os"
 	"time"
@@ -15,7 +14,7 @@ import (
 )
 
 const mailRepo = "docker.io/mailserver/docker-mailserver"
-const mailRepoTag = "latest"
+const mailRepoTag = "11.3.1"
 const smtpPort = 31025
 const imapPort = 31143
 const sslPort = 31465
@@ -26,7 +25,7 @@ const containerTimeout = 120
 var mailContainerName string
 var mailPool *dockertest.Pool
 var mailContainer *dockertest.Resource
-var mailServer = "localhost"
+var mailServer = "127.0.0.1"
 
 // prepareContainer create an Oracle Docker Container
 func prepareMailContainer() (container *dockertest.Resource, err error) {
@@ -81,10 +80,11 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 			test.TestDir + "/mail/config:/tmp/docker-mailserver/",
 			test.TestDir + "/mail/ssl:/tmp/custom-certs/:ro",
 		},
-		CapAdd: []string{
-			"NET_ADMIN",
-		},
-
+		/*
+			CapAdd: []string{
+				"NET_ADMIN",
+			},
+		*/
 		ExposedPorts: []string{"25", "143", "465", "587", "993"},
 		PortBindings: map[docker.Port][]docker.PortBinding{
 			"25": {
@@ -115,12 +115,14 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	}
 
 	mailPool.MaxWait = containerTimeout * time.Second
-
 	fmt.Printf("Wait to successfully connect to Mailserver with %s:%d (max %ds)...\n", mailServer, tlsPort, containerTimeout)
 	start := time.Now()
 	var c net.Conn
 	if err = mailPool.Retry(func() error {
 		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", mailServer, tlsPort))
+		if err != nil {
+			fmt.Printf("Err:%s\n", err)
+		}
 		return err
 	}); err != nil {
 		fmt.Printf("Could not connect to Mail Container: %s", err)

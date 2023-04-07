@@ -6,6 +6,10 @@
 ### Fixed
 ### Removed
 
+## [v1.6.0 - 2023-04-07]
+### New
+- maillib: add Imap functions
+
 ## [v1.5.0 - 2023-02-24]
 ### New
 - ldaplib: add write functions and tests

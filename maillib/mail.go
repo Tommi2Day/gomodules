@@ -2,7 +2,10 @@ package maillib
 
 import (
 	"crypto/tls"
+	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // MailConfigType struct for config properties
@@ -36,6 +39,7 @@ func NewConfig(server string, port int, username string, password string) *MailC
 func (mailConfig *MailConfigType) SetTimeout(seconds uint) {
 	timeout := time.Second * time.Duration(seconds)
 	mailConfig.Timeout = timeout
+	log.Debugf("mailconfig: Set send timout to %d s", seconds)
 }
 
 // EnableSSL allows usage SMTPS Connections (e.g. Port 465)
@@ -47,9 +51,14 @@ func (mailConfig *MailConfigType) EnableSSL(insecure bool) {
 	mailConfig.StartTLS = false
 	mailConfig.SSLinsecure = insecure
 	mailConfig.SSL = true
+	skipVerify := ""
+	if insecure {
+		skipVerify = "(skip ssl verify:true)"
+	}
+	log.Debugf("mailconfig: SSL Enabled %s", skipVerify)
 }
 
-// EnableTLS allows usage of STARTTLS (e.g. Port 587)
+// EnableTLS allows usage of STARTTLS
 func (mailConfig *MailConfigType) EnableTLS(insecure bool) {
 	mailConfig.tlsConfig = &tls.Config{
 		//nolint gosec
@@ -58,9 +67,54 @@ func (mailConfig *MailConfigType) EnableTLS(insecure bool) {
 	mailConfig.StartTLS = true
 	mailConfig.SSLinsecure = insecure
 	mailConfig.SSL = false
+	skipVerify := ""
+	if insecure {
+		skipVerify = "(skip tls verify:true)"
+	}
+	log.Debugf("mailconfig: TLS Enabled %s", skipVerify)
 }
 
 // GetConfig returns current Mail conf
 func (mailConfig *MailConfigType) GetConfig() *MailConfigType {
 	return mailConfig
+}
+
+// MailType collects all recipients of a mail and attachment
+type MailType struct {
+	Attachments []string
+	To          []string
+	CC          []string
+	Bcc         []string
+	From        string
+	Subject     string
+	Date        time.Time
+	TextParts   []string
+}
+
+// NewMail perepare a new Mail Address List
+func NewMail(from string, toList string) *MailType {
+	al := MailType{}
+	al.SetTo(toList)
+	al.From = from
+	return &al
+}
+
+// SetTo sets the list of comma delimited recipents
+func (mt *MailType) SetTo(tolist string) {
+	mt.To = strings.Split(strings.TrimSpace(tolist), ",")
+}
+
+// SetCc sets the list of comma delimited CC'ed recipents
+func (mt *MailType) SetCc(cclist string) {
+	mt.CC = strings.Split(strings.TrimSpace(cclist), ",")
+}
+
+// SetBcc sets the list of comma delimited SetBcc'ed recipents
+func (mt *MailType) SetBcc(bcclist string) {
+	mt.Bcc = strings.Split(strings.TrimSpace(bcclist), ",")
+}
+
+// SetAttach adds list of Attachments (comma delimited full path)
+func (mt *MailType) SetAttach(filelist []string) {
+	mt.Attachments = filelist
 }
