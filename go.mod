@@ -16,6 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
 	github.com/wneessen/go-mail v0.3.8
+	github.com/xlzd/gotp v0.1.0
 	gopkg.in/ini.v1 v1.67.0
 )
 
