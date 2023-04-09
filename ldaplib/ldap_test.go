@@ -3,7 +3,6 @@ package ldaplib
 import (
 	"os"
 	"testing"
-	"time"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ const LdapConfigPassword = "config"
 var port = 10389
 var sslport = 10636
 var lc *LdapConfigType
-var timeout = 20 * time.Second
+var timeout = 20
 
 func TestLdapConfig(t *testing.T) {
 	t.Run("Ldap Config", func(t *testing.T) {

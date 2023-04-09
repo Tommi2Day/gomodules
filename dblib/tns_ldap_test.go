@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/tommi2day/gomodules/ldaplib"
 	"github.com/tommi2day/gomodules/test"
@@ -52,6 +51,7 @@ DEFAULT_ADMIN_CONTEXT = "dc=oracle,dc=local"
 DIRECTORY_SERVERS = (oid:1389:1636, ldap:389)
 DIRECTORY_SERVER_TYPE = OID
 `
+const ldapTimeout = 20
 
 func TestOracleLdap(t *testing.T) {
 	var err error
@@ -99,7 +99,7 @@ func TestOracleLdap(t *testing.T) {
 
 	base := LdapBaseDn
 	server, sslport = getLdapHostAndPort(ldapContainer, "636/tcp")
-	lc = ldaplib.NewConfig(server, sslport, true, true, base, 20*time.Second)
+	lc = ldaplib.NewConfig(server, sslport, true, true, base, ldapTimeout)
 	context := ""
 
 	t.Run("Ldap Connect", func(t *testing.T) {

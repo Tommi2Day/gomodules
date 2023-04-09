@@ -17,12 +17,12 @@ type LdapConfigType struct {
 	TLS      bool
 	Insecure bool
 	BaseDN   string
-	Timeout  time.Duration
+	Timeout  int // in second
 	Conn     *ldap.Conn
 }
 
 // NewConfig defines common connection parameter
-func NewConfig(server string, port int, tls bool, insecure bool, basedn string, timeout time.Duration) *LdapConfigType {
+func NewConfig(server string, port int, tls bool, insecure bool, basedn string, timeout int) *LdapConfigType {
 	ldapConfig := LdapConfigType{}
 	if port == 0 {
 		if tls {
@@ -53,7 +53,7 @@ func (lc *LdapConfigType) Connect(bindDN string, bindPassword string) (err error
 	}
 
 	// set timeout
-	ldap.DefaultTimeout = lc.Timeout
+	ldap.DefaultTimeout = time.Duration(lc.Timeout) * time.Second
 
 	// You can also use IP instead of FQDN
 	if lc.Insecure {
