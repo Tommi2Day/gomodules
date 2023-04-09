@@ -4,24 +4,26 @@ package ldaplib
 import (
 	"crypto/tls"
 	"fmt"
+	"time"
 
 	ldap "github.com/go-ldap/ldap/v3"
 )
 
-// ConfigType helds config properties
-type ConfigType struct {
+// LdapConfigType helds config properties
+type LdapConfigType struct {
 	Server   string
 	Port     int
 	URL      string
 	TLS      bool
 	Insecure bool
 	BaseDN   string
+	Timeout  time.Duration
+	Conn     *ldap.Conn
 }
 
-var ldapConfig ConfigType
-
-// SetConfig defines common connection parameter
-func SetConfig(server string, port int, tls bool, insecure bool, basedn string) {
+// NewConfig defines common connection parameter
+func NewConfig(server string, port int, tls bool, insecure bool, basedn string, timeout time.Duration) *LdapConfigType {
+	ldapConfig := LdapConfigType{}
 	if port == 0 {
 		if tls {
 			port = 636
@@ -38,25 +40,31 @@ func SetConfig(server string, port int, tls bool, insecure bool, basedn string) 
 		ldapConfig.URL = fmt.Sprintf("ldaps://%s:%d", ldapConfig.Server, ldapConfig.Port)
 	}
 	ldapConfig.BaseDN = basedn
-}
-
-// GetConfig retrievs actual config
-func GetConfig() ConfigType {
-	return ldapConfig
+	ldapConfig.Timeout = timeout
+	return &ldapConfig
 }
 
 // Connect will authorize to the ldap server
-func Connect(bindDN string, bindPassword string) (l *ldap.Conn, err error) {
+func (lc *LdapConfigType) Connect(bindDN string, bindPassword string) (err error) {
+	l := lc.Conn
+	if l != nil {
+		l.Close()
+		l = nil
+	}
+
+	// set timeout
+	ldap.DefaultTimeout = lc.Timeout
+
 	// You can also use IP instead of FQDN
-	if ldapConfig.Insecure {
+	if lc.Insecure {
 		//nolint gosec
-		l, err = ldap.DialURL(ldapConfig.URL, ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: true}))
+		l, err = ldap.DialURL(lc.URL, ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: true}))
 	} else {
-		l, err = ldap.DialURL(ldapConfig.URL)
+		l, err = ldap.DialURL(lc.URL)
 	}
 
 	if err != nil {
-		return nil, err
+		return
 	}
 	if len(bindDN) == 0 {
 		err = l.UnauthenticatedBind("")
@@ -64,16 +72,18 @@ func Connect(bindDN string, bindPassword string) (l *ldap.Conn, err error) {
 		err = l.Bind(bindDN, bindPassword)
 	}
 	if err != nil {
-		return nil, err
+		return
 	}
-	return l, nil
+	lc.Conn = l
+	return
 }
 
 // Search do a search on ldap
-func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, scope int, deref int) (entries []*ldap.Entry, err error) {
+func (lc *LdapConfigType) Search(baseDN string, filter string, attributes []string, scope int, deref int) (entries []*ldap.Entry, err error) {
 	var result *ldap.SearchResult
+	l := lc.Conn
 	if l == nil {
-		err = fmt.Errorf("ldap delete no valid ldap handler")
+		err = fmt.Errorf("ldap search: not connected")
 		return
 	}
 	searchReq := ldap.NewSearchRequest(
@@ -100,9 +110,10 @@ func Search(l *ldap.Conn, baseDN string, filter string, attributes []string, sco
 }
 
 // DeleteEntry deletes given DN from Ldap
-func DeleteEntry(l *ldap.Conn, dn string) (err error) {
+func (lc *LdapConfigType) DeleteEntry(dn string) (err error) {
+	l := lc.Conn
 	if l == nil {
-		err = fmt.Errorf("ldap delete no valid ldap handler")
+		err = fmt.Errorf("ldap delete: not connected")
 		return
 	}
 	if len(dn) == 0 {
@@ -115,17 +126,18 @@ func DeleteEntry(l *ldap.Conn, dn string) (err error) {
 }
 
 // AddEntry creates a new Entry
-func AddEntry(l *ldap.Conn, dn string, attr []ldap.Attribute) (err error) {
+func (lc *LdapConfigType) AddEntry(dn string, attr []ldap.Attribute) (err error) {
+	l := lc.Conn
 	if l == nil {
-		err = fmt.Errorf("ldap delete no valid ldap handler")
+		err = fmt.Errorf("ldap add: not connected")
 		return
 	}
 	if len(dn) == 0 {
-		err = fmt.Errorf("ldap delete dn empty")
+		err = fmt.Errorf("ldap add: dn empty")
 		return
 	}
 	if len(attr) == 0 {
-		err = fmt.Errorf("ldap add attributes empty")
+		err = fmt.Errorf("ldap add: attributes empty")
 		return
 	}
 	req := ldap.NewAddRequest(dn, nil)
@@ -137,21 +149,22 @@ func AddEntry(l *ldap.Conn, dn string, attr []ldap.Attribute) (err error) {
 }
 
 // ModifyAttribute add, replaces or deletes one Attribute of an Entry
-func ModifyAttribute(l *ldap.Conn, dn string, modtype string, name string, values []string) (err error) {
+func (lc *LdapConfigType) ModifyAttribute(dn string, modtype string, name string, values []string) (err error) {
+	l := lc.Conn
 	if l == nil {
-		err = fmt.Errorf("ldap modify no valid ldap handler")
+		err = fmt.Errorf("ldap modify: not connected")
 		return
 	}
 	if len(dn) == 0 {
-		err = fmt.Errorf("ldap modify dn empty")
+		err = fmt.Errorf("ldap modify: dn empty")
 		return
 	}
 	if len(name) == 0 {
-		err = fmt.Errorf("ldap modify attribute name empty")
+		err = fmt.Errorf("ldap modify: attribute name empty")
 		return
 	}
 	if len(values) == 0 {
-		err = fmt.Errorf("ldap modify values empty")
+		err = fmt.Errorf("ldap modify: values empty")
 		return
 	}
 	req := ldap.NewModifyRequest(dn, nil)
@@ -175,7 +188,13 @@ func ModifyAttribute(l *ldap.Conn, dn string, modtype string, name string, value
 }
 
 // SetPassword changes an existing password to the given or generated value
-func SetPassword(l *ldap.Conn, dn string, oldPass string, newPass string) (generatedPass string, err error) {
+func (lc *LdapConfigType) SetPassword(dn string, oldPass string, newPass string) (generatedPass string, err error) {
+	// all parameter can be empty
+	l := lc.Conn
+	if l == nil {
+		err = fmt.Errorf("ldap delete: not connected")
+		return
+	}
 	passwdModReq := ldap.NewPasswordModifyRequest(dn, oldPass, newPass)
 	passwdModResp, err := l.PasswordModify(passwdModReq)
 	if err != nil {

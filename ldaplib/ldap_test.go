@@ -3,6 +3,7 @@ package ldaplib
 import (
 	"os"
 	"testing"
+	"time"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
@@ -18,12 +19,13 @@ const LdapConfigPassword = "config"
 
 var port = 10389
 var sslport = 10636
+var lc *LdapConfigType
+var timeout = 20 * time.Second
 
 func TestLdapConfig(t *testing.T) {
 	t.Run("Ldap Config", func(t *testing.T) {
-		SetConfig("ldap.test", 0, true, true, LdapBaseDn)
-		actual := GetConfig()
-		assert.IsType(t, ConfigType{}, actual, "Wrong type returned")
+		lc = NewConfig("ldap.test", 0, true, true, LdapBaseDn, timeout)
+		actual := lc
 		assert.Equal(t, "ldap.test", actual.Server, "Server not equal")
 		assert.Equal(t, 636, actual.Port, "with tls=true port should be 636")
 		assert.Equal(t, "ldaps://ldap.test:636", actual.URL, "with tls=true should be ldaps")
@@ -46,10 +48,11 @@ func TestBaseLdap(t *testing.T) {
 
 	server, port = getHostAndPort(ldapContainer, "389/tcp")
 	base := LdapBaseDn
-	SetConfig(server, port, false, false, LdapBaseDn)
+	lc = NewConfig(server, port, false, false, LdapBaseDn, timeout)
 	t.Run("Anonymous Connect", func(t *testing.T) {
 		t.Logf("Connect anonymous plain on port %d", port)
-		l, err = Connect("", "")
+		err = lc.Connect("", "")
+		l = lc.Conn
 		require.NoErrorf(t, err, "anonymous Connect returned error: %v", err)
 		assert.NotNilf(t, l, "Ldap Connect is nil")
 		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
@@ -57,16 +60,17 @@ func TestBaseLdap(t *testing.T) {
 	})
 	// test container should not be validaed
 	server, sslport = getHostAndPort(ldapContainer, "636/tcp")
-	SetConfig(server, sslport, true, true, LdapBaseDn)
+	lc = NewConfig(server, sslport, true, true, LdapBaseDn, timeout)
 	t.Run("Admin SSL Connect", func(t *testing.T) {
 		t.Logf("Connect Admin '%s' using SSL on port %d", LdapAdminUser, sslport)
-		l, err = Connect(LdapAdminUser, LdapAdminPassword)
+		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
+		l = lc.Conn
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
 		assert.NotNilf(t, l, "Ldap Connect is nil")
 		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
 	})
 	t.Run("BaseDN Search", func(t *testing.T) {
-		entries, err = Search(l, base, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
+		entries, err = lc.Search(base, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
 		require.NoErrorf(t, err, "Search returned error:%v", err)
 		count := len(entries)
 		assert.Greaterf(t, count, 0, "Zero Entries")
@@ -87,26 +91,26 @@ func TestBaseLdap(t *testing.T) {
 		attributes = append(attributes, ldap.Attribute{Type: "gn", Vals: []string{"Test"}})
 		attributes = append(attributes, ldap.Attribute{Type: "mail", Vals: []string{"testuser@" + LdapDomain}})
 
-		err = AddEntry(l, userDN, attributes)
+		err = lc.AddEntry(userDN, attributes)
 		assert.NoErrorf(t, err, "Add User failed")
-		_, err = SetPassword(l, userDN, "", userPass)
+		_, err = lc.SetPassword(userDN, "", userPass)
 		require.NoErrorf(t, err, "Test Bind fix Pass returned error %v", err)
 	})
 	t.Run("Modify Attribute", func(t *testing.T) {
 		newMail := "testmail@test.com"
-		err = ModifyAttribute(l, userDN, "modify", "mail", []string{newMail})
+		err = lc.ModifyAttribute(userDN, "modify", "mail", []string{newMail})
 		require.NoErrorf(t, err, "Entry  mail was not modified and returned error %v", err)
 		// test change
-		entries, err = Search(l, userDN, "(objectclass=*)", []string{"DN", "mail"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
+		entries, err = lc.Search(userDN, "(objectclass=*)", []string{"DN", "mail"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
 		require.NoErrorf(t, err, "search for %s returned error %v", userDN, err)
 		require.Equalf(t, 1, len(entries), "Should return only one entry")
 		actMail := entries[0].GetAttributeValue("mail")
 		assert.Equal(t, newMail, actMail, "Mail Modify not visible")
 	})
 	t.Run("Delete Attribute", func(t *testing.T) {
-		err = ModifyAttribute(l, userDN, "delete", "gn", nil)
+		err = lc.ModifyAttribute(userDN, "delete", "gn", nil)
 		// test change
-		entries, err = Search(l, userDN, "(objectclass=*)", []string{"DN", "gn"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
+		entries, err = lc.Search(userDN, "(objectclass=*)", []string{"DN", "gn"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
 		require.NoErrorf(t, err, "search for %s returned error %v", userDN, err)
 		require.Equalf(t, 1, len(entries), "Should return only one entry")
 		actAttr := entries[0].GetAttributeValue("gn")
@@ -115,16 +119,17 @@ func TestBaseLdap(t *testing.T) {
 	t.Run("Change User Password", func(t *testing.T) {
 		var genPass string
 		// connect to testuser with new pass
-		l, err = Connect(userDN, userPass)
+		err = lc.Connect(userDN, userPass)
 		require.NoErrorf(t, err, "Test Bind with new password returned error %v", err)
-		genPass, err = SetPassword(l, "", userPass, "")
+		genPass, err = lc.SetPassword("", userPass, "")
 		require.NoErrorf(t, err, "Generate Password returned Error: %v", err)
 		assert.NotEmptyf(t, genPass, "no password was generated")
 		t.Logf("generated Password: %s", genPass)
 		l.Close()
 
 		// reconnect with new password
-		l, err = Connect(userDN, genPass)
+		err = lc.Connect(userDN, genPass)
+		l = lc.Conn
 		assert.NoErrorf(t, err, "Test Bind with generated password returned error %v", err)
 		if l != nil {
 			l.Close()
@@ -132,14 +137,15 @@ func TestBaseLdap(t *testing.T) {
 	})
 
 	t.Run("Delete Entry", func(t *testing.T) {
-		l, err = Connect(LdapAdminUser, LdapAdminPassword)
+		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
+		l = lc.Conn
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
 		assert.NotNilf(t, l, "Ldap Connect is nil")
-		err = DeleteEntry(l, userDN)
+		err = lc.DeleteEntry(userDN)
 		assert.NoErrorf(t, err, "Deleting failed")
 
 		// check if we can find the dropped DN
-		entries, err = Search(l, userDN, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
+		entries, err = lc.Search(userDN, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
 		assert.NoErrorf(t, err, "Should not return any error as no data error was removed")
 		assert.Equalf(t, 0, len(entries), "Should return no one entry")
 	})
