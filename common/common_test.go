@@ -24,17 +24,8 @@ testdp:testuser:xxx:yyy
 !default:defuser:default
 `
 
-// TestGetVersion Test Version output should return a nonempty value
-/*func TestGetVersion(t *testing.T) {
-	t.Run("Version Output", func(t *testing.T) {
-		expected := "N/A"
-		actual := cmd.GetVersion(false)
-		assert.NotEmpty(t, actual, "Version Empty")
-		assert.Equal(t, expected, actual, "version not expected")
-	})
-}*/
-
 func TestReadFileToString(t *testing.T) {
+	test.Testinit(t)
 	// prepare
 	filename := "testdata/stringtest.test"
 	err := os.Chdir(test.TestDir)
@@ -67,6 +58,7 @@ func TestReadFileToString(t *testing.T) {
 }
 
 func TestReadFileByLine(t *testing.T) {
+	test.Testinit(t)
 	// prepare
 	filename := "testdata/linetest.test"
 	err := os.Chdir(test.TestDir)
