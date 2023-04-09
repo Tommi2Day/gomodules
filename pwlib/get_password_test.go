@@ -25,32 +25,33 @@ testdp:testuser:xxx:yyy
 
 func TestCrypt(t *testing.T) {
 	// prepare
-	methods := []string{typeGO, typeOpenssl}
-	for _, m := range methods {
+	test.Testinit(t)
+
+	for _, m := range Methods {
 		app := "test_encrypt_" + m
-		SetConfig(app, test.TestData, test.TestData, app, m)
+		pc := NewConfig(app, test.TestData, test.TestData, app, m)
 
 		err := os.Chdir(test.TestDir)
 		require.NoErrorf(t, err, "ChDir failed")
-		filename := PwConfig.PlainTextFile
+		filename := pc.PlainTextFile
 		_ = os.Remove(filename)
 		//nolint gosec
 		err = os.WriteFile(filename, []byte(plain), 0644)
 		require.NoErrorf(t, err, "Create testdata failed")
-		_, _, err = GenRsaKey(PwConfig.PubKeyFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
+		_, _, err = GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
 		require.NoErrorf(t, err, "Prepare Key failed:%s", err)
 
 		// run
 		t.Run("default Encrypt File method "+m, func(t *testing.T) {
-			err := EncryptFile()
+			err := pc.EncryptFile()
 			assert.NoErrorf(t, err, "Encryption failed: %s", err)
-			assert.FileExists(t, PwConfig.CryptedFile)
+			assert.FileExists(t, pc.CryptedFile)
 		})
 		t.Run("default Decrypt File method "+m, func(t *testing.T) {
-			plain, err := common.ReadFileByLine(PwConfig.PlainTextFile)
+			plain, err := common.ReadFileByLine(pc.PlainTextFile)
 			require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
 			expected := len(plain)
-			content, err := DecryptFile()
+			content, err := pc.DecryptFile()
 			assert.NoErrorf(t, err, "Decryption failed: %s", err)
 			assert.NotEmpty(t, content)
 			actual := len(content)
@@ -68,20 +69,21 @@ func TestGetPassword(t *testing.T) {
 		answer   string
 		hasError bool
 	}
+	test.Testinit(t)
 	app := "test_get_pass"
-	SetConfig(app, test.TestData, test.TestData, app, typeGO)
+	pc := NewConfig(app, test.TestData, test.TestData, app, typeGO)
 	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
-	filename := PwConfig.PlainTextFile
+	filename := pc.PlainTextFile
 	_ = os.Remove(filename)
 	//nolint gosec
 	err = os.WriteFile(filename, []byte(plain), 0644)
 	require.NoErrorf(t, err, "Create testdata failed")
-	_, _, err = GenRsaKey(PwConfig.PubKeyFile, PwConfig.PrivateKeyFile, PwConfig.KeyPass)
+	_, _, err = GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
 	require.NoErrorf(t, err, "Prepare Key failed:%s", err)
-	err = EncryptFile()
+	err = pc.EncryptFile()
 	require.NoErrorf(t, err, "Encrypt Plain failed:%s", err)
-	_, err = ListPasswords()
+	_, err = pc.ListPasswords()
 	require.NoErrorf(t, err, "List failed:%s", err)
 
 	// run
@@ -123,7 +125,7 @@ func TestGetPassword(t *testing.T) {
 		},
 	} {
 		t.Run(testConfig.name, func(t *testing.T) {
-			pass, err := GetPassword(testConfig.system, testConfig.account)
+			pass, err := pc.GetPassword(testConfig.system, testConfig.account)
 			if testConfig.hasError {
 				assert.Error(t, err, "Expected Error not thrown")
 			} else {
