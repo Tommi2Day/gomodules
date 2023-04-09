@@ -7,13 +7,15 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+	"github.com/tommi2day/gomodules/test"
+
 	"github.com/ory/dockertest/v3"
 
 	ora "github.com/sijms/go-ora/v2"
 	"github.com/sijms/go-ora/v2/network"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tommi2day/gomodules/common"
 )
 
 const DBUSER = "system"
@@ -37,7 +39,9 @@ func makeOerr(code int, msg string) *network.OracleError {
 
 func TestWithOracle(t *testing.T) {
 	const alias = "XE.local"
-	tnsAdmin := TESTDATA
+
+	test.Testinit(t)
+	tnsAdmin = test.TestData
 	filename := tnsAdmin + "/connect.ora"
 	//_ = os.Chdir(tnsAdmin)
 	//nolint gosec

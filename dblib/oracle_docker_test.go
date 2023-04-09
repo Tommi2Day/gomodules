@@ -13,7 +13,7 @@ import (
 const port = "21521"
 const repo = "docker.io/gvenzl/oracle-xe"
 const repoTag = "21.3.0-slim"
-const containerTimeout = 300
+const containerTimeout = 600
 
 var containerName string
 var pool *dockertest.Pool

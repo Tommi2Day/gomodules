@@ -8,10 +8,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"gopkg.in/ini.v1"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/tommi2day/gomodules/common"
 )
 
 // TNSAddress holds  host/port of an address section

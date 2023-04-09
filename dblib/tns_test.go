@@ -80,7 +80,7 @@ var tnsAdmin = "testdata"
 
 func TestParseTns(t *testing.T) {
 	var err error
-
+	test.Testinit(t)
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 

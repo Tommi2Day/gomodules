@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tommi2day/gomodules/ldaplib"
 	"github.com/tommi2day/gomodules/test"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tommi2day/gomodules/ldaplib"
 )
 
 const ldapOrganisation = "TNS Ltd"
@@ -62,9 +62,10 @@ func TestOracleLdap(t *testing.T) {
 	var ldapTnsEntries TNSEntries
 	var lc *ldaplib.LdapConfigType
 
+	test.Testinit(t)
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
-	ldapAdmin := test.TestDir + "/" + tnsAdmin
+	ldapAdmin := test.TestData
 	//nolint gosec
 	err = os.WriteFile(ldapAdmin+"/ldap.ora", []byte(ldapora), 0644)
 	require.NoErrorf(t, err, "Create test ldap.ora failed")
@@ -104,7 +105,6 @@ func TestOracleLdap(t *testing.T) {
 	t.Run("Ldap Connect", func(t *testing.T) {
 		t.Logf("Connect '%s' using SSL on port %d", LdapAdminUser, sslport)
 		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
-
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
 		assert.NotNilf(t, lc.Conn, "Ldap Connect is nil")
 		assert.IsType(t, &ldap.Conn{}, lc.Conn, "returned object ist not ldap connection")
@@ -180,7 +180,7 @@ func TestOracleLdap(t *testing.T) {
 		require.NoErrorf(t, err, "ChDir failed")
 
 		// create test file to load
-		tnsAdmin = TESTDATA
+		tnsAdmin = test.TestData
 		filename := tnsAdmin + "/ldap_file2.ora"
 		//nolint gosec
 		err = os.WriteFile(filename, []byte(ldaptns2), 0644)

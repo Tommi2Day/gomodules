@@ -5,11 +5,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/tommi2day/gomodules/ldaplib"
+
 	"gopkg.in/ini.v1"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	log "github.com/sirupsen/logrus"
-	"github.com/tommi2day/gomodules/ldaplib"
 )
 
 const (
