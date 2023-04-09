@@ -2,8 +2,11 @@ package pwlib
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
+// nolint gocyclo
 func TestDoPasswordCheck(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -70,9 +73,8 @@ func TestDoPasswordCheck(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			profile := c.profile
-			if c.valid != DoPasswordCheck(c.pass, profile.Length, profile.Upper, profile.Lower, profile.Digits, profile.Special, profile.Firstchar, "") {
-				t.Fatal("invalid password")
-			}
+			actual := DoPasswordCheck(c.pass, profile.Length, profile.Upper, profile.Lower, profile.Digits, profile.Special, profile.Firstchar, "")
+			assert.Equalf(t, c.valid, actual, "Check %s not as expected", c.name)
 		})
 	}
 }
