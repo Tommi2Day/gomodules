@@ -3,8 +3,9 @@ package maillib
 import (
 	"bytes"
 	"fmt"
-	"github.com/tommi2day/gomodules/test"
 	"net"
+
+	"github.com/tommi2day/gomodules/test"
 
 	"os"
 	"time"
@@ -130,24 +131,29 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	}
 	_ = c.Close()
 
-	execCmd(container, []string{"bash", "-c", "env|sort"})
+	// show env
+	// execCmd(container, []string{"bash", "-c", "env|sort"})
+
 	// wait 20s to init container
 	time.Sleep(20 * time.Second)
 	elapsed := time.Since(start)
 	fmt.Printf("Mail Container is available after %s\n", elapsed.Round(time.Millisecond))
 
-	// execCmd(container, []string{"cat", "/etc/postfix/main.cf"})
+	// test main.cf
+	execCmd(container, []string{"ls", "-l", "/etc/postfix/main.cf"})
 
 	err = nil
 	return
 }
 
+// destroy container resource
 func destroyMailContainer(container *dockertest.Resource) {
 	if err := mailPool.Purge(container); err != nil {
 		fmt.Printf("Could not purge resource: %s\n", err)
 	}
 }
 
+// executes an OS cmd within container and print output
 func execCmd(container *dockertest.Resource, cmd []string) {
 	var cmdout bytes.Buffer
 	cmdout.Reset()
@@ -155,6 +161,6 @@ func execCmd(container *dockertest.Resource, cmd []string) {
 	if err != nil {
 		fmt.Printf("Exec Error %s", err)
 	} else {
-		fmt.Printf("Env:\n %s", cmdout.String())
+		fmt.Printf("Cmd:%v\n %s", cmd, cmdout.String())
 	}
 }

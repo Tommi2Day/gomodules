@@ -135,10 +135,10 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 		}
 	}
 
-	// create mail Client
+	// create mail Conn
 	c, err = mail.NewClient(config.ServerConfig.Server, mail.WithPort(config.ServerConfig.Port), mail.WithTimeout(config.ServerConfig.Timeout))
 	if err != nil {
-		errtxt = fmt.Sprintf("sendmail: failed to create mail Client: %s", err)
+		errtxt = fmt.Sprintf("sendmail: failed to create mail Conn: %s", err)
 		err = errors.New(errtxt)
 		log.Error(errtxt)
 		return

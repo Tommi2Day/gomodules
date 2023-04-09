@@ -2,12 +2,13 @@ package maillib
 
 import (
 	"fmt"
-	"github.com/tommi2day/gomodules/test"
 	"os"
+	"path"
 	"testing"
 	"time"
 
 	"github.com/emersion/go-imap"
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/stretchr/testify/require"
 	"github.com/wneessen/go-mail"
@@ -18,8 +19,7 @@ import (
 const rootUser = "root"
 const infoUser = "info"
 const rootPass = "testpass"
-
-// const infoPass = "testpass"
+const infoPass = "testpass"
 const FROM = rootUser + "@" + mailDomain
 const TO = infoUser + "@" + mailDomain
 const mailDomain = "test.local"
@@ -110,7 +110,7 @@ func TestMail(t *testing.T) {
 			test.TestDir + "/mail/ssl/ca.crt",
 			test.TestDir + "/mail/ssl/mail.test.local.crt",
 		})
-		err = s.SendMail(l, "Testmail3", fmt.Sprintf("Test with ssl at %s", timeStr))
+		err = s.SendMail(l, "Testmail3", fmt.Sprintf("Test with ssl and attachment at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail SSL returned error %v", err)
 	})
 	t.Run("Send Mail TLS 587", func(t *testing.T) {
@@ -126,7 +126,7 @@ func TestMail(t *testing.T) {
 	t.Log("wait for Mails to proceed to Inbox")
 	time.Sleep(10 * time.Second)
 	t.Run("Imap Connect 143", func(t *testing.T) {
-		i := NewImapConfig(mailServer, imapPort, TO, rootPass)
+		i := NewImapConfig(mailServer, imapPort, TO, infoPass)
 		i.ServerConfig.EnableTLS(false)
 		i.ServerConfig.SetTimeout(20)
 		err = i.Connect()
@@ -150,13 +150,14 @@ func TestMail(t *testing.T) {
 		assert.NoErrorf(t, err, "Imap TLS Connect returned error %v", err)
 		i.LogOut()
 	})
-	i := NewImapConfig(mailServer, imapsPort, TO, rootPass)
+	i := NewImapConfig(mailServer, imapsPort, TO, infoPass)
 	t.Run("Imap Connect SSL 993", func(t *testing.T) {
 		i.ServerConfig.EnableSSL(true)
 		i.ServerConfig.SetTimeout(20)
 		err = i.Connect()
 		assert.NoErrorf(t, err, "Imap SSL Connect returned error %v", err)
 	})
+
 	require.NotNil(t, i.Client, "Imap not connected")
 	defer i.LogOut()
 	t.Run("Imap List mailboxes", func(t *testing.T) {
@@ -171,16 +172,24 @@ func TestMail(t *testing.T) {
 
 	t.Run("Imap Get Messages", func(t *testing.T) {
 		var ids []uint32
-		var allMsg []imap.Literal
+		var allMsg []ImapMsg
 		t.Run("Imap Inbox Status", func(t *testing.T) {
-			all, unseen, flags, err := i.SelectInbox("INBOX")
-			t.Logf("INBOX:all %d, unseen:%d,Flags:%v", all, unseen, flags)
+			all, seen, flags, err := i.MBoxStatus("INBOX")
+			t.Logf("INBOX:all %d, seen:%d,Flags:%v", all, seen, flags)
 			assert.NoErrorf(t, err, "Inbox Status failed:%s", err)
 		})
+		t.Run("Imap Search", func(t *testing.T) {
+			criteria := imap.NewSearchCriteria()
+			criteria.Body = []string{"attachment"}
+			ids, err = i.SearchMessages(criteria)
+			assert.NoErrorf(t, err, "Search Error:%s", err)
+			assert.Equal(t, len(ids), 1, "Search Result not expected")
+			t.Logf("Search ids:%v", ids)
+		})
 		t.Run("Imap Get Unseen", func(t *testing.T) {
-			ids, err = i.GetUnseenMessages()
+			ids, err = i.GetUnseenMessageIds()
 			assert.NoErrorf(t, err, "GetUnseenMessages Error:%s", err)
-			t.Logf("INBOX:ids:%v", ids)
+			t.Logf("unseen ids:%v", ids)
 		})
 		t.Run("Imap Read Message", func(t *testing.T) {
 			allMsg, err = i.ReadMessages(ids)
@@ -190,16 +199,18 @@ func TestMail(t *testing.T) {
 		require.Equal(t, 4, c, "Message Count not fit")
 		if c > 3 {
 			t.Run("Imap Parse Message", func(t *testing.T) {
-				content, err := i.ParseMessageBody(allMsg[2])
+				i.DownloadDir = test.TestData
+				// parse and download
+				msg, err := i.ParseMessage(allMsg[2], true)
 				assert.NoErrorf(t, err, "ParseMessage Error:%s", err)
-				require.NotNil(t, content, "Content should not nil")
-				from := content.From
-				to := content.To
-				cc := content.CC
-				subject := content.Subject
-				attach := content.Attachments
-				text := content.TextParts
-				date := content.Date
+				require.NotNil(t, msg, "Content should not nil")
+				from := msg.From
+				to := msg.To
+				cc := msg.CC
+				subject := msg.Subject
+				attach := msg.Attachments
+				text := msg.TextParts
+				date := msg.Date
 				assert.NotEmpty(t, from, "From should be set")
 				assert.Equal(t, 1, len(to), "To should be set")
 				assert.Equal(t, 1, len(cc), "CC should be set")
@@ -207,7 +218,35 @@ func TestMail(t *testing.T) {
 				assert.Equal(t, 2, len(attach), "Attach Count not as expected")
 				assert.Equal(t, 1, len(text), "Text Part Count not as expected")
 				assert.NotEmpty(t, date, "Date should be set")
+				fn := path.Join(test.TestData, attach[0])
+				assert.FileExistsf(t, fn, "expected attachment file '%s' not found", fn)
 			})
 		}
+		t.Run("Imap Delete", func(t *testing.T) {
+			time.Sleep(3 * time.Second)
+			var mbox *imap.MailboxStatus
+			mbox, err = i.SelectMailbox("")
+			require.NoErrorf(t, err, "Select Mailbox failed")
+			require.NotNil(t, mbox, "mbox not set")
+			mcount := int(mbox.Messages)
+			// select all mail send
+			criteria := imap.NewSearchCriteria()
+			criteria.Text = []string{"Testmail"}
+			ids, err = i.SearchMessages(criteria)
+			assert.NoErrorf(t, err, "Search Error:%s", err)
+			l := len(ids)
+			t.Logf("Found ids:%v", ids)
+			assert.Equal(t, mcount, l, "Messages count not equal search count")
+			// delete mails
+			err = i.PurgeMessages(ids)
+			assert.NoErrorf(t, err, "Purge Error:%s", err)
+			// sleep to proceed
+			time.Sleep(2 * time.Second)
+			// check again
+			ids, err = i.SearchMessages(criteria)
+			t.Logf("ids after delete:%v", ids)
+			l = len(ids)
+			assert.Equal(t, 0, l, "Mailbox Search should not return deleted messages")
+		})
 	})
 }

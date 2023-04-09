@@ -89,6 +89,7 @@ type MailType struct {
 	Subject     string
 	Date        time.Time
 	TextParts   []string
+	ID          uint32
 }
 
 // NewMail perepare a new Mail Address List
