@@ -9,6 +9,7 @@
 ## [v1.6.0 - 2023-04-07]
 ### New
 - maillib: add Imap functions
+- ldaplib: refactor types and functions, add timeout
 
 ## [v1.5.0 - 2023-02-24]
 ### New

@@ -31,16 +31,15 @@ type LdapServer struct {
 }
 
 // ReadLdapTns read tns entries from ldap
-func ReadLdapTns(ldapCon *ldap.Conn, contextDN string) (TNSEntries, error) {
+func ReadLdapTns(lc *ldaplib.LdapConfigType, contextDN string) (TNSEntries, error) {
 	var err error
 	tnsEntries := make(TNSEntries)
-
 	if err != nil {
 		log.Errorf("error when try ldap setup: %v", err)
 		return tnsEntries, err
 	}
 	ldapFilter := fmt.Sprintf("(objectClass=%s)", ldap.EscapeFilter("orclNetService"))
-	result, err := ldaplib.Search(ldapCon, contextDN, ldapFilter, []string{"cn", "orclNetDescString", "aliasedObjectName"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
+	result, err := lc.Search(contextDN, ldapFilter, []string{"cn", "orclNetDescString", "aliasedObjectName"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
 	if err != nil {
 		err = fmt.Errorf("service search returned error:%v", err)
 		log.Errorf("Ldap: %v", err)
@@ -101,9 +100,9 @@ func ReadLdapOra(path string) (ctx string, servers []LdapServer) {
 }
 
 // GetOracleContext retrieve next OracleContext Object from LDAP
-func GetOracleContext(ldapCon *ldap.Conn, basedn string) (contextDN string, err error) {
+func GetOracleContext(lc *ldaplib.LdapConfigType, basedn string) (contextDN string, err error) {
 	ldapFilter := fmt.Sprintf("(objectClass=%s)", ldap.EscapeFilter("orclContext"))
-	result, err := ldaplib.Search(ldapCon, basedn, ldapFilter, []string{"DN"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
+	result, err := lc.Search(basedn, ldapFilter, []string{"DN"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
 	if err != nil {
 		err = fmt.Errorf("context search returned error:%v", err)
 		log.Errorf("Ldap: %v", err)
@@ -119,11 +118,11 @@ func GetOracleContext(ldapCon *ldap.Conn, basedn string) (contextDN string, err 
 }
 
 // buildstatus creates ops task map to handle
-func buildStatusMap(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, contextDN string) (TNSEntries, map[string]string, error) {
+func buildStatusMap(lc *ldaplib.LdapConfigType, tnsEntries TNSEntries, domain string, contextDN string) (TNSEntries, map[string]string, error) {
 	var alias string
 	ldapstatus := map[string]string{}
 
-	ldapTNS, err := ReadLdapTns(ldapCon, contextDN)
+	ldapTNS, err := ReadLdapTns(lc, contextDN)
 	if err != nil {
 		return nil, ldapstatus, err
 	}
@@ -151,7 +150,7 @@ func buildStatusMap(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, co
 }
 
 // WriteLdapTns writes a set of TNS entries to Ldap
-func WriteLdapTns(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, contextDN string) (TWorkStatus, error) {
+func WriteLdapTns(lc *ldaplib.LdapConfigType, tnsEntries TNSEntries, domain string, contextDN string) (TWorkStatus, error) {
 	var ldapstatus map[string]string
 	var ldapTNS TNSEntries
 	var alias string
@@ -164,7 +163,7 @@ func WriteLdapTns(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, cont
 	workStatus[sSkip] = 0
 
 	log.Infof("%d TNS Entries to write", len(tnsEntries))
-	ldapTNS, ldapstatus, err = buildStatusMap(ldapCon, tnsEntries, domain, contextDN)
+	ldapTNS, ldapstatus, err = buildStatusMap(lc, tnsEntries, domain, contextDN)
 	status := ""
 	for alias, status = range ldapstatus {
 		switch status {
@@ -178,7 +177,7 @@ func WriteLdapTns(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, cont
 				workStatus[sSkip]++
 				continue
 			}
-			err = AddLdapTNSEntry(ldapCon, contextDN, alias, tnsEntry.Desc)
+			err = AddLdapTNSEntry(lc, contextDN, alias, tnsEntry.Desc)
 			if err != nil {
 				log.Warnf("Add %s failed: %v", alias, err)
 				workStatus[sSkip]++
@@ -201,7 +200,7 @@ func WriteLdapTns(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, cont
 				workStatus[sSkip]++
 				continue
 			}
-			err = ModifyLdapTNSEntry(ldapCon, dn, alias, tnsEntry.Desc)
+			err = ModifyLdapTNSEntry(lc, dn, alias, tnsEntry.Desc)
 			if err != nil {
 				log.Warnf("Modify %s failed: %v", alias, err)
 				workStatus[sSkip]++
@@ -217,7 +216,7 @@ func WriteLdapTns(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, cont
 				continue
 			}
 			dn := ldapEntry.File
-			err = DeleteLdapTNSEntry(ldapCon, dn, alias)
+			err = DeleteLdapTNSEntry(lc, dn, alias)
 			if err != nil {
 				log.Warnf("Delete %s failed: %v", alias, err)
 				workStatus[sSkip]++
@@ -233,7 +232,7 @@ func WriteLdapTns(ldapCon *ldap.Conn, tnsEntries TNSEntries, domain string, cont
 }
 
 // AddLdapTNSEntry add new entry in LDAP
-func AddLdapTNSEntry(ldapCon *ldap.Conn, context string, alias string, desc string) (err error) {
+func AddLdapTNSEntry(lc *ldaplib.LdapConfigType, context string, alias string, desc string) (err error) {
 	log.Debugf("Add Ldap Entry for alias %s", alias)
 	var attributes []ldap.Attribute
 	name := strings.ToUpper(alias)
@@ -241,20 +240,20 @@ func AddLdapTNSEntry(ldapCon *ldap.Conn, context string, alias string, desc stri
 	attributes = append(attributes, ldap.Attribute{Type: "objectClass", Vals: []string{"top", "orclNetService"}})
 	attributes = append(attributes, ldap.Attribute{Type: "cn", Vals: []string{name}})
 	attributes = append(attributes, ldap.Attribute{Type: "orclNetDescString", Vals: []string{desc}})
-	err = ldaplib.AddEntry(ldapCon, dn, attributes)
+	err = lc.AddEntry(dn, attributes)
 	return
 }
 
 // ModifyLdapTNSEntry replace n existing entry
-func ModifyLdapTNSEntry(ldapCon *ldap.Conn, dn string, alias string, desc string) (err error) {
+func ModifyLdapTNSEntry(lc *ldaplib.LdapConfigType, dn string, alias string, desc string) (err error) {
 	log.Debugf("Add Ldap Entry for alias %s", alias)
-	err = ldaplib.ModifyAttribute(ldapCon, dn, "replace", "orclNetDescString", []string{desc})
+	err = lc.ModifyAttribute(dn, "replace", "orclNetDescString", []string{desc})
 	return
 }
 
 // DeleteLdapTNSEntry removes an Entry
-func DeleteLdapTNSEntry(ldapCon *ldap.Conn, dn string, alias string) (err error) {
+func DeleteLdapTNSEntry(lc *ldaplib.LdapConfigType, dn string, alias string) (err error) {
 	log.Debugf("delete Ldap Entry for alias %s", alias)
-	err = ldaplib.DeleteEntry(ldapCon, dn)
+	err = lc.DeleteEntry(dn)
 	return
 }

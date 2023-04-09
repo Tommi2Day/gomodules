@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/tommi2day/gomodules/test"
 
@@ -59,7 +60,7 @@ func TestOracleLdap(t *testing.T) {
 	var sslport int
 	var fileTnsEntries TNSEntries
 	var ldapTnsEntries TNSEntries
-	var ldapCon *ldap.Conn
+	var lc *ldaplib.LdapConfigType
 
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
@@ -97,23 +98,24 @@ func TestOracleLdap(t *testing.T) {
 
 	base := LdapBaseDn
 	server, sslport = getLdapHostAndPort(ldapContainer, "636/tcp")
-	ldaplib.SetConfig(server, sslport, true, true, base)
+	lc = ldaplib.NewConfig(server, sslport, true, true, base, 20*time.Second)
 	context := ""
 
 	t.Run("Ldap Connect", func(t *testing.T) {
 		t.Logf("Connect '%s' using SSL on port %d", LdapAdminUser, sslport)
-		ldapCon, err = ldaplib.Connect(LdapAdminUser, LdapAdminPassword)
+		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
+
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
-		assert.NotNilf(t, ldapCon, "Ldap Connect is nil")
-		assert.IsType(t, &ldap.Conn{}, ldapCon, "returned object ist not ldap connection")
-		if ldapCon == nil {
+		assert.NotNilf(t, lc.Conn, "Ldap Connect is nil")
+		assert.IsType(t, &ldap.Conn{}, lc.Conn, "returned object ist not ldap connection")
+		if lc.Conn == nil {
 			t.Fatalf("No valid Connection, terminate")
 			return
 		}
 	})
 
 	t.Run("Get Oracle Context", func(t *testing.T) {
-		context, err = GetOracleContext(ldapCon, base)
+		context, err = GetOracleContext(lc, base)
 		expected := "cn=OracleContext," + LdapBaseDn
 		assert.NotEmptyf(t, context, "Oracle Context not found")
 		assert.Equal(t, expected, context, "OracleContext not as expected")
@@ -146,7 +148,7 @@ func TestOracleLdap(t *testing.T) {
 
 		// write entries to ldap
 		var workstatus TWorkStatus
-		workstatus, err = WriteLdapTns(ldapCon, fileTnsEntries, domain, context)
+		workstatus, err = WriteLdapTns(lc, fileTnsEntries, domain, context)
 		require.NoErrorf(t, err, "Write TNS to Ldap failed: %s", err)
 		expected := len(fileTnsEntries)
 		actual := workstatus[sNew]
@@ -160,14 +162,14 @@ func TestOracleLdap(t *testing.T) {
 	}
 
 	t.Run("Ldap TNS Search", func(t *testing.T) {
-		results, err = ldaplib.Search(ldapCon, context, "(objectclass=orclNetService)", []string{"DN"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
+		results, err = lc.Search(context, "(objectclass=orclNetService)", []string{"DN"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
 		require.NoErrorf(t, err, "Search returned error:%v", err)
 		actual := len(results)
 		assert.Greaterf(t, actual, 0, "Zero Entries")
 		t.Logf("Returned %d entries", actual)
 	})
 	t.Run("Ldap TNS Read", func(t *testing.T) {
-		ldapTnsEntries, err = ReadLdapTns(ldapCon, context)
+		ldapTnsEntries, err = ReadLdapTns(lc, context)
 		require.NoErrorf(t, err, "Ldap Read returned error:%v", err)
 		actual := len(ldapTnsEntries)
 		expected := len(fileTnsEntries)
@@ -195,7 +197,7 @@ func TestOracleLdap(t *testing.T) {
 		require.Equal(t, 2, len(fileTnsEntries), "update TNS should have 2 entries")
 		// write entries to ldap
 		var workstatus TWorkStatus
-		workstatus, err = WriteLdapTns(ldapCon, fileTnsEntries, domain, context)
+		workstatus, err = WriteLdapTns(lc, fileTnsEntries, domain, context)
 		require.NoErrorf(t, err, "Write TNS to Ldap failed: %s", err)
 		o := workstatus[sOK]
 		n := workstatus[sNew]
