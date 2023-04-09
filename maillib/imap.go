@@ -3,6 +3,8 @@ package maillib
 import (
 	"fmt"
 	"io"
+	"os"
+	"path"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
@@ -15,6 +17,13 @@ type ImapType struct {
 	Inbox        string
 	ServerConfig *MailConfigType
 	Client       *client.Client
+	DownloadDir  string
+}
+
+// ImapMsg hold a received message
+type ImapMsg struct {
+	Content imap.Literal
+	UID     uint32
 }
 
 // NewImapConfig prepares a new configuration object for sending mails
@@ -23,17 +32,23 @@ func NewImapConfig(server string, port int, username string, password string) *I
 	var config ImapType
 	config.ServerConfig = NewConfig(server, port, username, password)
 	config.Inbox = "INBOX"
+	config.DownloadDir = "."
 	return &config
 }
 
+// SetDownloadDir target dir to save Attachments
+func (it *ImapType) SetDownloadDir(dir string) {
+	it.DownloadDir = dir
+}
+
 // Connect to server
-func (config *ImapType) Connect() error {
+func (it *ImapType) Connect() error {
 	log.Debug("imap:Connect entered..")
 	var c *client.Client
 	var err error
 	url := ""
-	config.Client = c
-	mc := config.ServerConfig
+	it.Client = c
+	mc := it.ServerConfig
 	port := mc.Port
 	if mc.SSL {
 		if port == 0 {
@@ -63,53 +78,53 @@ func (config *ImapType) Connect() error {
 	log.Debugf("imap: Connected to %s", url)
 
 	// Login
-	if err := c.Login(config.ServerConfig.Username, config.ServerConfig.Password); err != nil {
-		log.Errorf("imap: Login  User %s failed:%v", config.ServerConfig.Username, err)
+	if err := c.Login(it.ServerConfig.Username, it.ServerConfig.Password); err != nil {
+		log.Errorf("imap: Login  User %s failed:%v", it.ServerConfig.Username, err)
 		return err
 	}
-	config.Client = c
-	log.Debugf("imap:Logged in as %s", config.ServerConfig.Username)
+	it.Client = c
+	log.Debugf("imap:Logged in as %s", it.ServerConfig.Username)
 	log.Debug("imap:Connect leaved ..")
 	return nil
 }
 
 // LogOut Don't forget to logout
-func (config *ImapType) LogOut() {
-	c := config.Client
+func (it *ImapType) LogOut() {
+	c := it.Client
 	if c != nil {
 		err := c.Logout()
 		if err != nil {
 			log.Warnf("imap: Logout failed:%s", err)
 		}
-		config.Client = nil
+		it.Client = nil
 	}
 }
 
-// SelectInbox defines the used inbox and return actual status
-func (config *ImapType) SelectInbox(inbox string) (all uint32, unseen uint32, flags []string, err error) {
-	log.Debug("imap:InboxStatus entered..")
+// MBoxStatus defines the used inbox and return actual status
+func (it *ImapType) MBoxStatus(inbox string) (all uint32, unseen uint32, flags []string, err error) {
+	log.Debug("imap: MBoxStatus entered..")
 	// Select INBOX
-	if inbox == "" {
-		inbox = config.Inbox
-	}
-	c := config.Client
-	mbox, err := c.Select(inbox, false)
+	mbox, err := it.SelectMailbox(inbox)
 	if err != nil {
-		log.Errorf("imap:Select Inbox '%s' failed:%s", inbox, err)
+		err = fmt.Errorf("MBoxStatus: Select failed:%s", err)
+		return
+	}
+	if mbox == nil {
+		err = fmt.Errorf("MBoxStatus: mbox not available")
 		return
 	}
 	all = mbox.Messages
 	unseen = mbox.Unseen
 	flags = mbox.Flags
-	log.Debug("imap:InboxStatus leaved..")
+	log.Debug("imap: MBoxStatus leaved..")
 	return
 }
 
 // ListMailboxes retrieves existing mailboxes
-func (config *ImapType) ListMailboxes() (mailboxes []string, err error) {
+func (it *ImapType) ListMailboxes() (mailboxes []string, err error) {
 	log.Debug("imap:ListMailboxes entered..")
 	// List mailboxes
-	c := config.Client
+	c := it.Client
 	mboxChan := make(chan *imap.MailboxInfo, 10)
 
 	if err = c.List("", "*", mboxChan); err != nil {
@@ -123,10 +138,61 @@ func (config *ImapType) ListMailboxes() (mailboxes []string, err error) {
 	return
 }
 
+// PurgeMessages deletes given ids finally from mailbox
+func (it *ImapType) PurgeMessages(ids []uint32) (err error) {
+	log.Debug("imap: Purge entered..")
+	c := it.Client
+	// checks
+	if c == nil {
+		err = fmt.Errorf("imap Purge: no Conn available")
+		return
+	}
+	if len(ids) == 0 {
+		err = fmt.Errorf("imap Purge: no ids given")
+		return
+	}
+	_, err = it.SelectMailbox("")
+	if err != nil {
+		return
+	}
+
+	// build seqset with given ids
+	seqset := new(imap.SeqSet)
+	seqset.AddNum(ids...)
+
+	// First mark the message as deleted
+	item := imap.FormatFlagsOp(imap.AddFlags, true)
+	flags := []interface{}{imap.DeletedFlag}
+	if err = c.Store(seqset, item, flags, nil); err != nil {
+		err = fmt.Errorf("imap: delete messages failed:%s", err)
+		log.Error(err)
+		return
+	}
+
+	// Then delete it
+	if err = c.Expunge(nil); err != nil {
+		err = fmt.Errorf("imap: Expunge messages failed:%s", err)
+		log.Error(err)
+		return
+	}
+	log.Debugf("imap Purge: %d messages deleted", len(ids))
+	return
+}
+
 // ReadMessages reads
-func (config *ImapType) ReadMessages(ids []uint32) (msgList []imap.Literal, err error) {
+func (it *ImapType) ReadMessages(ids []uint32) (msgList []ImapMsg, err error) {
 	log.Debug("imap:ReadMessages entered..")
-	c := config.Client
+	c := it.Client
+	// checks
+	if c == nil {
+		err = fmt.Errorf("imap Search: no Conn available")
+		return
+	}
+	_, err = it.SelectMailbox("")
+	if err != nil {
+		return
+	}
+
 	// Get the whole message body
 	var section imap.BodySectionName
 	items := []imap.FetchItem{section.FetchItem()}
@@ -148,7 +214,10 @@ func (config *ImapType) ReadMessages(ids []uint32) (msgList []imap.Literal, err 
 		if r == nil {
 			log.Warnf("imap: Server didn't returned a message body for uid %v", msg.Uid)
 		}
-		msgList = append(msgList, r)
+		newMsg := ImapMsg{}
+		newMsg.UID = msg.Uid
+		newMsg.Content = r
+		msgList = append(msgList, newMsg)
 	}
 	log.Debug("imap:ReadMessages leaved..")
 	return
@@ -162,18 +231,7 @@ func convertAddresses(a []*mail.Address) (l []string) {
 	return l
 }
 
-// ParseMessageBody parses a given imap body for his parts
-func (config *ImapType) ParseMessageBody(imapData imap.Literal) (mailContent MailType, err error) {
-	log.Debug("imap:ParseMessageBody entered..")
-	// Create a new mail reader
-	mr, err := mail.CreateReader(imapData)
-	if err != nil {
-		log.Errorf("imap:ParseMessageBody reading failed:%s", err)
-		return
-	}
-
-	// Print some info about the message
-	header := mr.Header
+func parseHeader(header mail.Header) (mailContent MailType) {
 	if date, err := header.Date(); err == nil {
 		log.Debugf("imap: Date:%s", date.String())
 		mailContent.Date = date
@@ -198,6 +256,24 @@ func (config *ImapType) ParseMessageBody(imapData imap.Literal) (mailContent Mai
 		log.Debugf("Subject:%s", subject)
 		mailContent.Subject = subject
 	}
+	return
+}
+
+// ParseMessage parses a given imap body for his parts
+func (it *ImapType) ParseMessage(imapData ImapMsg, saveAttachments bool) (mailContent MailType, err error) {
+	log.Debug("imap:ParseMessage entered..")
+	// Create a new mail reader
+	mr, err := mail.CreateReader(imapData.Content)
+	if err != nil {
+		log.Errorf("imap:ParseMessage reading failed:%s", err)
+		return
+	}
+	dir := it.DownloadDir
+
+	// get info about the message
+	header := mr.Header
+	mailContent = parseHeader(header)
+	mailContent.ID = imapData.UID
 
 	// Process each message's part
 	var p *mail.Part
@@ -207,7 +283,7 @@ func (config *ImapType) ParseMessageBody(imapData imap.Literal) (mailContent Mai
 			err = nil
 			break
 		} else if err != nil {
-			log.Errorf("imap:ParseMessageBody NextPart failed:%s", err)
+			log.Errorf("imap:ParseMessage NextPart failed:%s", err)
 			return
 		}
 
@@ -221,24 +297,93 @@ func (config *ImapType) ParseMessageBody(imapData imap.Literal) (mailContent Mai
 			filename, _ := h.Filename()
 			log.Debugf("imap: Got attachment: %s", filename)
 			mailContent.Attachments = append(mailContent.Attachments, filename)
+			if saveAttachments {
+				fn := path.Join(dir, filename)
+				//nolint gosec
+				dst, err := os.Create(fn)
+				if err != nil {
+					log.Errorf("imap: Create Attachement file '%s' failed:%s", fn, err)
+					break
+				}
+				size, err := io.Copy(dst, p.Body)
+				if err != nil {
+					log.Errorf("imap: write Attachment file '%s' failed:%s", fn, err)
+					break
+				}
+				log.Debugf("imap: Attachment file '%s' (%d bytes) written", fn, size)
+				_ = dst.Close()
+			}
 		}
 	}
-	log.Debug("imap:ParseMessageBody leaved..")
+	log.Debug("imap:ParseMessage leaved..")
 	return
 }
 
-// GetUnseenMessages count unseen Messages
-func (config *ImapType) GetUnseenMessages() (ids []uint32, err error) {
+// GetUnseenMessageIds returns IDs of unseen Messages
+func (it *ImapType) GetUnseenMessageIds() (ids []uint32, err error) {
 	log.Debug("imap:GetUnseenMessages entered..")
-	c := config.Client
 	// Set search criteria
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{imap.SeenFlag}
+	// do search
+	return it.SearchMessages(criteria)
+}
+
+// SearchMessages find messages with given criteria
+func (it *ImapType) SearchMessages(criteria *imap.SearchCriteria) (ids []uint32, err error) {
+	log.Debug("imap: Search entered..")
+	c := it.Client
+	// checks
+	if c == nil {
+		err = fmt.Errorf("imap Search: no Conn available")
+		return
+	}
+	if criteria == nil {
+		err = fmt.Errorf("imap Search: no criteria given")
+		return
+	}
+	_, err = it.SelectMailbox("")
+	if err != nil {
+		return
+	}
+
+	// do search
 	ids, err = c.Search(criteria)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("imap: Search failed:%s", err)
+		return
 	}
-	log.Debugf("imap: %d unseen messages found:", len(ids))
-	log.Debug("imap:GetUnseenMessages leaved..")
-	return ids, err
+	log.Debugf("imap: %d messages found:", len(ids))
+	log.Debug("imap: Search leaved..")
+	return
+}
+
+// SelectMailbox activates the named or stored mailxbox name
+func (it *ImapType) SelectMailbox(mboxName string) (status *imap.MailboxStatus, err error) {
+	c := it.Client
+	if c == nil {
+		err = fmt.Errorf("imap: SelectMailbox: no Conn available")
+		return
+	}
+	if mboxName == "" {
+		mboxName = it.Inbox
+	}
+	log.Debugf("imap: Select Mailbox '%s' ..", mboxName)
+
+	mbox := c.Mailbox()
+	curName := ""
+	if mbox != nil {
+		curName = mbox.Name
+	}
+	if mbox == nil || curName != mboxName {
+		status, err = c.Select(mboxName, false)
+		if err != nil {
+			return nil, fmt.Errorf("imap:failed to select mailbox: %v", err)
+		}
+		log.Debugf("imap: selected Mailbox '%s' changed to '%s' ", curName, mboxName)
+		// store current mailbox name
+		it.Inbox = mboxName
+		return status, nil
+	}
+	return mbox, nil
 }
