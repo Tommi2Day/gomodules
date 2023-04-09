@@ -1,15 +1,14 @@
 # Go Library
 
-## [Unveröffentlicht]
-### New
-### Changed
-### Fixed
-### Removed
-
-## [v1.6.0 - 2023-04-07]
+## [v1.6.0 - 2023-04-09]
 ### New
 - maillib: add Imap functions
 - ldaplib: refactor types and functions, add timeout
+- pwlib: add totp generator
+- pwlib: add plain and base64 encode password methods
+### Changed
+- align test init
+- make some interfaces type based
 
 ## [v1.5.0 - 2023-02-24]
 ### New

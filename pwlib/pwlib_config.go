@@ -3,7 +3,7 @@ package pwlib
 import (
 	"os"
 
-	"github.com/Luzifer/go-openssl/v4"
+	openssl "github.com/Luzifer/go-openssl/v4"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -12,9 +12,13 @@ const (
 	defaultRsaKeySize = 2048
 	typeGO            = "go"
 	typeOpenssl       = "openssl"
+	typePlain         = "plain"
+	typeEnc           = "b64"
 	defaultMethod     = typeGO
 	extGo             = "gp"
 	extOpenssl        = "pw"
+	extPlain          = "plain"
+	extB64            = "b64"
 )
 
 // PassConfig Type for encryption configuration
@@ -35,16 +39,14 @@ type PassConfig struct {
 
 var label = []byte("")
 
-// PwConfig Encryption configuration
-var PwConfig PassConfig
-
 // SSLDigest variable helds common digist algor
 var SSLDigest = openssl.BytesToKeySHA256
 
-// SetConfig set encryption configuration
-func SetConfig(appname string, datadir string, keydir string, keypass string, method string) {
+// NewConfig set encryption configuration
+func NewConfig(appname string, datadir string, keydir string, keypass string, method string) (passConfig *PassConfig) {
 	var ext string
-	log.Debug("SetConfig entered")
+	config := PassConfig{}
+	log.Debug("NewConfig entered")
 	log.Debugf("A:%s, P:%s, D:%s, K:%s, M:%s", appname, keypass, datadir, keydir, method)
 	// default names
 	wd, _ := os.Getwd()
@@ -66,6 +68,10 @@ func SetConfig(appname string, datadir string, keydir string, keypass string, me
 		ext = extOpenssl
 	case typeGO:
 		ext = extGo
+	case typePlain:
+		ext = extPlain
+	case typeEnc:
+		ext = extB64
 	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)
 		method = defaultMethod
@@ -78,16 +84,17 @@ func SetConfig(appname string, datadir string, keydir string, keypass string, me
 	sessionpassfile := keydir + "/" + appname + ".dat"
 
 	// set global configuration defaults, any part can be overwritten
-	PwConfig.AppName = appname
-	PwConfig.DataDir = datadir
-	PwConfig.KeyDir = keydir
-	PwConfig.KeyPass = keypass
-	PwConfig.CryptedFile = cryptedfile
-	PwConfig.PrivateKeyFile = privatekeyfile
-	PwConfig.PubKeyFile = pubkeyfile
-	PwConfig.PlainTextFile = plainfile
-	PwConfig.SessionPassFile = sessionpassfile
-	PwConfig.Method = method
-	PwConfig.KeySize = defaultRsaKeySize
-	PwConfig.SSLDigest = SSLDigest
+	config.AppName = appname
+	config.DataDir = datadir
+	config.KeyDir = keydir
+	config.KeyPass = keypass
+	config.CryptedFile = cryptedfile
+	config.PrivateKeyFile = privatekeyfile
+	config.PubKeyFile = pubkeyfile
+	config.PlainTextFile = plainfile
+	config.SessionPassFile = sessionpassfile
+	config.Method = method
+	config.KeySize = defaultRsaKeySize
+	config.SSLDigest = SSLDigest
+	return &config
 }

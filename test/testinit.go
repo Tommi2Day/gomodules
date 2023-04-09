@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"testing"
 )
 
 // TestDir working dir for tests
@@ -29,4 +30,23 @@ func init() {
 		panic(err)
 	}
 	println("Work in " + dir)
+}
+
+// Testinit alternative init Test directories
+func Testinit(t *testing.T) {
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Dir(filename)
+	err := os.Chdir(dir)
+	if err == nil {
+		TestDir = dir
+		TestData = path.Join(TestDir, "testdata")
+		// create data directory and ignore errors
+		err = os.Mkdir(TestData, 0750)
+		if err != nil && !os.IsExist(err) {
+			t.Fatalf("Init error:%s", err)
+		}
+		t.Logf("Test in %s", dir)
+	} else {
+		t.Fatalf("Init error:%s", err)
+	}
 }

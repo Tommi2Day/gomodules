@@ -8,8 +8,6 @@ import (
 )
 
 // DoPasswordCheck Checks a password to given criteria
-//
-//gocyclo:ignore
 func DoPasswordCheck(password string, length int, upper int, lower int, numeric int, special int, firstCharCheck bool, allowedChars string) bool {
 	// var ls = true
 	var ucs = true
@@ -28,80 +26,56 @@ func DoPasswordCheck(password string, length int, upper int, lower int, numeric 
 
 	// do checks
 	ls, err := checkLength(password, length)
-	if err != nil {
-		log.Debug(err.Error())
-	}
+	debugLog("length", err)
 	if upper > 0 {
-		r, err := checkClass(password, upper, UpperChar, "uppercase")
-		ucs = r
-		if err != nil {
-			log.Debug(err.Error())
-		} else {
-			log.Debug("UpperCase check passed")
-		}
+		ucs, err = checkClass(password, upper, UpperChar)
+		debugLog("uppercase", err)
 	}
 	if lower > 0 {
-		r, err := checkClass(password, lower, LowerChar, "lowercase")
-		lcs = r
-		if err != nil {
-			log.Debug(err.Error())
-		} else {
-			log.Debug("LowerCase check passed")
-		}
+		lcs, err = checkClass(password, lower, LowerChar)
+		debugLog("lowercase", err)
 	}
 	if numeric > 0 {
-		r, err := checkClass(password, numeric, Digits, "numeric")
-		ncs = r
-		if err != nil {
-			log.Debug(err.Error())
-		} else {
-			log.Debug("Digits check passed")
-		}
+		ncs, err = checkClass(password, numeric, Digits)
+		debugLog("numeric", err)
 	}
 	if special > 0 {
-		r, err := checkClass(password, special, SpecialChar, "special")
-		sps = r
-		if err != nil {
-			log.Debug(err.Error())
-		} else {
-			log.Debug("SpecialChar check passed")
-		}
+		sps, err = checkClass(password, special, SpecialChar)
+		debugLog("special", err)
 	}
 	cs, err := checkChars(password, possible)
-	if err != nil {
-		log.Debug(err.Error())
-	} else {
-		log.Debug("allowed Char check passed")
-	}
+	debugLog("allowed chars", err)
 	if firstCharCheck {
-		r, err := checkFirstChar(password, UpperChar+LowerChar)
-		if err != nil {
-			log.Debug(err.Error())
-		} else {
-			log.Debug("FirstChar check passed")
-		}
-		fcs = r
+		fcs, err = checkFirstChar(password, UpperChar+LowerChar)
+		debugLog("first character", err)
 	}
 
 	// final state
 	return ls && ucs && lcs && ncs && sps && cs && fcs
 }
 
+func debugLog(name string, err error) {
+	if err != nil {
+		log.Debugf("%s check failed,", err.Error())
+	} else {
+		log.Debugf("%s check passed", name)
+	}
+}
+
 func checkClass(
 	password string,
 	should int,
 	chars string,
-	name string,
 ) (bool, error) {
 	if len(password) == 0 {
-		return false, fmt.Errorf("%s check failed, password empty", name)
+		return false, fmt.Errorf("password empty")
 	}
 	cnt := 0
 	for _, char := range strings.Split(chars, "") {
 		cnt += strings.Count(password, char)
 	}
 	if cnt < should {
-		return false, fmt.Errorf("%s check failed, at least %d chars from %s", name, should, chars)
+		return false, fmt.Errorf("at least %d chars from %s", should, chars)
 	}
 	return true, nil
 }
