@@ -26,6 +26,9 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 	containerName = os.Getenv("CONTAINER_NAME")
+	if containerName == "" {
+		containerName = "dblib-oracledb"
+	}
 	pool, err = dockertest.NewPool("")
 	if err != nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
