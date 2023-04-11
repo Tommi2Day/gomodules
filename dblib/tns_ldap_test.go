@@ -46,9 +46,14 @@ XE.local =(DESCRIPTION =
 )
 `
 
-const ldapora = `
+const ldaporaOK = `
 DEFAULT_ADMIN_CONTEXT = "dc=oracle,dc=local"
-DIRECTORY_SERVERS = (oid:1389:1636, ldap:389)
+DIRECTORY_SERVERS = (localhost:1389:1636, localhost:389)
+DIRECTORY_SERVER_TYPE = OID
+`
+const ldaporaFail = `
+DEFAULT_ADMIN_CONTEXT = "dc=oracle,dc=local"
+DIRECTORY_SERVERS = (localhost::1636, :389)
 DIRECTORY_SERVER_TYPE = OID
 `
 const ldapTimeout = 20
@@ -66,23 +71,38 @@ func TestOracleLdap(t *testing.T) {
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	ldapAdmin := test.TestData
-	//nolint gosec
-	err = os.WriteFile(ldapAdmin+"/ldap.ora", []byte(ldapora), 0644)
-	require.NoErrorf(t, err, "Create test ldap.ora failed")
 
+	t.Run("Parse wrong ldap.ora", func(t *testing.T) {
+		//nolint gosec
+		err = os.WriteFile(ldapAdmin+"/ldap.ora", []byte(ldaporaFail), 0644)
+		require.NoErrorf(t, err, "Create test ldap.ora failed")
+		_, ldapservers := ReadLdapOra(ldapAdmin)
+		e := 1
+		l := len(ldapservers)
+		assert.Equal(t, e, l, "ldapservers should have exact %d entries", 2)
+		if l == e {
+			s := ldapservers[0]
+			expected := "localhost:0:1636"
+			actual := fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
+			assert.Equal(t, expected, actual, "ldap entry 1 not match")
+		}
+	})
+	//nolint gosec
+	err = os.WriteFile(ldapAdmin+"/ldap.ora", []byte(ldaporaOK), 0644)
+	require.NoErrorf(t, err, "Create test ldap.ora failed")
 	t.Run("Parse ldap.ora", func(t *testing.T) {
 		oraclecontext, ldapservers := ReadLdapOra(ldapAdmin)
 		e := 2
 		l := len(ldapservers)
-		assert.NotEmpty(t, oraclecontext, "Conext should not be empty")
+		assert.NotEmpty(t, oraclecontext, "Context should not be empty")
 		assert.Equal(t, e, l, "ldapservers should have exact %d entries", 2)
 		if l == e {
 			s := ldapservers[0]
-			expected := "oid:1389:1636"
+			expected := "localhost:1389:1636"
 			actual := fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
 			assert.Equal(t, expected, actual, "ldap entry 1 not match")
 			s = ldapservers[1]
-			expected = "ldap:389:0"
+			expected = "localhost:389:0"
 			actual = fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
 			assert.Equal(t, expected, actual, "ldap entry 2 not match")
 		}

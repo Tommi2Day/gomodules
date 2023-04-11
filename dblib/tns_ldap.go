@@ -86,9 +86,18 @@ func ReadLdapOra(path string) (ctx string, servers []LdapServer) {
 	srv = replacer.Replace(srv)
 	srvs := strings.Split(srv, ",")
 	for _, e := range srvs {
+		if !strings.Contains(e, ":") {
+			continue
+		}
 		f := strings.Split(e, ":")
+		if len(f) < 2 {
+			continue
+		}
 		host = f[0]
 		port, _ = strconv.Atoi(f[1])
+		if strings.TrimSpace(host) == "" {
+			continue
+		}
 		ssl = 0
 		if len(f) > 2 {
 			ssl, _ = strconv.Atoi(f[2])
