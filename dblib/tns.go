@@ -33,6 +33,27 @@ type TNSEntry struct {
 // TNSEntries Map of tns entries
 type TNSEntries map[string]TNSEntry
 
+// CheckTNSadmin verify TNS-Admin Settings
+func CheckTNSadmin(tnsadmin string) (dn string, err error) {
+	dn, err = filepath.Abs(tnsadmin)
+	if err != nil {
+		log.Errorf("Cannot get absolute name of '%s'", tnsadmin)
+		return
+	}
+	_, err = os.Stat(dn)
+	if os.IsNotExist(err) {
+		log.Errorf("TNSAdmin directory '%s' not found", dn)
+		return
+	}
+	log.Debugf("TNS_ADMIN absolute path: %s", dn)
+	sq := filepath.Join(dn, "sqlnet.ora")
+	_, err = os.Stat(sq)
+	if os.IsNotExist(err) {
+		log.Warnf("no sqlnet.ora in TNSAdmin directory '%s' found", dn)
+	}
+	return
+}
+
 // BuildTnsEntry build map for entry
 func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
 	var service = ""

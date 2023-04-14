@@ -93,6 +93,14 @@ func TestParseTns(t *testing.T) {
 	//nolint gosec
 	err = os.WriteFile(tnsAdmin+"/ifile.ora", []byte(ifileora), 0644)
 	require.NoErrorf(t, err, "Create test ifile.ora failed")
+	t.Run("Check TNS_ADMIN", func(t *testing.T) {
+		var actual string
+		actual, err = CheckTNSadmin(tnsAdmin)
+		// replace windows path sep
+		actual = strings.ReplaceAll(actual, "\\", "/")
+		assert.NoErrorf(t, err, "unexpected Error %s", err)
+		assert.Equal(t, tnsAdmin, actual, "Value not the same")
+	})
 	t.Run("Parse SQLNet.Ora", func(t *testing.T) {
 		namesDomain, namesPath := ReadSqlnetOra(tnsAdmin)
 		assert.NotEmpty(t, namesDomain, "Names domain should not empty")
