@@ -7,6 +7,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SilentCheck skip log messages while checking
+var SilentCheck = false
+
+// SetSpecialChars change default charset for checks
+func SetSpecialChars(specialChars string) {
+	all := UpperChar + LowerChar + Digits + specialChars
+	charset = PasswordCharset{UpperChar, LowerChar, Digits, specialChars, all}
+}
+
 // DoPasswordCheck Checks a password to given criteria
 func DoPasswordCheck(password string, length int, upper int, lower int, numeric int, special int, firstCharCheck bool, allowedChars string) bool {
 	// var ls = true
@@ -21,42 +30,45 @@ func DoPasswordCheck(password string, length int, upper int, lower int, numeric 
 	// allowed chars
 	possible := allowedChars
 	if allowedChars == "" {
-		possible = AllChars
+		possible = charset.AllChars
 	}
 
 	// do checks
 	ls, err := checkLength(password, length)
-	debugLog("length", err)
+	logError("length", err)
 	if upper > 0 {
-		ucs, err = checkClass(password, upper, UpperChar)
-		debugLog("uppercase", err)
+		ucs, err = checkClass(password, upper, charset.UpperChar)
+		logError("uppercase", err)
 	}
 	if lower > 0 {
-		lcs, err = checkClass(password, lower, LowerChar)
-		debugLog("lowercase", err)
+		lcs, err = checkClass(password, lower, charset.LowerChar)
+		logError("lowercase", err)
 	}
 	if numeric > 0 {
-		ncs, err = checkClass(password, numeric, Digits)
-		debugLog("numeric", err)
+		ncs, err = checkClass(password, numeric, charset.Digits)
+		logError("numeric", err)
 	}
 	if special > 0 {
-		sps, err = checkClass(password, special, SpecialChar)
-		debugLog("special", err)
+		sps, err = checkClass(password, special, charset.SpecialChar)
+		logError("special", err)
 	}
 	cs, err := checkChars(password, possible)
-	debugLog("allowed chars", err)
+	logError("allowed chars", err)
 	if firstCharCheck {
-		fcs, err = checkFirstChar(password, UpperChar+LowerChar)
-		debugLog("first character", err)
+		fcs, err = checkFirstChar(password, charset.UpperChar+charset.LowerChar)
+		logError("first character", err)
 	}
 
 	// final state
 	return ls && ucs && lcs && ncs && sps && cs && fcs
 }
 
-func debugLog(name string, err error) {
+func logError(name string, err error) {
+	if SilentCheck {
+		return
+	}
 	if err != nil {
-		log.Debugf("%s check failed,", err.Error())
+		log.Errorf("%s check failed: %s", name, err.Error())
 	} else {
 		log.Debugf("%s check passed", name)
 	}
@@ -75,7 +87,7 @@ func checkClass(
 		cnt += strings.Count(password, char)
 	}
 	if cnt < should {
-		return false, fmt.Errorf("at least %d chars from %s", should, chars)
+		return false, fmt.Errorf("at least %d chars out of '%s' expected", should, chars)
 	}
 	return true, nil
 }
@@ -85,14 +97,14 @@ func checkChars(
 	chars string,
 ) (bool, error) {
 	if len(password) == 0 {
-		return false, fmt.Errorf("%s check failed, password empty", "character")
+		return false, fmt.Errorf("password empty")
 	}
 	data := []rune(password)
 	for i := 0; i < len(data); i++ {
 		r := data[i]
 		idx := strings.IndexRune(chars, r)
 		if idx == -1 {
-			return false, fmt.Errorf("%s check failed, only %s allowed", "character", chars)
+			return false, fmt.Errorf("only %s allowed", chars)
 		}
 	}
 	return true, nil
@@ -101,7 +113,7 @@ func checkChars(
 func checkLength(password string, minlen int) (bool, error) {
 	length := len(password)
 	if length < minlen {
-		return false, fmt.Errorf("length check failed, at least  %d chars expected, have %d", minlen, length)
+		return false, fmt.Errorf("at least  %d chars expected, have %d", minlen, length)
 	}
 	return true, nil
 }

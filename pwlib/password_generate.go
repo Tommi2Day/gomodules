@@ -30,19 +30,22 @@ func GenPassword(length int, upper int, lower int, numeric int, special int, fir
 	var allowedChars = ""
 	// define allowed charset based on parameters
 	if upper > 0 {
-		allowedChars += UpperChar
+		allowedChars += charset.UpperChar
 	}
 	if lower > 0 {
-		allowedChars += LowerChar
+		allowedChars += charset.LowerChar
 	}
 	if numeric > 0 {
-		allowedChars += Digits
+		allowedChars += charset.Digits
 	}
 	if special > 0 {
-		allowedChars += SpecialChar
+		allowedChars += charset.SpecialChar
 	}
+	charset.AllChars = allowedChars
 
 	newPassword := ""
+	// skip password check logging when used to generate
+	SilentCheck = true
 	// max 50 tries to generate a valid password
 	for c := 0; c < 50; c++ {
 		newPassword = generateRandomString(length, allowedChars)
@@ -53,6 +56,7 @@ func GenPassword(length int, upper int, lower int, numeric int, special int, fir
 		newPassword = ""
 		log.Debugf("generate retry %d", c)
 	}
+	SilentCheck = false
 
 	if !ok {
 		err = fmt.Errorf("unable to create required Password")

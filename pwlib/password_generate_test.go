@@ -78,7 +78,7 @@ func TestGenPassword(t *testing.T) {
 			UpperChar + Digits,
 		},
 	}
-
+	SetSpecialChars(SpecialChar)
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			newPassword, err := GenPassword(c.length, c.uc, c.lc, c.num, c.sp, c.first)
