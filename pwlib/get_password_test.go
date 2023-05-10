@@ -28,6 +28,9 @@ func TestCrypt(t *testing.T) {
 	test.Testinit(t)
 
 	for _, m := range Methods {
+		if m == typeVault {
+			continue
+		}
 		app := "test_encrypt_" + m
 		pc := NewConfig(app, test.TestData, test.TestData, app, m)
 

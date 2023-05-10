@@ -3,6 +3,7 @@ package pwlib
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
@@ -86,5 +87,28 @@ func VaultWrite(client *vault.Client, path string, data map[string]interface{}) 
 		return
 	}
 	log.Debugf("write to path %s successfully", path)
+	return
+}
+
+// GetVaultSecret reads a vault path as system via logical method and returns secret keys and values as plaintext format
+func GetVaultSecret(vaultPath string, vaultAddr string, vaultToken string) (content string, err error) {
+	var vc *vault.Client
+	var vs *vault.Secret
+	var vaultdata map[string]interface{}
+	log.Debugf("Vault Read entered for path '%s'", vaultPath)
+	vc, _ = VaultConfig(vaultAddr, vaultToken)
+	vs, err = VaultRead(vc, vaultPath)
+	if err == nil {
+		sysKey := strings.ReplaceAll(vaultPath, ":", "_")
+		if vs != nil {
+			log.Debug("Vault Read OK")
+			vaultdata = vs.Data["data"].(map[string]interface{})
+			for k, v := range vaultdata {
+				content += fmt.Sprintf("%s:%s:%v\n", sysKey, k, v.(string))
+			}
+		} else {
+			err = fmt.Errorf("no entries returned")
+		}
+	}
 	return
 }

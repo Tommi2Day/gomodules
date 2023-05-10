@@ -1,8 +1,12 @@
 # Go Library
 
+## [v1.7.1 - 2023-05-10]
+### New
+- pwlib: add vault method to get_password
+
 ## [v1.7.0 - 2023-04-24]
 ### New
-- add [Hashicorp Vault](https://developer.hashicorp.com/vault) KV2 and Logical API functions
+- pwlib: add [Hashicorp Vault](https://developer.hashicorp.com/vault) KV2 and Logical API functions
 
 ## [v1.6.0 - 2023-04-09]
 ### New

@@ -14,6 +14,7 @@ const (
 	typeOpenssl       = "openssl"
 	typePlain         = "plain"
 	typeEnc           = "b64"
+	typeVault         = "vault"
 	defaultMethod     = typeGO
 	extGo             = "gp"
 	extOpenssl        = "pw"
@@ -72,6 +73,8 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 		ext = extPlain
 	case typeEnc:
 		ext = extB64
+	case typeVault:
+		ext = extPlain
 	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)
 		method = defaultMethod

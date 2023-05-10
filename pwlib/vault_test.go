@@ -6,6 +6,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/tommi2day/gomodules/test"
+
 	vault "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +21,7 @@ func TestVault(t *testing.T) {
 		t.Skip("Skipping Vault testing in CI environment")
 	}
 	vaultContainer, err := prepareVaultContainer()
-	require.NoErrorf(t, err, "Ldap Server not available")
+	require.NoErrorf(t, err, "Vault Server not available")
 	require.NotNil(t, vaultContainer, "Prepare failed")
 	defer destroyContainer(vaultContainer)
 
@@ -123,5 +125,16 @@ func TestVault(t *testing.T) {
 		value, ok = vaultdata["password"].(string)
 		require.True(t, ok, "Key password not found")
 		assert.Equalf(t, value, "Hashi345", "unexpected password value %q retrieved from vault", value)
+	})
+	t.Run("Vault GetPassword", func(t *testing.T) {
+		// need Env as config is here not exposed
+		_ = os.Setenv("VAULT_ADDR", address)
+		_ = os.Setenv("VAULT_TOKEN", rootToken)
+		app := "test_get_pass_vault"
+		pc := NewConfig(app, test.TestData, test.TestData, app, typeVault)
+		pass, err := pc.GetPassword("/secret/data/test2", "password")
+		expected := "Hashi345"
+		assert.NoErrorf(t, err, "Got unexpected error: %s", err)
+		assert.Equal(t, expected, pass, "Answer not expected. exp:%s,act:%s", expected, pass)
 	})
 }

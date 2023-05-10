@@ -12,7 +12,7 @@ import (
 )
 
 // Methods all available methods for get_passwword
-var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain}
+var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault}
 
 // DecryptFile decripts an rsa protected file
 func (pc *PassConfig) DecryptFile() (lines []string, err error) {
@@ -41,6 +41,8 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		//nolint gosec
 		data, err = os.ReadFile(cryptedfile)
 		content = string(data)
+	case typeVault:
+		content, err = GetVaultSecret(cryptedfile, "", "")
 	default:
 		log.Fatalf("encryption method %s not known", method)
 		os.Exit(1)
@@ -74,6 +76,9 @@ func (pc *PassConfig) EncryptFile() (err error) {
 	case typePlain:
 		// no need to do anything
 		err = nil
+	case typeVault:
+		// not implemented yet
+		err = nil
 	default:
 		log.Fatalf("Enc method %s not known", method)
 		os.Exit(1)
@@ -102,12 +107,20 @@ func (pc *PassConfig) ListPasswords() (lines []string, err error) {
 func (pc *PassConfig) GetPassword(system string, account string) (password string, err error) {
 	var lines []string
 	log.Debugf("GetPassword for '%s'@'%s' entered", account, system)
+	if pc.Method == typeVault {
+		// in vault mode we use cryptedfile to handover vault path
+		pc.CryptedFile = system
+	}
 	lines, err = pc.DecryptFile()
 	if err != nil {
 		return
 	}
 	found := false
 	direct := false
+	if pc.Method == typeVault {
+		// in vault mode we need to replace ":" in system = vault path to match
+		system = strings.ReplaceAll(system, ":", "_")
+	}
 	for _, line := range lines {
 		if common.CheckSkip(line) {
 			continue
@@ -126,6 +139,10 @@ func (pc *PassConfig) GetPassword(system string, account string) (password strin
 			direct = true
 			password = fields[2]
 			break
+		}
+		if pc.Method == typeVault {
+			// vault method has no default entries
+			continue
 		}
 		if fields[0] == "!default" && account == fields[1] {
 			password = fields[2]
