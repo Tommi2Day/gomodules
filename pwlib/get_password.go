@@ -121,6 +121,28 @@ func (pc *PassConfig) GetPassword(system string, account string) (password strin
 		// in vault mode we need to replace ":" in system = vault path to match
 		system = strings.ReplaceAll(system, ":", "_")
 	}
+
+	// match strings in function to make linter happy
+	password, found, direct = pc.match(lines, system, account)
+	// not found
+	if !found {
+		msg := fmt.Sprintf("no record found for '%s'@'%s'", account, system)
+		log.Debug("GetPassword finished with no Match")
+		err = errors.New(msg)
+		return
+	}
+
+	// found
+	if !direct {
+		log.Debug("use default entry")
+	}
+	return
+}
+
+func (pc *PassConfig) match(lines []string, system string, account string) (password string, found bool, direct bool) {
+	password = ""
+	found = false
+	direct = false
 	for _, line := range lines {
 		if common.CheckSkip(line) {
 			continue
@@ -152,18 +174,6 @@ func (pc *PassConfig) GetPassword(system string, account string) (password strin
 			}
 			found = true
 		}
-	}
-	// not found
-	if !found {
-		msg := fmt.Sprintf("no record found for '%s'@'%s'", account, system)
-		log.Debug("GetPassword finished with no Match")
-		err = errors.New(msg)
-		return
-	}
-
-	// found
-	if !direct {
-		log.Debug("use default entry")
 	}
 	return
 }
