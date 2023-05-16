@@ -67,6 +67,10 @@ XE1 =(DESCRIPTION =
 	(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 	(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE1))
 )
+XE.SID =(DESCRIPTION =
+	(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
+	(CONNECT_DATA=(SID = XESID))
+)
 XE.error = Error
 `
 
@@ -74,7 +78,7 @@ const sqlnetora = `
 NAMES.DEFAULT_DOMAIN=local
 NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT,LDAP)
 `
-const entryCount = 5
+const entryCount = 6
 
 var tnsAdmin = "testdata"
 
@@ -141,6 +145,12 @@ func TestParseTns(t *testing.T) {
 				alias:   "XE",
 				success: true,
 				service: "XE",
+			},
+			{
+				name:    "XE-SID",
+				alias:   "XE.SID",
+				success: true,
+				service: "XESID",
 			},
 			{
 				name:    "XE1-short-invalid",

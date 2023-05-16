@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.7.2 - 2023-05-16]
+### Fixed
+- dblib: fix SID parsing
+
 ## [v1.7.1 - 2023-05-10]
 ### New
 - pwlib: add vault method to get_password

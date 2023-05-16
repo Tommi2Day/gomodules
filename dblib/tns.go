@@ -57,7 +57,7 @@ func CheckTNSadmin(tnsadmin string) (dn string, err error) {
 // BuildTnsEntry build map for entry
 func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
 	var service = ""
-	reService := regexp.MustCompile(`(?mi)SERVICE_NAME\s*=\s*([\w.]+)`)
+	reService := regexp.MustCompile(`(?mi)(?:SERVICE_NAME|SID)\s*=\s*([\w.]+)`)
 	s := reService.FindStringSubmatch(desc)
 	if len(s) > 1 {
 		service = s[1]
@@ -194,7 +194,7 @@ func tnsSanity(entries TNSEntries) (tnsEntries TNSEntries, deletes int) {
 			se++
 		}
 		if len(e.Service) == 0 {
-			log.Errorf("Entry %s has no Service set", k)
+			log.Errorf("Entry %s has no SERVICE_NAME or SID set", k)
 			se++
 		}
 		if len(e.Servers) == 0 {
