@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.7.3 - 2023-05-17]
+### New
+- common: type converter functions
+
 ## [v1.7.2 - 2023-05-16]
 ### Fixed
 - dblib: fix SID parsing

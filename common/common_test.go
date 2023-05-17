@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -92,19 +93,52 @@ func TestReadFileByLine(t *testing.T) {
 }
 
 func TestGetEnv(t *testing.T) {
-	key := "TESTKEY"
-	expected := "Test"
-	fallback := "NotFound"
-	_ = os.Setenv(key, expected)
-	t.Run("Test existing Env", func(t *testing.T) {
-		actual := GetEnv(key, fallback)
+	const fallback = "NotFound"
+	t.Run("Test Strin Env", func(t *testing.T) {
+		key := "TESTKEY"
+
+		expected := "Test"
+		expectedType := "string"
+		_ = os.Setenv(key, expected)
+		actual := GetStringEnv(key, fallback)
 		assert.NotEmpty(t, actual, "Value Empty")
 		assert.Equal(t, expected, actual, "value not expected")
+		assert.IsTypef(t, expectedType, actual, "Type mismatch, expected:%s, actual:%s", expected, actual)
 	})
 	t.Run("Test nonexisting Env", func(t *testing.T) {
 		actual := GetEnv("NoKey", fallback)
 		assert.NotEmpty(t, actual, "Value Empty")
 		assert.Equal(t, fallback, actual, "value not expected")
+	})
+	t.Run("Test int Env", func(t *testing.T) {
+		key := "INTKEY"
+		fallback := 0
+		expected := 123
+		_ = os.Setenv(key, fmt.Sprintf("%d", expected))
+		actual := GetIntEnv(key, fallback)
+		assert.NotEmpty(t, actual, "Value Empty")
+		assert.Equal(t, expected, actual, "value not expected")
+		assert.IsTypef(t, expected, actual, "Type mismatch")
+	})
+
+	t.Run("Test Float Env", func(t *testing.T) {
+		key := "FLOATKEY"
+		fallback := 0.0
+		expected := 123.321
+		_ = os.Setenv(key, fmt.Sprintf("%f", expected))
+		actual := GetFloatEnv(key, fallback)
+		assert.NotEmpty(t, actual, "Value Empty")
+		assert.Equal(t, expected, actual, "value not expected")
+		assert.IsType(t, expected, actual, "Type mismatch")
+	})
+	t.Run("Test Bool Env", func(t *testing.T) {
+		const expected = true
+		key := "BOOLKEY"
+		_ = os.Setenv(key, fmt.Sprintf("%v", expected))
+		actual := GetBoolEnv(key, false)
+		assert.NotEmpty(t, actual, "Value Empty")
+		assert.Equal(t, expected, actual, "value not expected")
+		assert.IsTypef(t, expected, actual, "Type mismatch")
 	})
 }
 

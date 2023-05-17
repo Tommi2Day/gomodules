@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -34,6 +35,56 @@ func GetEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// GetStringEnv read an OS Env variable
+func GetStringEnv(key string, fallback string) string {
+	return GetEnv(key, fallback)
+}
+
+// GetBoolEnv read an OS Env variable and convert to bool
+func GetBoolEnv(key string, fallback bool) bool {
+	if value, ok := os.LookupEnv(key); ok {
+		if b, err := GetBoolVal(value); err == nil {
+			return b
+		}
+	}
+	return fallback
+}
+
+// GetIntEnv read an OS Env variable and convert to int
+func GetIntEnv(key string, fallback int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		if i, err := GetIntVal(value); err == nil {
+			return int(i)
+		}
+	}
+	return fallback
+}
+
+// GetFloatEnv read an OS Env variable and convert to float64
+func GetFloatEnv(key string, fallback float64) float64 {
+	if value, ok := os.LookupEnv(key); ok {
+		if i, err := GetFloatVal(value); err == nil {
+			return i
+		}
+	}
+	return fallback
+}
+
+// GetBoolVal convert String to bool
+func GetBoolVal(value string) (bool, error) {
+	return strconv.ParseBool(value)
+}
+
+// GetIntVal convert String to int64
+func GetIntVal(value string) (int64, error) {
+	return strconv.ParseInt(value, 10, 0)
+}
+
+// GetFloatVal convert String to float64
+func GetFloatVal(value string) (float64, error) {
+	return strconv.ParseFloat(value, 64)
 }
 
 // ReadFileToString read a file and return a string
