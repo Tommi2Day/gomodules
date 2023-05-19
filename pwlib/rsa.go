@@ -13,8 +13,10 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -110,12 +112,18 @@ func GetPrivateKeyFromFile(privfilename string, rsaPrivateKeyPassword string) (p
 	}
 	parsedKey, err = x509.ParsePKCS8PrivateKey(privPemBytes)
 	if err != nil {
-		log.Debugf("unable to parse RSA public key: %s", err)
-		return
+		if strings.Contains(err.Error(), "use ParsePKCS1PrivateKey") {
+			log.Debug("ParsePKCS8PrivateKey failed, trying ParsePKCS1PrivateKey")
+			parsedKey, err = x509.ParsePKCS1PrivateKey(privPemBytes)
+		}
+		if err != nil {
+			log.Debugf("unable to parse RSA private key: %s", err)
+			return
+		}
 	}
 	privateKey = parsedKey.(*rsa.PrivateKey)
 	if privateKey == nil {
-		err = errors.New("unable to cast private key")
+		err = fmt.Errorf("unable to cast private key")
 		log.Debugf("%s:", err)
 		return
 	}

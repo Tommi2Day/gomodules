@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.7.4 - 2023-05-19]
+### Fixed
+- pwlib: parsing PKCS1 (openssl traditional) RSA keys
+
 ## [v1.7.3 - 2023-05-17]
 ### New
 - common: type converter functions

@@ -109,4 +109,19 @@ func TestGetKeyFromFile(t *testing.T) {
 		assert.Empty(t, pubkey)
 		assert.Empty(t, privkey)
 	})
+	app = "test_pkcs1"
+	t.Run("Get private key with PKCS1 (traditional openssl)", func(t *testing.T) {
+		pubkey, privkey, err := GetPrivateKeyFromFile(app+".pem.txt", app)
+		assert.NoErrorf(t, err, "Error while reading privkey: %s", err)
+		assert.NotEmpty(t, pubkey)
+		assert.IsTypef(t, p, pubkey, "Not a public key")
+		assert.NotEmpty(t, privkey)
+		assert.IsTypef(t, k, privkey, "Not a private key")
+	})
+	t.Run("Get Public Key PKCS1", func(t *testing.T) {
+		pubkey, err := GetPublicKeyFromFile(app + ".pub.txt")
+		assert.NoErrorf(t, err, "Error while reading pubkey: %s", err)
+		assert.NotEmpty(t, pubkey)
+		assert.IsTypef(t, p, pubkey, "Not a public key")
+	})
 }
