@@ -29,20 +29,26 @@ XE1.local =(DESCRIPTION =
 (ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE1))
 )
-XE2.local =(DESCRIPTION =
+XE2 =(DESCRIPTION =
 (ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE2.local))
 )
 `
 
-const ldaptns2 = ` 
-XE2.local =(DESCRIPTION =
-(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
-(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE2))
-)
-XE.local =(DESCRIPTION =
+const ldaptns2 = `
+#equal, but lower
+xe.local =(DESCRIPTION =
 (ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE))
+)
+#modified desc
+XE1.local =(DESCRIPTION =
+(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
+(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE1.local))
+)
+new =(DESCRIPTION =
+(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
+(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = new))
 )
 `
 
@@ -214,7 +220,7 @@ func TestOracleLdap(t *testing.T) {
 			t.Fatalf("tns load returned error: %s ", err)
 			return
 		}
-		require.Equal(t, 2, len(fileTnsEntries), "update TNS should have 2 entries")
+		require.Equal(t, 3, len(fileTnsEntries), "update TNS should have 3 entries")
 		// write entries to ldap
 		var workstatus TWorkStatus
 		workstatus, err = WriteLdapTns(lc, fileTnsEntries, domain, context)
@@ -225,9 +231,9 @@ func TestOracleLdap(t *testing.T) {
 		d := workstatus[sDel]
 		s := workstatus[sSkip]
 		assert.Equal(t, 1, o, "One OK expected")
-		assert.Equal(t, 0, n, "No Adds expected")
+		assert.Equal(t, 1, n, "One Adds expected")
 		assert.Equal(t, 1, m, "One mod expected")
 		assert.Equal(t, 1, d, "One del expected")
-		assert.Equal(t, 0, s, "One skip expected")
+		assert.Equal(t, 0, s, "No skip expected")
 	})
 }

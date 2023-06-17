@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.7.5 - 2023-06-17]
+### Fixed
+- fix tns_ldap functions
+
 ## [v1.7.4 - 2023-05-19]
 ### Fixed
 - pwlib: parsing PKCS1 (openssl traditional) RSA keys
