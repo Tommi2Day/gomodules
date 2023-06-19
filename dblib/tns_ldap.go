@@ -2,7 +2,6 @@ package dblib
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -13,17 +12,6 @@ import (
 	ldap "github.com/go-ldap/ldap/v3"
 	log "github.com/sirupsen/logrus"
 )
-
-const (
-	sOK   = "ok"
-	sNew  = "new"
-	sMod  = "mod"
-	sDel  = "del"
-	sSkip = "skip"
-)
-
-// TWorkStatus structure to handover statistics
-type TWorkStatus map[string]int
 
 // LdapServer  covers properties from one server in ldap.ora
 type LdapServer struct {
@@ -130,132 +118,6 @@ func GetOracleContext(lc *ldaplib.LdapConfigType, basedn string) (contextDN stri
 	contextDN = result[0].DN
 	log.Debugf("ContextDN=%s", contextDN)
 	return
-}
-
-// buildstatus creates ops task map to handle
-func buildStatusMap(lc *ldaplib.LdapConfigType, tnsEntries TNSEntries, contextDN string) (TNSEntries, map[string]string, error) {
-	var alias string
-	ldapstatus := map[string]string{}
-
-	ldapTNS, err := ReadLdapTns(lc, contextDN)
-	if err != nil {
-		return nil, ldapstatus, err
-	}
-	for _, a := range ldapTNS {
-		alias = a.Name
-		ldapstatus[alias] = ""
-		log.Debugf("prepare status for LDAP Alias  %s", alias)
-	}
-
-	for _, t := range tnsEntries {
-		alias = t.Name
-		l, valid := ldapTNS[alias]
-		if valid {
-			comp := strings.Compare(l.Desc, t.Desc)
-			if comp == 0 {
-				ldapstatus[alias] = sOK
-				log.Debugf("TNS Alias %s exists in LDAP and is equal ->OK", alias)
-				continue
-			}
-			ldapstatus[alias] = sMod
-			log.Debugf("TNS Alias %s exists in LDAP, but description changed ->MOD", alias)
-		} else {
-			ldapstatus[alias] = sNew
-			log.Debugf("TNS Alias %s missed in LDAP ->NEW", alias)
-		}
-	}
-	return ldapTNS, ldapstatus, err
-}
-
-// WriteLdapTns writes a set of TNS entries to Ldap
-func WriteLdapTns(lc *ldaplib.LdapConfigType, tnsEntries TNSEntries, domain string, contextDN string) (TWorkStatus, error) {
-	var ldapstatus map[string]string
-	var ldapTNS TNSEntries
-	var alias string
-	var err error
-	workStatus := make(TWorkStatus)
-	workStatus[sOK] = 0
-	workStatus[sMod] = 0
-	workStatus[sNew] = 0
-	workStatus[sDel] = 0
-	workStatus[sSkip] = 0
-
-	log.Infof("Update LDAP Context %s with %d tnsnames.ora entries using domain %s", contextDN, len(tnsEntries), domain)
-	ldapTNS, ldapstatus, err = buildStatusMap(lc, tnsEntries, contextDN)
-	status := ""
-
-	// sort candidates
-	sortedAlias := make([]string, 0, len(ldapstatus))
-	for k := range ldapstatus {
-		sortedAlias = append(sortedAlias, k)
-	}
-	sort.Strings(sortedAlias)
-	for _, alias = range sortedAlias {
-		status = ldapstatus[alias]
-		switch status {
-		case sOK:
-			log.Debugf("Alias %s unchanged", alias)
-			workStatus[sOK]++
-		case sNew:
-			tnsEntry, valid := tnsEntries[alias]
-			if !valid {
-				log.Warnf("Skip add invalid tns alias %s", alias)
-				workStatus[sSkip]++
-				continue
-			}
-			err = AddLdapTNSEntry(lc, contextDN, tnsEntry.Name, tnsEntry.Desc)
-			if err != nil {
-				log.Warnf("Add %s failed: %v", tnsEntry.Name, err)
-				workStatus[sSkip]++
-				continue
-			}
-			workStatus[sNew]++
-			log.Debugf("Alias %s added", tnsEntry.Name)
-		case sMod:
-			// delete and add
-			ldapEntry, valid := ldapTNS[alias]
-			if !valid {
-				log.Warnf("Skip modify invalid ldap alias %s", alias)
-				workStatus[sSkip]++
-				continue
-			}
-			dn := ldapEntry.File
-			tnsEntry, valid := tnsEntries[alias]
-			if !valid {
-				log.Warnf("Skip modify invalid tns alias %s", alias)
-				workStatus[sSkip]++
-				continue
-			}
-			err = ModifyLdapTNSEntry(lc, dn, tnsEntry.Name, tnsEntry.Desc)
-			if err != nil {
-				log.Warnf("Modify %s failed: %v", tnsEntry.Name, err)
-				workStatus[sSkip]++
-			} else {
-				log.Debugf("Alias %s replaced", tnsEntry.Name)
-				workStatus[sMod]++
-			}
-
-		case "":
-			ldapEntry, valid := ldapTNS[alias]
-			if !valid {
-				log.Warnf("Skip delete invalid ldap alias %s", alias)
-				workStatus[sSkip]++
-				continue
-			}
-			dn := ldapEntry.File
-			err = DeleteLdapTNSEntry(lc, dn, alias)
-			if err != nil {
-				log.Warnf("Delete %s failed: %v", alias, err)
-				workStatus[sSkip]++
-			} else {
-				log.Debugf("Alias %s deleted", alias)
-				workStatus[sDel]++
-			}
-		}
-	}
-	log.Infof("%d TNS entries unchanged,%d new written, %d modified, %d deleted and %d skipped because of errors",
-		workStatus[sOK], workStatus[sNew], workStatus[sMod], workStatus[sDel], workStatus[sSkip])
-	return workStatus, err
 }
 
 // AddLdapTNSEntry add new entry in LDAP

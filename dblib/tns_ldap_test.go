@@ -21,34 +21,16 @@ const LdapAdminPassword = "admin"
 const LdapConfigPassword = "config"
 
 const ldaptns = ` 
-XE.local =(DESCRIPTION =
+(DESCRIPTION =
 (ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE))
-)
-XE1.local =(DESCRIPTION =
-(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
-(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE1))
-)
-XE2 =(DESCRIPTION =
-(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
-(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE2.local))
 )
 `
 
 const ldaptns2 = `
-#equal, but lower
-xe.local =(DESCRIPTION =
-(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
-(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE))
-)
-#modified desc
-XE1.local =(DESCRIPTION =
+(DESCRIPTION =
 (ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE1.local))
-)
-new =(DESCRIPTION =
-(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
-(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = new))
 )
 `
 
@@ -69,7 +51,6 @@ func TestOracleLdap(t *testing.T) {
 	var server string
 	var results []*ldap.Entry
 	var sslport int
-	var fileTnsEntries TNSEntries
 	var ldapTnsEntries TNSEntries
 	var lc *ldaplib.LdapConfigType
 
@@ -152,36 +133,15 @@ func TestOracleLdap(t *testing.T) {
 		t.Logf("Oracle Context: %s", context)
 	})
 	domain := ""
-	t.Run("Write TNS Entries", func(t *testing.T) {
+	alias := "XE.local"
+	t.Run("Add TNS Entry", func(t *testing.T) {
 		err = os.Chdir(test.TestDir)
 		require.NoErrorf(t, err, "ChDir failed")
-
-		// create test file to load
-		tnsAdmin = TESTDATA
-		filename := tnsAdmin + "/ldap_file.ora"
-		//nolint gosec
-		err = os.WriteFile(filename, []byte(ldaptns), 0644)
-		require.NoErrorf(t, err, "Create test ldap_file.ora failed")
-		t.Logf("load from %s", filename)
-
-		// read entries from file
-		fileTnsEntries, domain, err = GetTnsnames(filename, true)
-		require.NoErrorf(t, err, "Parsing %s failed: %s", filename, err)
-		if err != nil {
-			t.Fatalf("tns load returned error: %s ", err)
-			return
-		}
-
 		// write entries to ldap
-		var workstatus TWorkStatus
-		workstatus, err = WriteLdapTns(lc, fileTnsEntries, domain, context)
+		err = AddLdapTNSEntry(lc, context, alias, ldaptns)
 		require.NoErrorf(t, err, "Write TNS to Ldap failed: %s", err)
-		expected := len(fileTnsEntries)
-		actual := workstatus[sNew]
-		require.Equal(t, expected, actual, "Not all Records has been added")
-		t.Logf("%d Entries added", actual)
 	})
-
+	// terminate if not succeeded
 	if err != nil {
 		t.Fatalf("need Write TNS to proceed")
 		return
@@ -194,46 +154,23 @@ func TestOracleLdap(t *testing.T) {
 		assert.Greaterf(t, actual, 0, "Zero Entries")
 		t.Logf("Returned %d entries", actual)
 	})
-	t.Run("Ldap TNS Read", func(t *testing.T) {
+
+	dn := ""
+	t.Run("Modify TNS Entry", func(t *testing.T) {
 		ldapTnsEntries, err = ReadLdapTns(lc, context)
 		require.NoErrorf(t, err, "Ldap Read returned error:%v", err)
 		actual := len(ldapTnsEntries)
-		expected := len(fileTnsEntries)
+		expected := 1
 		assert.Equal(t, expected, actual, "Entry Count differs")
+		ldapTnsEntries, err = ReadLdapTns(lc, context)
+		e, valid := GetEntry(alias, ldapTnsEntries, domain)
+		require.Truef(t, valid, "Entry not found")
+		dn = e.File
+		err = ModifyLdapTNSEntry(lc, dn, alias, ldaptns2)
+		require.NoErrorf(t, err, "Modify Ldap failed: %s", err)
 	})
-	t.Run("Modify TNS Entries", func(t *testing.T) {
-		err = os.Chdir(test.TestDir)
-		require.NoErrorf(t, err, "ChDir failed")
-
-		// create test file to load
-		tnsAdmin = test.TestData
-		filename := tnsAdmin + "/ldap_file2.ora"
-		//nolint gosec
-		err = os.WriteFile(filename, []byte(ldaptns2), 0644)
-		require.NoErrorf(t, err, "Create test ldap_file2.ora failed")
-		t.Logf("load from %s", filename)
-
-		// read entries from file
-		fileTnsEntries, domain, err = GetTnsnames(filename, true)
-		require.NoErrorf(t, err, "Parsing %s failed: %s", filename, err)
-		if err != nil {
-			t.Fatalf("tns load returned error: %s ", err)
-			return
-		}
-		require.Equal(t, 3, len(fileTnsEntries), "update TNS should have 3 entries")
-		// write entries to ldap
-		var workstatus TWorkStatus
-		workstatus, err = WriteLdapTns(lc, fileTnsEntries, domain, context)
-		require.NoErrorf(t, err, "Write TNS to Ldap failed: %s", err)
-		o := workstatus[sOK]
-		n := workstatus[sNew]
-		m := workstatus[sMod]
-		d := workstatus[sDel]
-		s := workstatus[sSkip]
-		assert.Equal(t, 1, o, "One OK expected")
-		assert.Equal(t, 1, n, "One Adds expected")
-		assert.Equal(t, 1, m, "One mod expected")
-		assert.Equal(t, 1, d, "One del expected")
-		assert.Equal(t, 0, s, "No skip expected")
+	t.Run("Delete TNS Entry", func(t *testing.T) {
+		err = DeleteLdapTNSEntry(lc, dn, alias)
+		require.NoErrorf(t, err, "Delete TNS from Ldap failed: %s", err)
 	})
 }

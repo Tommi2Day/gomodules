@@ -1,8 +1,9 @@
 # Go Library
 
-## [v1.7.5 - 2023-06-17]
-### Fixed
-- fix tns_ldap functions
+# [v1.8.0 - 2023-06-19]
+### Changed
+- dblib: move write tns ldap functions to tnscli
+- dblib: add/remove tests
 
 ## [v1.7.4 - 2023-05-19]
 ### Fixed

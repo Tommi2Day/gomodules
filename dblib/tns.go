@@ -64,7 +64,7 @@ func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
 	}
 	servers := getServers(desc)
 	entry := TNSEntry{Name: tnsAlias, Desc: desc, File: filename, Service: service, Servers: servers}
-	log.Debugf("found TNS Alias %s", tnsAlias)
+	log.Debugf("Build Entry for %s", tnsAlias)
 	return entry
 }
 
@@ -83,6 +83,7 @@ func ReadSqlnetOra(path string) (domain string, namesPath []string) {
 	replacer := strings.NewReplacer("(", "", ")", "", " ", "")
 	names = replacer.Replace(names)
 	namesPath = strings.Split(names, ",")
+	log.Debugf("parsed %s, domain=%s, names path=%s", filename, domain, names)
 	return
 }
 
