@@ -2,7 +2,7 @@
 
 # [v1.8.1 - 2023-06-22]
 ### Changed
-- dblib: dblib: enhance ldap functions and test
+- dblib: enhance ldap functions and test
 
 # [v1.8.0 - 2023-06-19]
 ### Changed
