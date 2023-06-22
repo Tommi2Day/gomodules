@@ -132,7 +132,7 @@ func TestOracleLdap(t *testing.T) {
 		}
 		t.Logf("Oracle Context: %s", context)
 	})
-	domain := ""
+
 	alias := "XE.local"
 	t.Run("Add TNS Entry", func(t *testing.T) {
 		err = os.Chdir(test.TestDir)
@@ -146,16 +146,32 @@ func TestOracleLdap(t *testing.T) {
 		t.Fatalf("need Write TNS to proceed")
 		return
 	}
-
+	dn := ""
 	t.Run("Ldap TNS Search", func(t *testing.T) {
-		results, err = lc.Search(context, "(objectclass=orclNetService)", []string{"DN"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
+		search := "(objectclass=orclNetService)"
+		t.Logf("Search one level in %s for %s", context, search)
+		results, err = lc.Search(context, search, []string{"DN"}, ldap.ScopeSingleLevel, ldap.DerefInSearching)
 		require.NoErrorf(t, err, "Search returned error:%v", err)
 		actual := len(results)
-		assert.Greaterf(t, actual, 0, "Zero Entries")
+		require.Greaterf(t, actual, 0, "Zero Entries")
 		t.Logf("Returned %d entries", actual)
+		dn = results[0].DN
+		t.Logf("Entry-DN: %v", dn)
+	})
+	t.Run("Ldap TNS base query", func(t *testing.T) {
+		search := fmt.Sprintf("cn=%s,%s", "XE.local", context)
+		t.Logf("Search direct for %s as base", search)
+		// direct entry searches uses DN as base and filer * with scope base
+		results, err = lc.Search(search, "(objectClass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
+		require.NoErrorf(t, err, "Search returned error:%v", err)
+		actual := len(results)
+		require.Greaterf(t, actual, 0, "Zero Entries")
+		t.Logf("Returned %d entries", actual)
+		cn := results[0].GetEqualFoldAttributeValue("cn")
+		desc := results[0].GetEqualFoldAttributeValue("orclNetDescString")
+		t.Logf("%s=%s", cn, desc)
 	})
 
-	dn := ""
 	t.Run("Modify TNS Entry", func(t *testing.T) {
 		ldapTnsEntries, err = ReadLdapTns(lc, context)
 		require.NoErrorf(t, err, "Ldap Read returned error:%v", err)
@@ -163,7 +179,7 @@ func TestOracleLdap(t *testing.T) {
 		expected := 1
 		assert.Equal(t, expected, actual, "Entry Count differs")
 		ldapTnsEntries, err = ReadLdapTns(lc, context)
-		e, valid := GetEntry(alias, ldapTnsEntries, domain)
+		e, valid := ldapTnsEntries[alias]
 		require.Truef(t, valid, "Entry not found")
 		dn = e.File
 		err = ModifyLdapTNSEntry(lc, dn, alias, ldaptns2)

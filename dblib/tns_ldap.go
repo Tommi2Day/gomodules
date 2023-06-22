@@ -29,7 +29,7 @@ func ReadLdapTns(lc *ldaplib.LdapConfigType, contextDN string) (TNSEntries, erro
 		return tnsEntries, err
 	}
 	ldapFilter := fmt.Sprintf("(objectClass=%s)", ldap.EscapeFilter("orclNetService"))
-	result, err := lc.Search(contextDN, ldapFilter, []string{"cn", "orclNetDescString", "aliasedObjectName"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
+	result, err := lc.Search(contextDN, ldapFilter, []string{"cn", "orclNetDescString", "aliasedObjectName"}, ldap.ScopeSingleLevel, ldap.DerefInSearching)
 	if err != nil {
 		err = fmt.Errorf("service search returned error:%v", err)
 		log.Errorf("Ldap: %v", err)
@@ -48,9 +48,9 @@ func ReadLdapTns(lc *ldaplib.LdapConfigType, contextDN string) (TNSEntries, erro
 		log.Debugf("LDAP DN=%s, CN=%s", dn, cn)
 
 		if len(cn) > 0 && len(desc) > 0 {
-			tnsEntries[strings.ToUpper(cn)] = BuildTnsEntry(dn, desc, cn)
+			tnsEntries[cn] = BuildTnsEntry(dn, desc, cn)
 			if len(alias) > 0 {
-				tnsEntries[strings.ToUpper(alias)] = BuildTnsEntry(dn, desc, alias)
+				tnsEntries[alias] = BuildTnsEntry(dn, desc, alias)
 				log.Debugf("use alias %s instead of cn %s", alias, cn)
 			}
 		}
@@ -124,10 +124,10 @@ func GetOracleContext(lc *ldaplib.LdapConfigType, basedn string) (contextDN stri
 func AddLdapTNSEntry(lc *ldaplib.LdapConfigType, context string, alias string, desc string) (err error) {
 	log.Debugf("Add Ldap Entry for alias %s", alias)
 	var attributes []ldap.Attribute
-	name := strings.ToUpper(alias)
-	dn := fmt.Sprintf("cn=%s,%s", name, context)
+	cn := alias
+	dn := fmt.Sprintf("cn=%s,%s", cn, context)
 	attributes = append(attributes, ldap.Attribute{Type: "objectClass", Vals: []string{"top", "orclNetService"}})
-	attributes = append(attributes, ldap.Attribute{Type: "cn", Vals: []string{name}})
+	attributes = append(attributes, ldap.Attribute{Type: "cn", Vals: []string{cn}})
 	attributes = append(attributes, ldap.Attribute{Type: "orclNetDescString", Vals: []string{desc}})
 	err = lc.AddEntry(dn, attributes)
 	return
