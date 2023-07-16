@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/emersion/go-imap"
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/tommi2day/gomodules/test"
 
+	"github.com/emersion/go-imap"
 	"github.com/stretchr/testify/require"
 	"github.com/wneessen/go-mail"
 
@@ -71,12 +73,12 @@ func TestMail(t *testing.T) {
 	if os.Getenv("SKIP_MAIL") != "" {
 		t.Skip("Skipping Mail testing in CI environment")
 	}
-
+	test.Testinit(t)
 	var err error
 	mailContainer, err = prepareMailContainer()
 	require.NoErrorf(t, err, "Mailserver not available: %s", err)
 	require.NotNil(t, mailContainer, "Prepare failed")
-	defer destroyMailContainer(mailContainer)
+	defer common.DestroyDockerContainer(mailContainer)
 
 	t.Run("Send Mail anonym", func(t *testing.T) {
 		s := NewSendMailConfig(mailServer, smtpPort, "", "")
@@ -88,6 +90,7 @@ func TestMail(t *testing.T) {
 		assert.NoErrorf(t, err, "Sendmail anonym returned error %v", err)
 	})
 	t.Run("Send Mail TLS 25", func(t *testing.T) {
+		// will not work with mailserver 12.1.0,: no SMTP_AUTH supported
 		s := NewSendMailConfig(mailServer, smtpPort, FROM, rootPass)
 		s.ServerConfig.EnableTLS(true)
 		l := NewMail(FROM, TO)

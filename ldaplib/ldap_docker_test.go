@@ -2,15 +2,13 @@ package ldaplib
 
 import (
 	"fmt"
-	"net/url"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/tommi2day/gomodules/common"
 )
 
 const repo = "docker.io/osixia/openldap"
@@ -18,23 +16,17 @@ const repoTag = "1.5.0"
 const containerTimeout = 120
 
 var containerName string
-var pool *dockertest.Pool
 var ldapContainer *dockertest.Resource
 
 // prepareContainer create an Oracle Docker Container
 func prepareContainer() (container *dockertest.Resource, err error) {
-	pool = nil
 	if os.Getenv("SKIP_LDAP") != "" {
 		err = fmt.Errorf("skipping ORACLE Container in CI environment")
 		return
 	}
+	var pool *dockertest.Pool
 	containerName = os.Getenv("CONTAINER_NAME")
-	pool, err = dockertest.NewPool("")
-	if err != nil {
-		err = fmt.Errorf("cannot attach to docker: %v", err)
-		return
-	}
-	err = pool.Client.Ping()
+	pool, err = common.GetDockerPool()
 	if err != nil {
 		err = fmt.Errorf("could not connect to Docker: %s", err)
 		return
@@ -61,7 +53,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		/*
 			PortBindings: map[docker.Port][]docker.PortBinding{
 				"389": {
-					{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", port)},
+					{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", ldapPort)},
 				},
 				"636": {
 					{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", sslport)},
@@ -80,7 +72,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	}
 
 	pool.MaxWait = containerTimeout * time.Second
-	host, port := getHostAndPort(container, "389/tcp")
+	host, port := common.GetContainerHostAndPort(container, "389/tcp")
 	dialURL := fmt.Sprintf("ldap://%s:%d", host, port)
 	fmt.Printf("Wait to successfully connect to Ldap with %s (max %ds)...\n", dialURL, containerTimeout)
 	start := time.Now()
@@ -92,33 +84,11 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		fmt.Printf("Could not connect to LDAP Container: %s", err)
 		return
 	}
-	l.Close()
+	_ = l.Close()
 	// wait 5s to init container
 	time.Sleep(5 * time.Second)
 	elapsed := time.Since(start)
 	fmt.Printf("LDAP Container is available after %s\n", elapsed.Round(time.Millisecond))
 	err = nil
-	return
-}
-
-func destroyContainer(container *dockertest.Resource) {
-	if err := pool.Purge(container); err != nil {
-		fmt.Printf("Could not purge resource: %s\n", err)
-	}
-}
-
-func getHostAndPort(container *dockertest.Resource, portID string) (server string, port int) {
-	dockerURL := os.Getenv("DOCKER_HOST")
-	if dockerURL == "" {
-		address := container.GetHostPort(portID)
-		a := strings.Split(address, ":")
-		server = a[0]
-		port, _ = strconv.Atoi(a[1])
-	} else {
-		u, _ := url.Parse(dockerURL)
-		server = u.Hostname()
-		p := container.GetPort(portID)
-		port, _ = strconv.Atoi(p)
-	}
 	return
 }

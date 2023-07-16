@@ -1,5 +1,18 @@
 # Go Library
 
+# [v1.9.0 - 2023-07-16]
+### New
+- common: add URL and Host parsing functions
+- common:add more tests
+- common: add dockertest helper
+- dblib: add RACInfo Lookup per INI and DNS SRV record
+### Changed
+- use go 1.20
+- update dependencies
+- use docker_helper for tests
+### Fixed
+- dblib: fix tns server parsing RegExp
+
 # [v1.8.1 - 2023-06-22]
 ### Changed
 - dblib: enhance ldap functions and test

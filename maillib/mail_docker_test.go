@@ -1,14 +1,14 @@
 package maillib
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 
-	"github.com/tommi2day/gomodules/test"
-
 	"os"
 	"time"
+
+	"github.com/tommi2day/gomodules/common"
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -24,13 +24,11 @@ const imapsPort = 31993
 const containerTimeout = 120
 
 var mailContainerName string
-var mailPool *dockertest.Pool
 var mailContainer *dockertest.Resource
 var mailServer = "127.0.0.1"
 
 // prepareContainer create an Oracle Docker Container
 func prepareMailContainer() (container *dockertest.Resource, err error) {
-	mailPool = nil
 	if os.Getenv("SKIP_MAIL") != "" {
 		err = fmt.Errorf("skipping Mail Container in CI environment")
 		return
@@ -44,22 +42,16 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	if mailContainerName == "" {
 		mailContainerName = "mailserver"
 	}
-	mailPool, err = dockertest.NewPool("")
+	pool, err := common.GetDockerPool()
 	if err != nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
-		return
-	}
-	err = mailPool.Client.Ping()
-	if err != nil {
-		err = fmt.Errorf("could not connect to Docker: %s", err)
 		return
 	}
 
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + mailRepo
-
 	fmt.Printf("Try to start docker container for %s:%s\n", repoString, mailRepoTag)
-	container, err = mailPool.RunWithOptions(&dockertest.RunOptions{
+	container, err = pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: repoString,
 		Tag:        mailRepoTag,
 
@@ -115,11 +107,11 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 
-	mailPool.MaxWait = containerTimeout * time.Second
+	pool.MaxWait = containerTimeout * time.Second
 	fmt.Printf("Wait to successfully connect to Mailserver with %s:%d (max %ds)...\n", mailServer, tlsPort, containerTimeout)
 	start := time.Now()
 	var c net.Conn
-	if err = mailPool.Retry(func() error {
+	if err = pool.Retry(func() error {
 		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", mailServer, tlsPort))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
@@ -132,7 +124,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	_ = c.Close()
 
 	// show env
-	// execCmd(container, []string{"bash", "-c", "env|sort"})
+	// cmdout, _, err=execCmd(container, []string{"bash", "-c", "env|sort"})
 
 	// wait 20s to init container
 	time.Sleep(20 * time.Second)
@@ -140,27 +132,14 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	fmt.Printf("Mail Container is available after %s\n", elapsed.Round(time.Millisecond))
 
 	// test main.cf
-	execCmd(container, []string{"ls", "-l", "/etc/postfix/main.cf"})
-
-	err = nil
-	return
-}
-
-// destroy container resource
-func destroyMailContainer(container *dockertest.Resource) {
-	if err := mailPool.Purge(container); err != nil {
-		fmt.Printf("Could not purge resource: %s\n", err)
-	}
-}
-
-// executes an OS cmd within container and print output
-func execCmd(container *dockertest.Resource, cmd []string) {
-	var cmdout bytes.Buffer
-	cmdout.Reset()
-	_, err := container.Exec(cmd, dockertest.ExecOptions{StdOut: &cmdout})
+	cmdout := ""
+	cmd := []string{"/bin/ls", "-l", "/etc/postfix/*"}
+	cmdout, _, err = common.ExecDockerCmd(container, cmd)
 	if err != nil {
 		fmt.Printf("Exec Error %s", err)
 	} else {
-		fmt.Printf("Cmd:%v\n %s", cmd, cmdout.String())
+		fmt.Printf("Cmd:%v\n %s", cmd, cmdout)
 	}
+	err = nil
+	return
 }

@@ -6,6 +6,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/tommi2day/gomodules/test"
 
 	vault "github.com/hashicorp/vault/api"
@@ -23,10 +25,10 @@ func TestVault(t *testing.T) {
 	vaultContainer, err := prepareVaultContainer()
 	require.NoErrorf(t, err, "Vault Server not available")
 	require.NotNil(t, vaultContainer, "Prepare failed")
-	defer destroyContainer(vaultContainer)
+	defer common.DestroyDockerContainer(vaultContainer)
 
-	host, port := getHostAndPort(vaultContainer, "8200/tcp")
-	address := fmt.Sprintf("http://%s:%d", host, port)
+	host, vaultPort := common.GetContainerHostAndPort(vaultContainer, "8200/tcp")
+	address := fmt.Sprintf("http://%s:%d", host, vaultPort)
 	_ = os.Unsetenv("VAULT_ADDR")
 	_ = os.Unsetenv("VAULT_TOKEN")
 	t.Run("Vault Connect direct", func(t *testing.T) {

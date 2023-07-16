@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/tommi2day/gomodules/common"
+
 	"github.com/tommi2day/gomodules/test"
 
 	"github.com/ory/dockertest/v3"
@@ -21,11 +22,10 @@ import (
 const DBUSER = "system"
 const DBPASSWORD = "XE-manager21"
 const TIMEOUT = 5
-const TESTDATA = "testdata"
 
 var dbhost = common.GetEnv("DB_HOST", "127.0.0.1")
 var oracleContainer *dockertest.Resource
-var connectora = fmt.Sprintf("XE.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=XEPDB1)))", dbhost, port)
+var connectora = fmt.Sprintf("XE.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=XEPDB1)))", dbhost, dbPort)
 var target string
 
 // makeOerr create a pseudo ORA Errorcode
@@ -72,7 +72,7 @@ func TestWithOracle(t *testing.T) {
 	oracleContainer, err = prepareContainer()
 	require.NoErrorf(t, err, "Oracle Server not available:%v", err)
 	require.NotNil(t, oracleContainer, "Prepare failed")
-	defer destroyContainer(oracleContainer)
+	defer common.DestroyDockerContainer(oracleContainer)
 
 	t.Run("Direct connect", func(t *testing.T) {
 		var db *sql.DB

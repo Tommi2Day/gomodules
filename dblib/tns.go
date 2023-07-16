@@ -8,14 +8,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/tommi2day/gomodules/common"
-
 	"gopkg.in/ini.v1"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tommi2day/gomodules/common"
 )
 
-// TNSAddress holds  host/port of an address section
+// TNSAddress holds  host/dbPort of an address section
 type TNSAddress struct {
 	Host string
 	Port string
@@ -187,19 +186,19 @@ func tnsSanity(entries TNSEntries) (tnsEntries TNSEntries, deletes int) {
 	for k, e := range entries {
 		se := 0
 		if len(e.Name) == 0 {
-			log.Errorf("Entry %s has no name set", k)
+			log.Errorf("Sanity: Entry %s has no name set", k)
 			se++
 		}
 		if len(e.Desc) == 0 {
-			log.Errorf("Entry %s has no description set", k)
+			log.Errorf("Sanity: Entry %s has no description set", k)
 			se++
 		}
 		if len(e.Service) == 0 {
-			log.Errorf("Entry %s has no SERVICE_NAME or SID set", k)
+			log.Errorf("Sanity: Entry %s has no SERVICE_NAME or SID set", k)
 			se++
 		}
 		if len(e.Servers) == 0 {
-			log.Errorf("Entry %s has no Oracle Host set", k)
+			log.Errorf("Sanity: Entry %s has no SERVER set", k)
 			se++
 		}
 		if se > 0 {
@@ -238,7 +237,7 @@ func getIfile(filename string, recursiv bool) (entries TNSEntries, err error) {
 
 // getServers extract TNSAddress part
 func getServers(tnsDesc string) (servers []TNSAddress) {
-	re := regexp.MustCompile(`(?m)HOST\s*=\s*([\w.]+)\s*\)\s*\(\s*PORT\s*=\s*(\d+)`)
+	re := regexp.MustCompile(`(?m)HOST\s*=\s*([\w\-_.]+)\s*\)\s*\(\s*PORT\s*=\s*(\d+)`)
 	match := re.FindAllStringSubmatch(tnsDesc, -1)
 	for _, a := range match {
 		if len(a) > 1 {

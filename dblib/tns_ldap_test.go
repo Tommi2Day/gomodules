@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/ldaplib"
 	"github.com/tommi2day/gomodules/test"
 
@@ -102,15 +103,15 @@ func TestOracleLdap(t *testing.T) {
 	ldapContainer, err = prepareLdapContainer()
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")
-	defer destroyLdapContainer(ldapContainer)
+	defer common.DestroyDockerContainer(ldapContainer)
 
 	base := LdapBaseDn
-	server, sslport = getLdapHostAndPort(ldapContainer, "636/tcp")
+	server, sslport = common.GetContainerHostAndPort(ldapContainer, "636/tcp")
 	lc = ldaplib.NewConfig(server, sslport, true, true, base, ldapTimeout)
 	context := ""
 
 	t.Run("Ldap Connect", func(t *testing.T) {
-		t.Logf("Connect '%s' using SSL on port %d", LdapAdminUser, sslport)
+		t.Logf("Connect '%s' using SSL on dbPort %d", LdapAdminUser, sslport)
 		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
 		assert.NotNilf(t, lc.Conn, "Ldap Connect is nil")

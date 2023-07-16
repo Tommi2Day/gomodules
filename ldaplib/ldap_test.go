@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,7 @@ const LdapAdminUser = "cn=admin," + LdapBaseDn
 const LdapAdminPassword = "admin"
 const LdapConfigPassword = "config"
 
-var port = 10389
+var ldapPort = 10389
 var sslport = 10636
 var lc *LdapConfigType
 var timeout = 20
@@ -26,7 +28,7 @@ func TestLdapConfig(t *testing.T) {
 		lc = NewConfig("ldap.test", 0, true, true, LdapBaseDn, timeout)
 		actual := lc
 		assert.Equal(t, "ldap.test", actual.Server, "Server not equal")
-		assert.Equal(t, 636, actual.Port, "with tls=true port should be 636")
+		assert.Equal(t, 636, actual.Port, "with tls=true ldapPort should be 636")
 		assert.Equal(t, "ldaps://ldap.test:636", actual.URL, "with tls=true should be ldaps")
 	})
 }
@@ -43,25 +45,25 @@ func TestBaseLdap(t *testing.T) {
 	ldapContainer, err = prepareContainer()
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")
-	defer destroyContainer(ldapContainer)
+	defer common.DestroyDockerContainer(ldapContainer)
 
-	server, port = getHostAndPort(ldapContainer, "389/tcp")
+	server, ldapPort = common.GetContainerHostAndPort(ldapContainer, "389/tcp")
 	base := LdapBaseDn
-	lc = NewConfig(server, port, false, false, LdapBaseDn, timeout)
+	lc = NewConfig(server, ldapPort, false, false, LdapBaseDn, timeout)
 	t.Run("Anonymous Connect", func(t *testing.T) {
-		t.Logf("Connect anonymous plain on port %d", port)
+		t.Logf("Connect anonymous plain on ldapPort %d", ldapPort)
 		err = lc.Connect("", "")
 		l = lc.Conn
 		require.NoErrorf(t, err, "anonymous Connect returned error: %v", err)
 		assert.NotNilf(t, l, "Ldap Connect is nil")
 		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
-		l.Close()
+		_ = l.Close()
 	})
 	// test container should not be validaed
-	server, sslport = getHostAndPort(ldapContainer, "636/tcp")
+	server, sslport = common.GetContainerHostAndPort(ldapContainer, "636/tcp")
 	lc = NewConfig(server, sslport, true, true, LdapBaseDn, timeout)
 	t.Run("Admin SSL Connect", func(t *testing.T) {
-		t.Logf("Connect Admin '%s' using SSL on port %d", LdapAdminUser, sslport)
+		t.Logf("Connect Admin '%s' using SSL on ldapPort %d", LdapAdminUser, sslport)
 		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
 		l = lc.Conn
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
@@ -124,14 +126,14 @@ func TestBaseLdap(t *testing.T) {
 		require.NoErrorf(t, err, "Generate Password returned Error: %v", err)
 		assert.NotEmptyf(t, genPass, "no password was generated")
 		t.Logf("generated Password: %s", genPass)
-		l.Close()
+		_ = l.Close()
 
 		// reconnect with new password
 		err = lc.Connect(userDN, genPass)
 		l = lc.Conn
 		assert.NoErrorf(t, err, "Test Bind with generated password returned error %v", err)
 		if l != nil {
-			l.Close()
+			_ = l.Close()
 		}
 	})
 

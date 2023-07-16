@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tommi2day/gomodules/test"
-
 	"github.com/tommi2day/gomodules/common"
+
+	"github.com/tommi2day/gomodules/test"
 
 	openssl "github.com/Luzifer/go-openssl/v4"
 	"github.com/stretchr/testify/assert"

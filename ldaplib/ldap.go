@@ -48,7 +48,7 @@ func NewConfig(server string, port int, tls bool, insecure bool, basedn string, 
 func (lc *LdapConfigType) Connect(bindDN string, bindPassword string) (err error) {
 	l := lc.Conn
 	if l != nil {
-		l.Close()
+		_ = l.Close()
 		l = nil
 	}
 

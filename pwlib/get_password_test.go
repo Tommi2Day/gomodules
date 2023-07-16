@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tommi2day/gomodules/test"
-
 	"github.com/tommi2day/gomodules/common"
+
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

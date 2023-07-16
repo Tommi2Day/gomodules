@@ -8,38 +8,31 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/tommi2day/gomodules/common"
 )
 
-const port = "21521"
+const dbPort = "21521"
 const repo = "docker.io/gvenzl/oracle-xe"
 const repoTag = "21.3.0-slim"
 const containerTimeout = 600
 
 var containerName string
-var pool *dockertest.Pool
 
 // prepareContainer create an Oracle Docker Container
 func prepareContainer() (container *dockertest.Resource, err error) {
-	pool = nil
 	if os.Getenv("SKIP_ORACLE") != "" {
 		err = fmt.Errorf("skipping ORACLE Container in CI environment")
 		return
 	}
 	containerName = os.Getenv("CONTAINER_NAME")
 	if containerName == "" {
-		containerName = "dblib-oracledb"
+		containerName = "tnscli-oracledb"
 	}
-	pool, err = dockertest.NewPool("")
+	var pool *dockertest.Pool
+	pool, err = common.GetDockerPool()
 	if err != nil {
-		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}
-	err = pool.Client.Ping()
-	if err != nil {
-		err = fmt.Errorf("could not connect to Docker: %s", err)
-		return
-	}
-
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + repo
 
@@ -57,7 +50,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		// need fixed mapping here
 		PortBindings: map[docker.Port][]docker.PortBinding{
 			"1521": {
-				{HostIP: "0.0.0.0", HostPort: port},
+				{HostIP: "0.0.0.0", HostPort: dbPort},
 			},
 		},
 	}, func(config *docker.HostConfig) {
@@ -72,7 +65,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	}
 
 	pool.MaxWait = containerTimeout * time.Second
-	target = fmt.Sprintf("oracle://%s:%s@%s:%s/xepdb1", "system", DBPASSWORD, dbhost, port)
+	target = fmt.Sprintf("oracle://%s:%s@%s:%s/xepdb1", "system", DBPASSWORD, dbhost, dbPort)
 	fmt.Printf("Wait to successfully connect to db with %s (max %ds)...\n", target, containerTimeout)
 	start := time.Now()
 	if err = pool.Retry(func() error {
@@ -91,10 +84,4 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	fmt.Printf("DB Container is available after %s\n", elapsed.Round(time.Millisecond))
 	err = nil
 	return
-}
-
-func destroyContainer(container *dockertest.Resource) {
-	if err := pool.Purge(container); err != nil {
-		fmt.Printf("Could not purge resource: %s\n", err)
-	}
 }
