@@ -176,6 +176,47 @@ func TestRemoveSpace(t *testing.T) {
 	assert.Equal(t, expected, actual, "Not all withespace removed")
 }
 
+func TestCheckSkip(t *testing.T) {
+	t.Run("Check Skip logic", func(t *testing.T) {
+		type testTableType struct {
+			name  string
+			input string
+			skip  bool
+		}
+		for _, testconfig := range []testTableType{
+			{
+				name:  "Test comment",
+				input: "# comment",
+				skip:  true,
+			},
+			{
+				name:  "Empty line 1",
+				input: "",
+				skip:  true,
+			},
+			{
+				name:  "Empty line 2",
+				input: "          \t",
+				skip:  true,
+			},
+			{
+				name:  "Test normal line",
+				input: "test test",
+				skip:  false,
+			},
+			{
+				name:  "Test comment after code",
+				input: " not to skip # comment",
+				skip:  false,
+			},
+		} {
+			t.Run(testconfig.name, func(t *testing.T) {
+				actual := CheckSkip(testconfig.input)
+				assert.Equal(t, testconfig.skip, actual, "unexpected answer")
+			})
+		}
+	})
+}
 func TestExecuteOsCommand(t *testing.T) {
 	var cmdArg []string
 	myOs := runtime.GOOS
@@ -190,4 +231,175 @@ func TestExecuteOsCommand(t *testing.T) {
 	assert.NoErrorf(t, err, "Command got Error: %v", err)
 	assert.Emptyf(t, stderr, "StdErr not empty")
 	assert.NotEmpty(t, stdout, "Output is empty")
+}
+
+func TestConversion(t *testing.T) {
+	t.Run("Check Host parsing", func(t *testing.T) {
+		type testTableType struct {
+			name    string
+			input   string
+			success bool
+			f       func(input string) error
+		}
+		for _, testconfig := range []testTableType{
+			{
+				name:    "Test IntVal",
+				input:   "123",
+				success: true,
+				f:       testGetIntVal,
+			},
+			{
+				name:    "Test IntVal to big",
+				input:   "1234567890123456789",
+				success: false,
+				f:       testGetIntVal,
+			},
+			{
+				name:    "Test IntVal err",
+				input:   "a123",
+				success: false,
+				f:       testGetIntVal,
+			},
+			{
+				name:    "Test Int64Val",
+				input:   "-1234567890123456789",
+				success: true,
+				f:       testGetInt64Val,
+			},
+			{
+				name:    "Test Int64Val to big",
+				input:   "12345678901234567890", // max int64; 9223372036854775807
+				success: false,
+				f:       testGetInt64Val,
+			},
+			{
+				name:    "Test BoolVal",
+				input:   "true",
+				success: true,
+				f:       testGetBoolVal,
+			},
+			{
+				name:    "Test BoolVal err",
+				input:   "xyz",
+				success: false,
+				f:       testGetBoolVal,
+			},
+			{
+				name:    "Test Float64Val",
+				input:   "123456789012345.67890",
+				success: true,
+				f:       testGetFloatVal,
+			},
+			{
+				name:    "Test Float64Val no dot",
+				input:   "123456789012345",
+				success: true,
+				f:       testGetFloatVal,
+			},
+			{
+				name:    "Test Float64Val comma",
+				input:   "123456789012345,67890",
+				success: false,
+				f:       testGetFloatVal,
+			},
+		} {
+			t.Run(testconfig.name, func(t *testing.T) {
+				err := testconfig.f(testconfig.input)
+				if testconfig.success {
+					assert.NoErrorf(t, err, "unexpected error %s", err)
+				} else {
+					assert.Error(t, err, "Expected error not set")
+				}
+			})
+		}
+	})
+}
+func testGetIntVal(input string) error {
+	_, err := GetIntVal(input)
+	return err
+}
+func testGetInt64Val(input string) error {
+	_, err := GetInt64Val(input)
+	return err
+}
+func testGetFloatVal(input string) error {
+	_, err := GetFloatVal(input)
+	return err
+}
+func testGetBoolVal(input string) error {
+	_, err := GetBoolVal(input)
+	return err
+}
+func TestGetHostPort(t *testing.T) {
+	t.Run("Check Host parsing", func(t *testing.T) {
+		type testTableType struct {
+			name    string
+			input   string
+			success bool
+			host    string
+			port    int
+		}
+		for _, testconfig := range []testTableType{
+			{
+				name:    "only host",
+				input:   "localhost",
+				success: false,
+				host:    "localhost",
+				port:    0,
+			},
+			{
+				name:    "host and port",
+				input:   "localhost:1234",
+				success: true,
+				host:    "localhost",
+				port:    1234,
+			},
+			{
+				name:    "with tcp url",
+				input:   "tcp://docker:2375",
+				success: true,
+				host:    "docker",
+				port:    2375,
+			},
+			{
+				name:    "with http url",
+				input:   "http://localhost:8080/app/index.html",
+				success: true,
+				host:    "localhost",
+				port:    8080,
+			},
+			{
+				name:    "with http url witout port",
+				input:   "http://localhost/app/index.html",
+				success: true,
+				host:    "localhost",
+				port:    80,
+			},
+		} {
+			t.Run(testconfig.name, func(t *testing.T) {
+				host, port, err := GetHostPort(testconfig.input)
+				if testconfig.success {
+					assert.NoErrorf(t, err, "unexpected error %s", err)
+					assert.Equalf(t, testconfig.host, host, "entry returned wrong host ('%s' <>'%s)", host, testconfig.host)
+					assert.Equalf(t, testconfig.port, port, "entry returned wrong port ('%d' <>'%d)", port, testconfig.port)
+				} else {
+					assert.Error(t, err, "Expected error not set")
+				}
+			})
+		}
+	})
+}
+func TestSetHostPort(t *testing.T) {
+	t.Run("Test SetHostPort ipv4", func(t *testing.T) {
+		actual := SetHostPort("localhost", 1234)
+		assert.Equalf(t, "localhost:1234", actual, "actual not expected %s", actual)
+	})
+	t.Run("Test SetHostPort tcpv6", func(t *testing.T) {
+		actual := SetHostPort("fe80::3436:bd7c:3037:df6f", 1234)
+		assert.Equalf(t, "[fe80::3436:bd7c:3037:df6f]:1234", actual, "actual not expected: %s", actual)
+	})
+	t.Run("Test SetHostPort noport", func(t *testing.T) {
+		actual := SetHostPort("localhost", 0)
+		assert.Equalf(t, "localhost", actual, "actual not expected: %s", actual)
+	})
 }
