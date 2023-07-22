@@ -22,11 +22,11 @@ type TNSAddress struct {
 
 // TNSEntry structure for holding one entry from tnsnames.ora
 type TNSEntry struct {
-	Name    string
-	Desc    string
-	File    string
-	Service string
-	Servers []TNSAddress
+	Name     string
+	Desc     string
+	Location string
+	Service  string
+	Servers  []TNSAddress
 }
 
 // TNSEntries Map of tns entries
@@ -54,7 +54,7 @@ func CheckTNSadmin(tnsadmin string) (dn string, err error) {
 }
 
 // BuildTnsEntry build map for entry
-func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
+func BuildTnsEntry(location string, desc string, tnsAlias string) TNSEntry {
 	var service = ""
 	reService := regexp.MustCompile(`(?mi)(?:SERVICE_NAME|SID)\s*=\s*([\w.]+)`)
 	s := reService.FindStringSubmatch(desc)
@@ -62,7 +62,7 @@ func BuildTnsEntry(filename string, desc string, tnsAlias string) TNSEntry {
 		service = s[1]
 	}
 	servers := getServers(desc)
-	entry := TNSEntry{Name: tnsAlias, Desc: desc, File: filename, Service: service, Servers: servers}
+	entry := TNSEntry{Name: tnsAlias, Desc: desc, Location: location, Service: service, Servers: servers}
 	log.Debugf("Build Entry for %s", tnsAlias)
 	return entry
 }
@@ -129,7 +129,10 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	content, _ = common.ReadFileByLine(f)
 
 	// loop through lines
+	l := 0
+	location := filename
 	for _, line := range content {
+		l++
 		if checkSkip(line) {
 			continue
 		}
@@ -152,9 +155,10 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 		if i > 0 {
 			// save previous entry
 			if len(tnsAlias) > 0 && len(desc) > 0 {
-				tnsEntries[tnsAlias] = BuildTnsEntry(filename, desc, tnsAlias)
+				tnsEntries[tnsAlias] = BuildTnsEntry(location, desc, tnsAlias)
 			}
 			// new entry
+			location = fmt.Sprintf("%s Line: %d", filename, l)
 			tnsAlias = strings.ToUpper(newEntry[1])
 			if i > 2 {
 				desc = newEntry[2] + "\n"
@@ -166,7 +170,7 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 	// save last entry
 	if len(tnsAlias) > 0 && len(desc) > 0 {
-		tnsEntries[tnsAlias] = BuildTnsEntry(filename, desc, tnsAlias)
+		tnsEntries[tnsAlias] = BuildTnsEntry(location, desc, tnsAlias)
 	}
 
 	// sanity check

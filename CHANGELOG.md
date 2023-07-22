@@ -1,5 +1,12 @@
 # Go Library
 
+# [v1.9.1 - 2023-07-22]
+### New
+- add line number to location
+### Changed
+- rename TNSEntry.Filename to TNSEntry.Location
+- update tests
+
 # [v1.9.0 - 2023-07-16]
 ### New
 - common: add URL and Host parsing functions
