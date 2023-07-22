@@ -9,7 +9,7 @@ import (
 	"github.com/tommi2day/gomodules/ldaplib"
 	"github.com/tommi2day/gomodules/test"
 
-	ldap "github.com/go-ldap/ldap/v3"
+	"github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -182,7 +182,7 @@ func TestOracleLdap(t *testing.T) {
 		ldapTnsEntries, err = ReadLdapTns(lc, context)
 		e, valid := ldapTnsEntries[alias]
 		require.Truef(t, valid, "Entry not found")
-		dn = e.File
+		dn = e.Location
 		err = ModifyLdapTNSEntry(lc, dn, alias, ldaptns2)
 		require.NoErrorf(t, err, "Modify Ldap failed: %s", err)
 	})
