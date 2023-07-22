@@ -57,10 +57,11 @@ linters-settings:
       - name: var-naming
 
 run:
-  skip-dirs:
-    - fixtures
-    - bundle/*
-    - vendor/*
+  timeout: 5m
+  # skip directories: vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
+  skip-dirs-use-default: true
+  # Fail if the error was met.
+  issues-exit-code: 1
 
 linters:
   enable:
