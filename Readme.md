@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/tommi2day/gomodules)](https://goreportcard.com/report/github.com/tommi2day/gomodules) 
 ![CI](https://github.com/tommi2day/gomodules/actions/workflows/main.yml/badge.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/tommi2day/gomodules)
+[![codecov](https://codecov.io/gh/Tommi2Day/gomodules/branch/main/graph/badge.svg?token=C1IP9AMBUM)](https://codecov.io/gh/Tommi2Day/gomodules)
 
 this is a collection of my often used functions
 
