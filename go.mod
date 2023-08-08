@@ -11,14 +11,16 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.5
 	github.com/golangci/golangci-lint v1.53.3
 	github.com/hashicorp/vault/api v1.9.2
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/jstemmer/go-junit-report/v2 v2.0.0
 	github.com/ory/dockertest/v3 v3.10.0
-	github.com/sijms/go-ora/v2 v2.7.9
+	github.com/sijms/go-ora/v2 v2.7.11
 	github.com/sirupsen/logrus v1.9.3
+	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 	github.com/wneessen/go-mail v0.4.0
 	github.com/xlzd/gotp v0.1.0
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.14.0
 	gopkg.in/ini.v1 v1.67.0
 )
 
@@ -186,7 +188,6 @@ require (
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
@@ -216,13 +217,13 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect

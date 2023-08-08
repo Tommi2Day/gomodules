@@ -7,11 +7,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/tommi2day/gomodules/common"
 
-	"github.com/tommi2day/gomodules/test"
-
 	"github.com/ory/dockertest/v3"
+	"github.com/tommi2day/gomodules/test"
 
 	ora "github.com/sijms/go-ora/v2"
 	"github.com/sijms/go-ora/v2/network"
@@ -84,32 +84,32 @@ func TestWithOracle(t *testing.T) {
 		assert.NoErrorf(t, err, "Connect failed: %s", err)
 	})
 	t.Run("connect with function", func(t *testing.T) {
-		var db *sql.DB
+		var db *sqlx.DB
 		connect := target
 		t.Logf("connect with %s\n", connect)
 		db, err = DBConnect("oracle", connect, TIMEOUT)
 		assert.NoErrorf(t, err, "Connect failed: %v", err)
-		assert.IsType(t, &sql.DB{}, db, "Returned wrong type")
+		assert.IsType(t, &sqlx.DB{}, db, "Returned wrong type")
 		result, err := SelectOneStringValue(db, "select to_char(sysdate,'YYYY-MM-DD HH24:MI:SS') from dual")
 		assert.NoErrorf(t, err, "Select returned error::%v", err)
 		assert.NotEmpty(t, result)
 		t.Logf("Sysdate: %s", result)
 	})
 	t.Run("Check tns connect", func(t *testing.T) {
-		var db *sql.DB
+		var db *sqlx.DB
 		connect := ora.BuildJDBC(DBUSER, DBPASSWORD, desc, urlOptions)
 		t.Logf("connect with %s\n", connect)
 		db, err = DBConnect("oracle", connect, TIMEOUT)
 		assert.NoErrorf(t, err, "Connect failed: %s", err)
-		assert.IsType(t, &sql.DB{}, db, "Returned wrong type")
+		assert.IsType(t, &sqlx.DB{}, db, "Returned wrong type")
 	})
 	t.Run("Check dummy connect", func(t *testing.T) {
-		var db *sql.DB
+		var db *sqlx.DB
 		connect := ora.BuildJDBC("dummy", "dummy", desc, urlOptions)
 		t.Logf("connect with dummy user to %s\n", desc)
 		db, err = DBConnect("oracle", connect, TIMEOUT)
 		assert.ErrorContainsf(t, err, "ORA-01017", "returned unexpected error: %v", err)
-		assert.IsType(t, &sql.DB{}, db, "Returned wrong type")
+		assert.IsType(t, &sqlx.DB{}, db, "Returned wrong type")
 	})
 }
 

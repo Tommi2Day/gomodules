@@ -1,5 +1,12 @@
 # Go Library
 
+# [v1.9.2 - 2023-08-08]
+### New
+- add Cobra Command helper
+- add more sql functions and tests
+### Changed
+- use github.com/jmoiron/sqlx instead of database/sql
+
 # [v1.9.1 - 2023-07-22]
 ### New
 - add line number to location

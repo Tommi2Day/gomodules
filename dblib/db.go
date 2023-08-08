@@ -4,8 +4,10 @@ package dblib
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,7 +15,7 @@ import (
 // https://github.com/sijms/go-ora/#version-241-add-support-for-connection-time-out--context-read-and-write
 
 // DBConnect connect to a database using connect string
-func DBConnect(driver string, source string, timeout int) (db *sql.DB, err error) {
+func DBConnect(driver string, source string, timeout int) (dbh *sqlx.DB, err error) {
 	const defaultTimeout = 5
 	// Create a new child context with a 5-second timeout, using the
 	// provided ctx parameter as the parent.
@@ -22,7 +24,7 @@ func DBConnect(driver string, source string, timeout int) (db *sql.DB, err error
 		timeout = defaultTimeout
 	}
 	log.Debugf("try to connect, timeout %d", timeout)
-	db, err = sql.Open(driver, source)
+	dbh, err = sqlx.Open(driver, source)
 	if err != nil {
 		return nil, err
 	}
@@ -33,23 +35,204 @@ func DBConnect(driver string, source string, timeout int) (db *sql.DB, err error
 	defer cancel()
 
 	// Use this when testing the connection pool.
-	if err = db.PingContext(ctx); err != nil {
+	if err = dbh.PingContext(ctx); err != nil {
 		log.Debugf("DB Connect returned error= %s", err)
 		return nil, err
 	}
 	log.Debugf("DB Connect success")
-	return db, err
+	return dbh, err
+}
+
+func checkType(t interface{}, expected string) (ok bool, haveType string) {
+	ok = false
+	haveType = fmt.Sprintf("%T", t)
+	if haveType == expected {
+		ok = true
+	}
+	return
 }
 
 // SelectOneStringValue Select a single string
-func SelectOneStringValue(db *sql.DB, sql string) (queryResult string, err error) {
-	row := db.QueryRow(sql)
-	err = row.Scan(&queryResult)
+func SelectOneStringValue(dbh *sqlx.DB, mySQL string, args ...any) (resultString string, err error) {
+	log.Debugf("SelectOneStringValue entered")
+	err = SelectOneRow(dbh, mySQL, &resultString, args...)
 	if err != nil {
 		if isOerr, _, msg := HaveOerr(err); isOerr {
-			log.Warnf("Oracle Error %s", msg)
-		} else {
-			log.Warnf("got error %s", err)
+			err = fmt.Errorf("oracle rrror %s", msg)
+		}
+	}
+	return
+}
+
+// SelectOneInt64Value Select a int64 string
+func SelectOneInt64Value(dbh *sqlx.DB, mySQL string, args ...any) (resultInt int64, err error) {
+	log.Debugf("SelectOneStringValue entered")
+	err = SelectOneRow(dbh, mySQL, &resultInt, args...)
+	if err != nil {
+		if isOerr, _, msg := HaveOerr(err); isOerr {
+			err = fmt.Errorf("oracle error %s", msg)
+		}
+	}
+	return
+}
+
+// PrepareSQL parses a sql for a given connection and returns statement handler
+func PrepareSQL(dbh *sqlx.DB, mySQL string) (stmt *sqlx.Stmt, err error) {
+	log.Debugf("PrepareSql entered")
+	ok, t := checkType(dbh, "*sqlx.DB")
+	if dbh == nil {
+		err = fmt.Errorf("dbh is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid dbh type: %s", t)
+		return
+	}
+	stmt, err = dbh.Preparex(mySQL)
+	if err != nil {
+		if isOerr, _, msg := HaveOerr(err); isOerr {
+			err = fmt.Errorf("prepare error: %s (%s) ", msg, mySQL)
+			return
+		}
+		err = fmt.Errorf("prepare failed:%s (%s)", err, mySQL)
+	}
+	return
+}
+
+// PrepareSQLTx parses a sql for a given transaction and returns statement handler
+func PrepareSQLTx(tx *sqlx.Tx, mySQL string) (stmt *sqlx.Stmt, err error) {
+	log.Debugf("PrepareSql entered")
+	ok, t := checkType(tx, "*sqlx.Tx")
+	if tx == nil {
+		err = fmt.Errorf("TX is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid transaction type %s", t)
+		return
+	}
+	stmt, err = tx.Preparex(mySQL)
+	if err != nil {
+		if isOerr, _, msg := HaveOerr(err); isOerr {
+			err = fmt.Errorf("prepare error: %s (%s) ", msg, mySQL)
+			return
+		}
+		err = fmt.Errorf("prepare failed:%s (%s)", err, mySQL)
+	}
+	return
+}
+
+// SelectOneRow combines preparing a statement, add bind variables and returns results
+func SelectOneRow(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (err error) {
+	log.Debugf("QueryOnRow entered")
+	ok, t := checkType(dbh, "*sqlx.DB")
+	if dbh == nil {
+		err = fmt.Errorf("dbh is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid dbh type: %s", t)
+		return
+	}
+	log.Debugf("SQL: %s", mySQL)
+	err = dbh.Get(result, mySQL, args...)
+	return
+}
+
+// SelectAllRows combines preparing a statement, add bind variables and returns results struct
+func SelectAllRows(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (err error) {
+	log.Debugf("QuerySql entered")
+	ok, t := checkType(dbh, "*sqlx.DB")
+	if dbh == nil {
+		err = fmt.Errorf("dbh is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid dbh type: %s", t)
+		return
+	}
+	log.Debugf("SQL: %s", mySQL)
+	err = dbh.Select(result, mySQL, args...)
+	return
+}
+
+// SelectSQL runs a query, add bind variables and returns a cursor
+func SelectSQL(dbh *sqlx.DB, mySQL string, args ...any) (rows *sqlx.Rows, err error) {
+	log.Debugf("QuerySql entered")
+	ok, t := checkType(dbh, "*sqlx.DB")
+	if dbh == nil {
+		err = fmt.Errorf("TX is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid dbh type: %s", t)
+		return
+	}
+	log.Debugf("SQL: %s", mySQL)
+	rows, err = dbh.Queryx(mySQL, args...)
+	if err != nil {
+		if isOerr, _, msg := HaveOerr(err); isOerr {
+			err = fmt.Errorf("%s", msg)
+			return
+		}
+	}
+	return
+}
+
+// SelectStmt runs a query on a prepared statement, add bind variables and returns a cursor
+func SelectStmt(stmt *sqlx.Stmt, args ...any) (rows *sqlx.Rows, err error) {
+	log.Debugf("QueryStmt entered")
+	ok, t := checkType(stmt, "*sqlx.Stmt")
+	if stmt == nil {
+		err = fmt.Errorf("stmt is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid stmt type: %s", t)
+		return
+	}
+	log.Debugf("Parameter values: %v", args...)
+	rows, err = stmt.Queryx(args...)
+	if err != nil {
+		if isOerr, _, msg := HaveOerr(err); isOerr {
+			err = fmt.Errorf("%s", msg)
+			return
+		}
+	}
+	return
+}
+
+// MakeRowMap returns rows as a slice of map field->value
+func MakeRowMap(rows *sqlx.Rows) (result []map[string]interface{}, err error) {
+	log.Debugf("MakeRowMap entered")
+	for rows.Next() {
+		row := make(map[string]interface{})
+		err = rows.MapScan(row)
+		if err != nil {
+			return
+		}
+		result = append(result, row)
+	}
+	return
+}
+
+// ExecSQL executes a sql on a open transaction and returns result handler
+func ExecSQL(tx *sqlx.Tx, mySQL string, args ...any) (result sql.Result, err error) {
+	log.Debugf("ExecSQL: %s", mySQL)
+	ok, t := checkType(tx, "*sqlx.Tx")
+	if tx == nil {
+		err = fmt.Errorf("TX is nil")
+		return
+	}
+	if !ok {
+		err = fmt.Errorf("invalid transaction type %s", t)
+		return
+	}
+	result, err = tx.Exec(mySQL, args...)
+	if err != nil {
+		if isOerr, _, msg := HaveOerr(err); isOerr {
+			err = fmt.Errorf("prepare error: %s (%s) ", msg, mySQL)
+			return
 		}
 	}
 	return

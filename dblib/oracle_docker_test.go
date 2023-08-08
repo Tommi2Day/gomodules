@@ -26,7 +26,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	}
 	containerName = os.Getenv("CONTAINER_NAME")
 	if containerName == "" {
-		containerName = "tnscli-oracledb"
+		containerName = "dblib-oracledb"
 	}
 	var pool *dockertest.Pool
 	pool, err = common.GetDockerPool()
