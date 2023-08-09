@@ -1,11 +1,17 @@
 # Go Library
 
+# [v1.9.2 - 2023-08-09]
+### New
+- common: add isNil function
+### Changed
+- dblib: refactor type checks
+
 # [v1.9.2 - 2023-08-08]
 ### New
-- add Cobra Command helper
-- add more sql functions and tests
+- common: add Cobra Command helper
+- dblib: add more sql functions and tests
 ### Changed
-- use github.com/jmoiron/sqlx instead of database/sql
+- dblib: use github.com/jmoiron/sqlx instead of database/sql
 
 # [v1.9.1 - 2023-07-22]
 ### New

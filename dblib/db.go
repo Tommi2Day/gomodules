@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/tommi2day/gomodules/common"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -43,12 +44,17 @@ func DBConnect(driver string, source string, timeout int) (dbh *sqlx.DB, err err
 	return dbh, err
 }
 
-func checkType(t interface{}, expected string) (ok bool, haveType string) {
+func checkType(t any, expected string) (ok bool, haveType string) {
 	ok = false
 	haveType = fmt.Sprintf("%T", t)
-	if haveType == expected {
-		ok = true
+	if haveType != expected {
+		return
 	}
+	if common.IsNil(t) {
+		haveType = "nil"
+		return
+	}
+	ok = true
 	return
 }
 
@@ -56,11 +62,6 @@ func checkType(t interface{}, expected string) (ok bool, haveType string) {
 func SelectOneStringValue(dbh *sqlx.DB, mySQL string, args ...any) (resultString string, err error) {
 	log.Debugf("SelectOneStringValue entered")
 	err = SelectOneRow(dbh, mySQL, &resultString, args...)
-	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("oracle rrror %s", msg)
-		}
-	}
 	return
 }
 
@@ -68,11 +69,6 @@ func SelectOneStringValue(dbh *sqlx.DB, mySQL string, args ...any) (resultString
 func SelectOneInt64Value(dbh *sqlx.DB, mySQL string, args ...any) (resultInt int64, err error) {
 	log.Debugf("SelectOneStringValue entered")
 	err = SelectOneRow(dbh, mySQL, &resultInt, args...)
-	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("oracle error %s", msg)
-		}
-	}
 	return
 }
 
@@ -80,20 +76,12 @@ func SelectOneInt64Value(dbh *sqlx.DB, mySQL string, args ...any) (resultInt int
 func PrepareSQL(dbh *sqlx.DB, mySQL string) (stmt *sqlx.Stmt, err error) {
 	log.Debugf("PrepareSql entered")
 	ok, t := checkType(dbh, "*sqlx.DB")
-	if dbh == nil {
-		err = fmt.Errorf("dbh is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid dbh type: %s", t)
+		err = fmt.Errorf("invalid dbh %s", t)
 		return
 	}
 	stmt, err = dbh.Preparex(mySQL)
 	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("prepare error: %s (%s) ", msg, mySQL)
-			return
-		}
 		err = fmt.Errorf("prepare failed:%s (%s)", err, mySQL)
 	}
 	return
@@ -103,20 +91,12 @@ func PrepareSQL(dbh *sqlx.DB, mySQL string) (stmt *sqlx.Stmt, err error) {
 func PrepareSQLTx(tx *sqlx.Tx, mySQL string) (stmt *sqlx.Stmt, err error) {
 	log.Debugf("PrepareSql entered")
 	ok, t := checkType(tx, "*sqlx.Tx")
-	if tx == nil {
-		err = fmt.Errorf("TX is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid transaction type %s", t)
+		err = fmt.Errorf("invalid transaction %s", t)
 		return
 	}
 	stmt, err = tx.Preparex(mySQL)
 	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("prepare error: %s (%s) ", msg, mySQL)
-			return
-		}
 		err = fmt.Errorf("prepare failed:%s (%s)", err, mySQL)
 	}
 	return
@@ -126,12 +106,8 @@ func PrepareSQLTx(tx *sqlx.Tx, mySQL string) (stmt *sqlx.Stmt, err error) {
 func SelectOneRow(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (err error) {
 	log.Debugf("QueryOnRow entered")
 	ok, t := checkType(dbh, "*sqlx.DB")
-	if dbh == nil {
-		err = fmt.Errorf("dbh is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid dbh type: %s", t)
+		err = fmt.Errorf("invalid dbh %s", t)
 		return
 	}
 	log.Debugf("SQL: %s", mySQL)
@@ -143,12 +119,8 @@ func SelectOneRow(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (
 func SelectAllRows(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (err error) {
 	log.Debugf("QuerySql entered")
 	ok, t := checkType(dbh, "*sqlx.DB")
-	if dbh == nil {
-		err = fmt.Errorf("dbh is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid dbh type: %s", t)
+		err = fmt.Errorf("invalid dbh %s", t)
 		return
 	}
 	log.Debugf("SQL: %s", mySQL)
@@ -160,22 +132,12 @@ func SelectAllRows(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) 
 func SelectSQL(dbh *sqlx.DB, mySQL string, args ...any) (rows *sqlx.Rows, err error) {
 	log.Debugf("QuerySql entered")
 	ok, t := checkType(dbh, "*sqlx.DB")
-	if dbh == nil {
-		err = fmt.Errorf("TX is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid dbh type: %s", t)
+		err = fmt.Errorf("invalid dbh %s", t)
 		return
 	}
 	log.Debugf("SQL: %s", mySQL)
 	rows, err = dbh.Queryx(mySQL, args...)
-	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("%s", msg)
-			return
-		}
-	}
 	return
 }
 
@@ -183,22 +145,12 @@ func SelectSQL(dbh *sqlx.DB, mySQL string, args ...any) (rows *sqlx.Rows, err er
 func SelectStmt(stmt *sqlx.Stmt, args ...any) (rows *sqlx.Rows, err error) {
 	log.Debugf("QueryStmt entered")
 	ok, t := checkType(stmt, "*sqlx.Stmt")
-	if stmt == nil {
-		err = fmt.Errorf("stmt is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid stmt type: %s", t)
+		err = fmt.Errorf("invalid stmt %s", t)
 		return
 	}
 	log.Debugf("Parameter values: %v", args...)
 	rows, err = stmt.Queryx(args...)
-	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("%s", msg)
-			return
-		}
-	}
 	return
 }
 
@@ -220,20 +172,10 @@ func MakeRowMap(rows *sqlx.Rows) (result []map[string]interface{}, err error) {
 func ExecSQL(tx *sqlx.Tx, mySQL string, args ...any) (result sql.Result, err error) {
 	log.Debugf("ExecSQL: %s", mySQL)
 	ok, t := checkType(tx, "*sqlx.Tx")
-	if tx == nil {
-		err = fmt.Errorf("TX is nil")
-		return
-	}
 	if !ok {
-		err = fmt.Errorf("invalid transaction type %s", t)
+		err = fmt.Errorf("invalid transaction %s", t)
 		return
 	}
 	result, err = tx.Exec(mySQL, args...)
-	if err != nil {
-		if isOerr, _, msg := HaveOerr(err); isOerr {
-			err = fmt.Errorf("prepare error: %s (%s) ", msg, mySQL)
-			return
-		}
-	}
 	return
 }
