@@ -1,6 +1,6 @@
 # Go Library
 
-# [v1.9.2 - 2023-08-09]
+# [v1.9.3 - 2023-08-09]
 ### New
 - common: add isNil function
 ### Changed
