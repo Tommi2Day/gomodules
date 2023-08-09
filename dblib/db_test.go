@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/jmoiron/sqlx"
 
 	ora "github.com/sijms/go-ora/v2"
@@ -148,8 +150,8 @@ func TestSQL(t *testing.T) {
 		_, err = SelectOneInt64Value(nil, mysql)
 		assert.Error(t, err, "Query returned no error, but should")
 	})
-	t.Run("test checkType", func(t *testing.T) {
-		actual, e := checkType(dbh, "test")
+	t.Run("test CheckType", func(t *testing.T) {
+		actual, e := common.CheckType(dbh, "test")
 		assert.False(t, actual, "type returned true, but should not")
 		assert.NotEmpty(t, e, "actual is empty, but should not")
 	})

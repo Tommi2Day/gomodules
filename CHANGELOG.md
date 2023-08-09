@@ -2,9 +2,11 @@
 
 # [v1.9.3 - 2023-08-09]
 ### New
-- common: add isNil function
+- common: add isNil function and tests
+- common: add CheckType function and tests
 ### Changed
 - dblib: refactor type checks
+- dblib: move checkType to common
 
 # [v1.9.2 - 2023-08-08]
 ### New

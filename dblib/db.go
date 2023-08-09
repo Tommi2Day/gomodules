@@ -45,20 +45,6 @@ func DBConnect(driver string, source string, timeout int) (dbh *sqlx.DB, err err
 	return dbh, err
 }
 
-func checkType(t any, expected string) (ok bool, haveType string) {
-	ok = false
-	haveType = fmt.Sprintf("%T", t)
-	if haveType != expected {
-		return
-	}
-	if common.IsNil(t) {
-		haveType = "nil"
-		return
-	}
-	ok = true
-	return
-}
-
 // SelectOneStringValue Select a single string
 func SelectOneStringValue(dbh *sqlx.DB, mySQL string, args ...any) (resultString string, err error) {
 	log.Debugf("SelectOneStringValue entered")
@@ -76,7 +62,7 @@ func SelectOneInt64Value(dbh *sqlx.DB, mySQL string, args ...any) (resultInt int
 // PrepareSQL parses a sql for a given connection and returns statement handler
 func PrepareSQL(dbh *sqlx.DB, mySQL string) (stmt *sqlx.Stmt, err error) {
 	log.Debugf("PrepareSql entered")
-	ok, t := checkType(dbh, "*sqlx.DB")
+	ok, t := common.CheckType(dbh, "*sqlx.DB")
 	if !ok {
 		err = fmt.Errorf("invalid dbh %s", t)
 		return
@@ -91,7 +77,7 @@ func PrepareSQL(dbh *sqlx.DB, mySQL string) (stmt *sqlx.Stmt, err error) {
 // PrepareSQLTx parses a sql for a given transaction and returns statement handler
 func PrepareSQLTx(tx *sqlx.Tx, mySQL string) (stmt *sqlx.Stmt, err error) {
 	log.Debugf("PrepareSql entered")
-	ok, t := checkType(tx, "*sqlx.Tx")
+	ok, t := common.CheckType(tx, "*sqlx.Tx")
 	if !ok {
 		err = fmt.Errorf("invalid transaction %s", t)
 		return
@@ -106,7 +92,7 @@ func PrepareSQLTx(tx *sqlx.Tx, mySQL string) (stmt *sqlx.Stmt, err error) {
 // SelectOneRow combines preparing a statement, add bind variables and returns results
 func SelectOneRow(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (err error) {
 	log.Debugf("QueryOnRow entered")
-	ok, t := checkType(dbh, "*sqlx.DB")
+	ok, t := common.CheckType(dbh, "*sqlx.DB")
 	if !ok {
 		err = fmt.Errorf("invalid dbh %s", t)
 		return
@@ -119,7 +105,7 @@ func SelectOneRow(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (
 // SelectAllRows combines preparing a statement, add bind variables and returns results struct
 func SelectAllRows(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) (err error) {
 	log.Debugf("QuerySql entered")
-	ok, t := checkType(dbh, "*sqlx.DB")
+	ok, t := common.CheckType(dbh, "*sqlx.DB")
 	if !ok {
 		err = fmt.Errorf("invalid dbh %s", t)
 		return
@@ -132,7 +118,7 @@ func SelectAllRows(dbh *sqlx.DB, mySQL string, result interface{}, args ...any) 
 // SelectSQL runs a query, add bind variables and returns a cursor
 func SelectSQL(dbh *sqlx.DB, mySQL string, args ...any) (rows *sqlx.Rows, err error) {
 	log.Debugf("QuerySql entered")
-	ok, t := checkType(dbh, "*sqlx.DB")
+	ok, t := common.CheckType(dbh, "*sqlx.DB")
 	if !ok {
 		err = fmt.Errorf("invalid dbh %s", t)
 		return
@@ -145,7 +131,7 @@ func SelectSQL(dbh *sqlx.DB, mySQL string, args ...any) (rows *sqlx.Rows, err er
 // SelectStmt runs a query on a prepared statement, add bind variables and returns a cursor
 func SelectStmt(stmt *sqlx.Stmt, args ...any) (rows *sqlx.Rows, err error) {
 	log.Debugf("QueryStmt entered")
-	ok, t := checkType(stmt, "*sqlx.Stmt")
+	ok, t := common.CheckType(stmt, "*sqlx.Stmt")
 	if !ok {
 		err = fmt.Errorf("invalid stmt %s", t)
 		return
@@ -172,7 +158,7 @@ func MakeRowMap(rows *sqlx.Rows) (result []map[string]interface{}, err error) {
 // ExecSQL executes a sql on a open transaction and returns result handler
 func ExecSQL(tx *sqlx.Tx, mySQL string, args ...any) (result sql.Result, err error) {
 	log.Debugf("ExecSQL: %s", mySQL)
-	ok, t := checkType(tx, "*sqlx.Tx")
+	ok, t := common.CheckType(tx, "*sqlx.Tx")
 	if !ok {
 		err = fmt.Errorf("invalid transaction %s", t)
 		return
