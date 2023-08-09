@@ -5,8 +5,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/tommi2day/gomodules/common"
 	"time"
+
+	"github.com/tommi2day/gomodules/common"
 
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
