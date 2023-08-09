@@ -283,3 +283,18 @@ func IsNil(i interface{}) bool {
 	}
 	return false
 }
+
+// CheckType checks if an interface is of a certain type and returns if it matches expected or is Nil
+func CheckType(t any, expected string) (ok bool, haveType string) {
+	ok = false
+	haveType = fmt.Sprintf("%T", t)
+	if haveType != expected {
+		return
+	}
+	if IsNil(t) {
+		haveType = "<nil>"
+		return
+	}
+	ok = true
+	return
+}

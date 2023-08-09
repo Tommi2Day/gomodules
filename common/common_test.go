@@ -414,3 +414,57 @@ func TestIsNil(t *testing.T) {
 		assert.False(t, IsNil(struct{}{}))
 	})
 }
+
+func TestCheckType(t *testing.T) {
+	t.Run("Test CheckType", func(t *testing.T) {
+		type testTableType struct {
+			name         string
+			inputType    string
+			expectedType string
+			inputValue   interface{}
+			success      bool
+		}
+		for _, testconfig := range []testTableType{
+			{
+				name:         "Test IntVal",
+				inputType:    "int",
+				expectedType: "int",
+				inputValue:   123,
+				success:      true,
+			},
+			{
+				name:         "Test IntVal as string",
+				inputType:    "int",
+				expectedType: "string",
+				inputValue:   "123",
+				success:      false,
+			},
+			{
+				name:         "Test IntVal as nil",
+				inputType:    "int",
+				expectedType: "<nil>",
+				inputValue:   nil,
+				success:      false,
+			},
+			{
+				name:         "Test StringMapVal",
+				inputType:    "*map[string]string",
+				expectedType: "*map[string]string",
+				inputValue:   &map[string]string{"test": "test"},
+				success:      true,
+			},
+		} {
+			t.Run(testconfig.name, func(t *testing.T) {
+				ok, actualType := CheckType(testconfig.inputValue, testconfig.inputType)
+				assert.Equalf(t, testconfig.expectedType, actualType, "Type not match ('%s' <>'%s)", actualType, testconfig.expectedType)
+				assert.Equalf(t, testconfig.success, ok, "Result not match ('%v' <>'%v)", ok, testconfig.success)
+			})
+		}
+		t.Run("Test Nil", func(t *testing.T) {
+			var testMap *map[string]string
+			ok, actualType := CheckType(testMap, "*map[string]string")
+			assert.Equalf(t, "<nil>", actualType, "Type not match ('%s' <>'%s)", actualType, "<nil>")
+			assert.Equalf(t, false, ok, "Result not match ('%v' <>'%v)", ok, false)
+		})
+	})
+}
