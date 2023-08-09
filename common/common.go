@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -268,4 +269,17 @@ func SetHostPort(host string, port int) string {
 	}
 	p := fmt.Sprintf("%d", port)
 	return net.JoinHostPort(host, p)
+}
+
+// IsNil checks if an interface is nil
+func IsNil(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+	//nolint exhaustive
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
+		return reflect.ValueOf(i).IsNil()
+	}
+	return false
 }

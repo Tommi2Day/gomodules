@@ -403,3 +403,14 @@ func TestSetHostPort(t *testing.T) {
 		assert.Equalf(t, "localhost", actual, "actual not expected: %s", actual)
 	})
 }
+
+func TestIsNil(t *testing.T) {
+	t.Run("Test IsNil", func(t *testing.T) {
+		assert.True(t, IsNil(nil))
+		assert.False(t, IsNil(1))
+		assert.False(t, IsNil("1"))
+		assert.False(t, IsNil([]string{}))
+		assert.False(t, IsNil(map[string]string{}))
+		assert.False(t, IsNil(struct{}{}))
+	})
+}
