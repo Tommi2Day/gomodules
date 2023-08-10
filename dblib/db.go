@@ -155,8 +155,37 @@ func MakeRowMap(rows *sqlx.Rows) (result []map[string]interface{}, err error) {
 	return
 }
 
-// ExecSQL executes a sql on a open transaction and returns result handler
-func ExecSQL(tx *sqlx.Tx, mySQL string, args ...any) (result sql.Result, err error) {
+// ExecSQL executes a sql and returns result handler
+func ExecSQL(dbh *sqlx.DB, mySQL string, args ...any) (result sql.Result, err error) {
+	log.Debugf("ExecSQL: %s", mySQL)
+	ok, t := common.CheckType(dbh, "*sqlx.DB")
+	if !ok {
+		err = fmt.Errorf("invalid dbh %s", t)
+		return
+	}
+	result, err = dbh.Exec(mySQL, args...)
+	return
+}
+
+// ExecStmt executes a sql and returns result handler
+func ExecStmt(dbh *sqlx.DB, stmt *sqlx.Stmt, args ...any) (result sql.Result, err error) {
+	log.Debug("enter Exec Statement")
+	ok, t := common.CheckType(dbh, "*sqlx.DB")
+	if !ok {
+		err = fmt.Errorf("invalid dbh %s", t)
+		return
+	}
+	ok, t = common.CheckType(stmt, "*sqlx.Stmt")
+	if !ok {
+		err = fmt.Errorf("invalid Statement handler %s", t)
+		return
+	}
+	result, err = stmt.Exec(args...)
+	return
+}
+
+// ExecSQLTx executes a sql on a open transaction and returns result handler
+func ExecSQLTx(tx *sqlx.Tx, mySQL string, args ...any) (result sql.Result, err error) {
 	log.Debugf("ExecSQL: %s", mySQL)
 	ok, t := common.CheckType(tx, "*sqlx.Tx")
 	if !ok {
@@ -164,5 +193,22 @@ func ExecSQL(tx *sqlx.Tx, mySQL string, args ...any) (result sql.Result, err err
 		return
 	}
 	result, err = tx.Exec(mySQL, args...)
+	return
+}
+
+// ExecStmtTx executes a sql on a open transaction and returns result handler
+func ExecStmtTx(tx *sqlx.Tx, stmt *sqlx.Stmt, args ...any) (result sql.Result, err error) {
+	log.Debug("enter Exec Statement with TX")
+	ok, t := common.CheckType(tx, "*sqlx.Tx")
+	if !ok {
+		err = fmt.Errorf("invalid transaction %s", t)
+		return
+	}
+	ok, t = common.CheckType(stmt, "*sqlx.Stmt")
+	if !ok {
+		err = fmt.Errorf("invalid Statement handler %s", t)
+		return
+	}
+	result, err = stmt.Exec(args...)
 	return
 }

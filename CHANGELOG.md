@@ -1,5 +1,9 @@
 # Go Library
 
+# [v1.9.4 - 2023-08-10]
+### New
+- dblib: add more ExecSQL functions and tests
+
 # [v1.9.3 - 2023-08-09]
 ### New
 - common: add isNil function and tests

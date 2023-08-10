@@ -95,15 +95,14 @@ func TestSQL(t *testing.T) {
 	if dbh == nil {
 		t.Fatalf("DB Handle missed")
 	}
-	tx := dbh.MustBegin()
 	t.Run("Test DoSql Create", func(t *testing.T) {
 		mysql := "create table test (id int, name varchar(20))"
-		res, err = ExecSQL(tx, mysql)
+		res, err = ExecSQL(dbh, mysql)
 		assert.NoErrorf(t, err, "Query returned error %s", err)
 	})
 	t.Run("Test DoSql insert", func(t *testing.T) {
 		mysql := "insert into test (id, name) values (1, 'test')"
-		res, err = ExecSQL(tx, mysql)
+		res, err = ExecSQL(dbh, mysql)
 		assert.NoErrorf(t, err, "Query returned error %s", err)
 		require.NotNil(t, res, "Result is nil")
 		actualRows, err = res.RowsAffected()
@@ -111,14 +110,16 @@ func TestSQL(t *testing.T) {
 	})
 	t.Run("Test DoSql insert parameter", func(t *testing.T) {
 		mysql := "insert into test (id, name) values (2, 'test2')"
-		res, err = ExecSQL(tx, mysql, 2, "test2")
+		stmt, err = PrepareSQL(dbh, mysql)
+		require.NoError(t, err, "Prepare returned error %s", err)
+		res, err = ExecStmt(dbh, stmt, 2, "test2")
 		assert.NoErrorf(t, err, "Query returned error %s", err)
 		require.NotNil(t, res, "Result is nil")
 		actualRows, err = res.RowsAffected()
 		assert.Equal(t, int64(1), actualRows, "Rows not as expected")
 		t.Logf("Value %d", actualRows)
 	})
-	_ = tx.Commit()
+
 	t.Run("Test wrong sql", func(t *testing.T) {
 		mysql := "seleccct sqlite_version()"
 		_, err = SelectOneStringValue(dbh, mysql)
@@ -176,35 +177,54 @@ func TestSQL(t *testing.T) {
 			assert.Equal(t, "test2", row.Name, "name value not expected")
 		}
 	})
-	t.Run("Test prepare with transaction", func(t *testing.T) {
-		tx = dbh.MustBegin()
+
+	tx := dbh.MustBegin()
+	t.Run("Test ExecSQLTx", func(t *testing.T) {
 		mysql := "insert into test (id, name) values (?, ?)"
+		res, err = ExecSQLTx(tx, mysql, 3, "test3")
+		assert.NoErrorf(t, err, "Query returned error %s", err)
+		require.NotNil(t, res, "Result is nil")
+		actualRows, err = res.RowsAffected()
+		assert.Equal(t, int64(1), actualRows, "Rows not as expected")
+	})
+	_ = tx.Commit()
+	tx = dbh.MustBegin()
+	t.Run("Test prepared named statement with transaction ", func(t *testing.T) {
+		mysql := "insert into test (id, name) values ($1, $2)"
 		stmt, err = PrepareSQLTx(tx, mysql)
 		assert.NoErrorf(t, err, "Query returned error %s", err)
 		assert.NotNil(t, stmt, "Statement is nil")
-		if stmt != nil {
-			res, err = stmt.Exec(3, "test3")
-			assert.NoErrorf(t, err, "Query returned error %s", err)
-			require.NotNil(t, res, "Result is nil")
-			actualRows, err = res.RowsAffected()
-			assert.Equal(t, int64(1), actualRows, "Rows not as expected")
-		}
-		_ = tx.Commit()
 	})
+	t.Run("Test ExecStmtTx", func(t *testing.T) {
+		require.NotNil(t, stmt)
+		res, err = ExecStmtTx(tx, stmt, 4, "rollback")
+		assert.NoErrorf(t, err, "Query returned error %s", err)
+		require.NotNil(t, res, "Result is nil")
+		actualRows, err = res.RowsAffected()
+		assert.Equal(t, int64(1), actualRows, "Rows not as expected")
+	})
+	_ = tx.Rollback()
+	t.Run("Test Rollback", func(t *testing.T) {
+		mysql := "select id from test where name = 'rollback'"
+		actualInt, err = SelectOneInt64Value(dbh, mysql)
+		assert.Error(t, err, "Query should return error")
+		t.Logf("Value %d", actualInt)
+	})
+
 	t.Run("Test prepare without transaction", func(t *testing.T) {
 		mysql := "select * from test where id > ?"
 		stmt, err = PrepareSQL(dbh, mysql)
 		assert.NoErrorf(t, err, "Query returned error %s", err)
 		assert.NotNil(t, stmt, "Statement is nil")
 		if stmt != nil {
-			err = stmt.QueryRow(2).Scan(&actualInt, &actualString)
+			err = stmt.QueryRow(1).Scan(&actualInt, &actualString)
 			assert.NoErrorf(t, err, "Query returned error %s", err)
-			assert.Equal(t, int64(3), actualInt, "id value not expected")
-			assert.Equal(t, "test3", actualString, "name value not expected")
+			assert.Equal(t, int64(2), actualInt, "id value not expected")
+			assert.Equal(t, "test2", actualString, "name value not expected")
 		}
 	})
 	t.Run("Test Select SQL with stmt return struct", func(t *testing.T) {
-		rows, err = SelectStmt(stmt, 1)
+		rows, err = SelectStmt(stmt, 0)
 		assert.NoErrorf(t, err, "Query should not return error:%s", err)
 		assert.NotNil(t, rows, "Rows is nil")
 		var result []testTab
@@ -214,7 +234,7 @@ func TestSQL(t *testing.T) {
 			assert.NoErrorf(t, err, "Query returned error %s", err)
 			result = append(result, record)
 		}
-		assert.Equal(t, 2, len(result), "number of rows not expected")
+		assert.Equal(t, 3, len(result), "number of rows not expected")
 		t.Logf("Rows %v", result)
 		_ = rows.Close()
 	})
