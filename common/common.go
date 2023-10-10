@@ -2,19 +2,11 @@
 package common
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	"io"
-	"net"
-	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"reflect"
 	"regexp"
-	"strconv"
-	"strings"
 	"unicode"
 
 	log "github.com/sirupsen/logrus"
@@ -75,101 +67,6 @@ func GetFloatEnv(key string, fallback float64) float64 {
 	return fallback
 }
 
-// GetBoolVal convert String to bool
-func GetBoolVal(value string) (bool, error) {
-	return strconv.ParseBool(value)
-}
-
-// GetInt64Val convert String to int64
-func GetInt64Val(value string) (int64, error) {
-	return strconv.ParseInt(value, 10, 64)
-}
-
-// GetIntVal convert String to int
-func GetIntVal(value string) (int, error) {
-	v, err := strconv.ParseInt(value, 10, 32)
-	return int(v), err
-}
-
-// GetFloatVal convert String to float64
-func GetFloatVal(value string) (float64, error) {
-	return strconv.ParseFloat(value, 64)
-}
-
-// ReadFileToString read a file and return a string
-func ReadFileToString(filename string) (string, error) {
-	filename = filepath.Clean(filename)
-	if _, err := os.Stat(filename); err != nil {
-		return "", fmt.Errorf("file %s  not found", filename)
-	}
-	//nolint gosec
-	f, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			log.Debugf("Error closing " + filename)
-		}
-	}(f)
-
-	b := new(strings.Builder)
-	fi, _ := f.Stat()
-	b.Grow(int(fi.Size()))
-	_, err = io.Copy(b, f)
-	if err != nil {
-		return "", err
-	}
-	return b.String(), err
-}
-
-// ReadFileByLine read a file and return array of lines
-func ReadFileByLine(filename string) ([]string, error) {
-	var lines []string
-	filename = filepath.Clean(filename)
-	if _, err := os.Stat(filename); err != nil {
-		return lines, fmt.Errorf("file %s  not found", filename)
-	}
-	//nolint gosec
-	f, err := os.Open(filename)
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			log.Debugf("Error closing " + filename)
-		}
-	}(f)
-
-	if err != nil {
-		return lines, err
-	}
-	var line string
-	reader := bufio.NewReader(f)
-	for {
-		line, err = reader.ReadString('\n')
-		lines = append(lines, line)
-		if err != nil {
-			break
-		}
-	}
-
-	if err == io.EOF {
-		err = nil
-	} else {
-		log.Warnf(" >Read Failed!: %v\n", err)
-	}
-	return lines, err
-}
-
-// ChdirToFile change working directory to the filename
-func ChdirToFile(file string) error {
-	a, _ := filepath.Abs(file)
-	d := filepath.Dir(a)
-	err := os.Chdir(d)
-	log.Debugf("chdir to %s\n", d)
-	return err
-}
-
 // CheckSkip checks if a line can be skipped
 func CheckSkip(line string) (skip bool) {
 	skip = true
@@ -213,88 +110,5 @@ func ExecuteOsCommand(cmdArgs []string, stdIn io.Reader) (stdOut string, stdErr 
 	err = cmd.Run()
 	stdOut = cmdOut.String()
 	stdErr = cmdErr.String()
-	return
-}
-
-// GetHostPort returns host and port from a string
-func GetHostPort(input string) (host string, port int, err error) {
-	if input == "" {
-		return "", 0, fmt.Errorf("empty input")
-	}
-	var u *url.URL
-	if strings.Contains(input, "://") {
-		u, err = url.Parse(input)
-		if err != nil {
-			return "", 0, err
-		}
-		host = u.Hostname()
-		p := u.Port()
-		if p == "" {
-			// rewrite as switch
-			switch u.Scheme {
-			case "http":
-				port = 80
-			case "https":
-				port = 443
-			case "ftp":
-				port = 21
-			case "ssh":
-				port = 22
-			case "ldap":
-				port = 389
-			case "ldaps":
-				port = 636
-			default:
-				return host, 0, fmt.Errorf("unhandled url scheme %s", u.Scheme)
-			}
-		} else {
-			port, err = strconv.Atoi(p)
-		}
-		return
-	}
-
-	h, p, e := net.SplitHostPort(input)
-	if e == nil {
-		host = h
-		port, e = strconv.Atoi(p)
-	}
-	err = e
-	return
-}
-
-// SetHostPort returns host:port from a string host and port int
-func SetHostPort(host string, port int) string {
-	if port == 0 {
-		return host
-	}
-	p := fmt.Sprintf("%d", port)
-	return net.JoinHostPort(host, p)
-}
-
-// IsNil checks if an interface is nil
-func IsNil(i interface{}) bool {
-	if i == nil {
-		return true
-	}
-	//nolint exhaustive
-	switch reflect.TypeOf(i).Kind() {
-	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
-		return reflect.ValueOf(i).IsNil()
-	}
-	return false
-}
-
-// CheckType checks if an interface is of a certain type and returns if it matches expected or is Nil
-func CheckType(t any, expected string) (ok bool, haveType string) {
-	ok = false
-	haveType = fmt.Sprintf("%T", t)
-	if haveType != expected {
-		return
-	}
-	if IsNil(t) {
-		haveType = "<nil>"
-		return
-	}
-	ok = true
 	return
 }
