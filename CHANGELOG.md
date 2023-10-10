@@ -1,5 +1,13 @@
 # Go Library
 
+# [v1.9.5 - 2023-08-10]
+### New
+- common: add FileExists function
+- common: add CanRead function
+- common: add more tests
+### Changed
+- common: split common.go and tests into separate files for net, file and type functions
+
 # [v1.9.4 - 2023-08-10]
 ### New
 - dblib: add more ExecSQL functions and tests
