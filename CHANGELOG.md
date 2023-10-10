@@ -1,6 +1,6 @@
 # Go Library
 
-# [v1.9.5 - 2023-08-10]
+# [v1.9.5 - 2023-10-10]
 ### New
 - common: add FileExists function
 - common: add CanRead function
