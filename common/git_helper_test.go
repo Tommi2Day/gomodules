@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -77,8 +76,10 @@ func TestGit(t *testing.T) {
 	})
 
 	t.Run("TestGetLastCommit OK", func(t *testing.T) {
-		_, filename, _, _ := runtime.Caller(0)
-		// filename := path.Join(test.TestDir, "testinit.go")
+		if os.Getenv("SKIP_COMMIT") == "true" {
+			t.Skip("Skipping on CI")
+		}
+		filename := path.Join(test.TestDir, "testinit.go")
 		gitDir, gitName, err := IsGitFile(filename)
 		t.Logf("GitRootDir: %s, filename: %s", gitDir, gitName)
 		assert.NoErrorf(t, err, "IsGitFile failed: %s", err)
@@ -92,10 +93,12 @@ func TestGit(t *testing.T) {
 		assert.NotEmptyf(t, hs, "Hash empty")
 		m := c.Message
 		assert.NotEmptyf(t, m, "Message empty")
+		author := c.Author.Name
+		assert.NotEmptyf(t, author, "Author empty")
 		ct := c.Committer.When
 		assert.Greaterf(t, ct.Unix(), int64(0), "Commit time empty")
 		cts := ct.Format("02.01.2006 15:04")
-		commit := fmt.Sprintf("Commit: %s has been committed at %s (%s) with message '%s'", gitName, cts, hs[0:8], strings.TrimSuffix(m, "\n"))
+		commit := fmt.Sprintf("Commit: %s has been committed by %s at %s (%s) with message '%s'", gitName, author, cts, hs[0:8], strings.TrimSuffix(m, "\n"))
 		t.Log(commit)
 	})
 	t.Run("TestNonGit ERROR", func(t *testing.T) {
