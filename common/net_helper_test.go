@@ -45,11 +45,32 @@ func TestGetHostPort(t *testing.T) {
 				port:    8080,
 			},
 			{
-				name:    "with http url witout port",
+				name:    "with http url without port",
 				input:   "http://localhost/app/index.html",
 				success: true,
 				host:    "localhost",
 				port:    80,
+			},
+			{
+				name:    "with ssh url without port",
+				input:   "ssh://localhost",
+				success: true,
+				host:    "localhost",
+				port:    22,
+			},
+			{
+				name:    "with ldap url and user/password",
+				input:   "ldap://user:password@ldapserver.de",
+				success: true,
+				host:    "ldapserver.de",
+				port:    389,
+			},
+			{
+				name:    "with ldap url without port",
+				input:   "ldaps://ldapserver",
+				success: true,
+				host:    "ldapserver",
+				port:    636,
 			},
 		} {
 			t.Run(testconfig.name, func(t *testing.T) {
