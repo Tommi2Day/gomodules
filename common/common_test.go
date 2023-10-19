@@ -127,3 +127,49 @@ func TestExecuteOsCommand(t *testing.T) {
 	assert.Emptyf(t, stderr, "StdErr not empty")
 	assert.NotEmpty(t, stdout, "Output is empty")
 }
+
+func TestInArray(t *testing.T) {
+	type testTableType struct {
+		name     string
+		needle   interface{}
+		haystack []interface{}
+		result   bool
+		index    int
+	}
+	for _, testconfig := range []testTableType{
+		{
+			name:     "Test String",
+			needle:   "needle",
+			haystack: []interface{}{"needle", "haystack"},
+			result:   true,
+			index:    0,
+		},
+		{
+			name:     "Test failed String",
+			needle:   "no needle",
+			haystack: []interface{}{"needle", "haystack"},
+			result:   false,
+			index:    -1,
+		},
+		{
+			name:     "Test int",
+			needle:   123,
+			haystack: []interface{}{1, 2, 3, 123},
+			result:   true,
+			index:    3,
+		},
+		{
+			name:     "Test failed int",
+			needle:   123,
+			haystack: []interface{}{1, 2, 3},
+			result:   false,
+			index:    -1,
+		},
+	} {
+		t.Run(testconfig.name, func(t *testing.T) {
+			actual, index := InArray(testconfig.needle, testconfig.haystack)
+			assert.Equal(t, testconfig.result, actual, "unexpected answer")
+			assert.Equal(t, testconfig.index, index, "unexpected index")
+		})
+	}
+}
