@@ -1,5 +1,13 @@
 # Go Library
 
+# [v1.9.6 - 2023-10-19]
+### New
+- common: add Git functions
+- common: add InArray function
+- common: add isDir and isFile functions
+### Changed
+- common: update tests
+
 # [v1.9.5 - 2023-10-10]
 ### New
 - common: add FileExists function
