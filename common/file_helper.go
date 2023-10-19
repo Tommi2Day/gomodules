@@ -23,10 +23,7 @@ func ReadFileToString(filename string) (string, error) {
 		return "", err
 	}
 	defer func(f *os.File) {
-		err = f.Close()
-		if err != nil {
-			log.Debugf("Error closing " + filename)
-		}
+		_ = f.Close()
 	}(f)
 
 	b := new(strings.Builder)
@@ -67,8 +64,6 @@ func ReadFileByLine(filename string) ([]string, error) {
 
 	if err == io.EOF {
 		err = nil
-	} else {
-		log.Warnf(" >Read Failed!: %v\n", err)
 	}
 	return lines, err
 }
@@ -82,7 +77,7 @@ func ChdirToFile(file string) error {
 	return err
 }
 
-// FileExists checks if a file exists
+// FileExists checks if a file or directory exists
 func FileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	if err != nil {
@@ -102,4 +97,22 @@ func CanRead(filename string) bool {
 	//nolint gosec
 	_, err := os.Open(filename)
 	return err == nil
+}
+
+// IsDir checks if a filename is a directory
+func IsDir(name string) bool {
+	fi, err := os.Stat(name)
+	if err != nil {
+		return false
+	}
+	return fi.IsDir()
+}
+
+// IsFile checks if a filename is a file
+func IsFile(name string) bool {
+	fi, err := os.Stat(name)
+	if err != nil {
+		return false
+	}
+	return !fi.IsDir()
 }
