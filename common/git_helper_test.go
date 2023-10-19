@@ -31,15 +31,58 @@ func TestGit(t *testing.T) {
 		t.Logf("GitRootDir: %s", dir)
 		assert.Errorf(t, err, "GetGitRootDir should fail")
 	})
+	t.Run("TestIsGitFile", func(t *testing.T) {
+		type testTableType struct {
+			name     string
+			file     string
+			expected bool
+			gitFile  string
+		}
+		for _, testconfig := range []testTableType{
+			{
+				name:     "full path",
+				file:     path.Join(test.TestDir, "testinit.go"),
+				expected: true,
+				gitFile:  "test/testinit.go",
+			},
+			{
+				name:     "short path with dir",
+				file:     path.Join("test", "testinit.go"),
+				expected: true,
+				gitFile:  "test/testinit.go",
+			},
+			{
+				name:     "root file",
+				file:     "CHANGELOG.md",
+				expected: true,
+				gitFile:  "CHANGELOG.md",
+			},
+			{
+				name:     "short path fail",
+				file:     path.Join("test", "dummy.txt"),
+				expected: false,
+			},
+		} {
+			t.Run(testconfig.name, func(t *testing.T) {
+				root, fn, err := IsGitFile(testconfig.file)
+				if testconfig.expected {
+					assert.NoErrorf(t, err, "IsGitFile failed for %s: %s", testconfig.file, err)
+					assert.NotEmptyf(t, root, "Git root empty")
+					assert.NotEmptyf(t, fn, "filename empty")
+				} else {
+					assert.Error(t, err, "Expected error not set")
+				}
+			})
+		}
+	})
+
 	t.Run("TestGetLastCommit OK", func(t *testing.T) {
 		_, filename, _, _ := runtime.Caller(0)
 		// filename := path.Join(test.TestDir, "testinit.go")
-		gitDir, err := GetGitRootDir(filename)
-		require.NoErrorf(t, err, "GetGitRootDir failed: %s", err)
-		t.Logf("Testfile: %s", filename)
-		err = IsGitFile(filename)
+		gitDir, gitName, err := IsGitFile(filename)
+		t.Logf("GitRootDir: %s, filename: %s", gitDir, gitName)
 		assert.NoErrorf(t, err, "IsGitFile failed: %s", err)
-		c, err := GetLastCommit(gitDir, filename)
+		c, err := GetLastCommit(gitDir, gitName)
 		assert.NoErrorf(t, err, "GetLastCommit failed: %s", err)
 		require.IsTypef(t, &object.Commit{}, c, "GetLastCommit returned wrong type")
 		if c == nil {
@@ -52,7 +95,7 @@ func TestGit(t *testing.T) {
 		ct := c.Committer.When
 		assert.Greaterf(t, ct.Unix(), int64(0), "Commit time empty")
 		cts := ct.Format("02.01.2006 15:04")
-		commit := fmt.Sprintf("Commit: %s has been committed at %s (%s) with message '%s'", strings.TrimPrefix(filename, gitDir+"/"), cts, hs[0:8], strings.TrimSuffix(m, "\n"))
+		commit := fmt.Sprintf("Commit: %s has been committed at %s (%s) with message '%s'", gitName, cts, hs[0:8], strings.TrimSuffix(m, "\n"))
 		t.Log(commit)
 	})
 	t.Run("TestNonGit ERROR", func(t *testing.T) {
