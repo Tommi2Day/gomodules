@@ -66,6 +66,18 @@ func TestGenPassword(t *testing.T) {
 			AllChars,
 		},
 		{
+			"User-16-2-2-2-2-1-no-charset",
+			true,
+			true,
+			16,
+			2,
+			2,
+			2,
+			2,
+			true,
+			"",
+		},
+		{
 			"Only-8-UpperAndDigits",
 			true,
 			true,

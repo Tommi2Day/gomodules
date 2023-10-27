@@ -8,9 +8,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// generateRandomString generate a randow string with the given length and out of allowed charset
-func generateRandomString(length int, allowedChars string) string {
+// GenerateRandomString generate a randow string with the given length and out of allowed charset
+func GenerateRandomString(length int, allowedChars string) string {
 	letters := allowedChars
+	if len(allowedChars) == 0 {
+		letters = charset.AllChars
+	}
 	ret := make([]byte, length)
 	for i := 0; i < length; i++ {
 		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
@@ -48,7 +51,7 @@ func GenPassword(length int, upper int, lower int, numeric int, special int, fir
 	SilentCheck = true
 	// max 50 tries to generate a valid password
 	for c := 0; c < 50; c++ {
-		newPassword = generateRandomString(length, allowedChars)
+		newPassword = GenerateRandomString(length, allowedChars)
 		ok = DoPasswordCheck(newPassword, length, upper, lower, numeric, special, firstCharCheck, allowedChars)
 		if ok {
 			break

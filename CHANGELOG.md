@@ -1,5 +1,12 @@
 # Go Library
 
+# [v1.10.0 - 2023-10-27]
+### New
+- use go 1.21
+- pwlib: expose GenerateRandomString function
+### Fixed
+- linter issues
+
 # [v1.9.6 - 2023-10-19]
 ### New
 - common: add Git functions
