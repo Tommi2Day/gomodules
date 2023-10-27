@@ -56,7 +56,7 @@ func TestEncryptToDecrypt(t *testing.T) {
 
 func TestPublicEncryptString(t *testing.T) {
 	app := "test_encrypt_String"
-	testdata := test.TestDir + "/testdata"
+	testdata := test.TestData
 	pc := NewConfig(app, testdata, testdata, "Test", typeGO)
 
 	err := os.Chdir(test.TestDir)
@@ -88,7 +88,7 @@ func TestOpensslCompString(t *testing.T) {
 	var cmderr bytes.Buffer
 	test.Testinit(t)
 	app := "test_openssl_string"
-	testdata := test.TestDir + "/testdata"
+	testdata := test.TestData
 
 	// set env
 	pc := NewConfig(app, testdata, testdata, "Test", typeOpenssl)

@@ -73,7 +73,7 @@ XE.SID =(DESCRIPTION =
 XE.error = Error
 `
 
-const sqlnetora = `
+const sqlnetcontent = `
 NAMES.DEFAULT_DOMAIN=local
 NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT,LDAP)
 `
@@ -88,7 +88,7 @@ func TestParseTns(t *testing.T) {
 	require.NoErrorf(t, err, "ChDir failed")
 
 	//nolint gosec
-	err = os.WriteFile(tnsAdmin+"/sqlnet.ora", []byte(sqlnetora), 0644)
+	err = os.WriteFile(tnsAdmin+"/sqlnet.ora", []byte(sqlnetcontent), 0644)
 	require.NoErrorf(t, err, "Create test sqlnet.ora failed")
 	//nolint gosec
 	err = os.WriteFile(tnsAdmin+"/tnsnames.ora", []byte(tnsnamesora), 0644)
@@ -165,7 +165,7 @@ func TestParseTns(t *testing.T) {
 			},
 			{
 				name:    "XE+invalid domain",
-				alias:   "XE" + ".xx.xx",
+				alias:   "XE.xx.xx",
 				success: false,
 				service: "",
 			},

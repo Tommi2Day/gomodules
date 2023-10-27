@@ -4,6 +4,7 @@ package dblib
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -31,6 +32,9 @@ type TNSEntry struct {
 
 // TNSEntries Map of tns entries
 type TNSEntries map[string]TNSEntry
+
+const ldapora = "ldap.ora"
+const sqlnetora = "sqlnet.ora"
 
 // CheckTNSadmin verify TNS-Admin Settings
 func CheckTNSadmin(tnsadmin string) (dn string, err error) {
@@ -68,8 +72,8 @@ func BuildTnsEntry(location string, desc string, tnsAlias string) TNSEntry {
 }
 
 // ReadSqlnetOra reads a sqlnet.ora and returns default domain and names path
-func ReadSqlnetOra(path string) (domain string, namesPath []string) {
-	filename := path + "/sqlnet.ora"
+func ReadSqlnetOra(filePath string) (domain string, namesPath []string) {
+	filename := path.Join(filePath, sqlnetora)
 	domain = ""
 	cfg, err := ini.InsensitiveLoad(filename)
 	if err != nil {
@@ -82,7 +86,7 @@ func ReadSqlnetOra(path string) (domain string, namesPath []string) {
 	replacer := strings.NewReplacer("(", "", ")", "", " ", "")
 	names = replacer.Replace(names)
 	namesPath = strings.Split(names, ",")
-	log.Debugf("parsed %s, domain=%s, names path=%s", filename, domain, names)
+	log.Debugf("parsed %s, domain=%s, names filePath=%s", filename, domain, names)
 	return
 }
 

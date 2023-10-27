@@ -3,6 +3,7 @@ package pwlib
 import (
 	"crypto/rsa"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/tommi2day/gomodules/test"
@@ -59,9 +60,9 @@ func TestGenRsaKey(t *testing.T) {
 func TestGetKeyFromFile(t *testing.T) {
 	test.Testinit(t)
 	app := "test_get"
-	testPubFile := "testdata/" + app + ".pub"
-	testNotEncPrivFile := "testdata/" + app + "_notenc.pem"
-	testEncPrivFile := "testdata/" + app + ".pem"
+	testPubFile := path.Join(test.TestData, app+pubExt)
+	testNotEncPrivFile := path.Join(test.TestData, app+"_notenc"+privExt)
+	testEncPrivFile := path.Join(test.TestData, app+privExt)
 	defaultPassword := app
 	err := os.Chdir(test.TestDir)
 	require.NoError(t, err, "ChDir failed")

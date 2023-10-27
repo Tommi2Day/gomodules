@@ -2,6 +2,7 @@ package dblib
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -9,7 +10,7 @@ import (
 
 	"gopkg.in/ini.v1"
 
-	ldap "github.com/go-ldap/ldap/v3"
+	"github.com/go-ldap/ldap/v3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,8 +61,8 @@ func ReadLdapTns(lc *ldaplib.LdapConfigType, contextDN string) (TNSEntries, erro
 }
 
 // ReadLdapOra Reads ldap ora and returns servers and context
-func ReadLdapOra(path string) (ctx string, servers []LdapServer) {
-	filename := path + "/ldap.ora"
+func ReadLdapOra(filePath string) (ctx string, servers []LdapServer) {
+	filename := path.Join(filePath, ldapora)
 	ctx = ""
 	host := ""
 	port := 0

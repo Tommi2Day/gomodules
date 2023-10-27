@@ -20,6 +20,8 @@ const (
 	extOpenssl        = "pw"
 	extPlain          = "plain"
 	extB64            = "b64"
+	privExt           = ".pem"
+	pubExt            = ".pub"
 )
 
 // PassConfig Type for encryption configuration
@@ -81,8 +83,8 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 		ext = extGo
 	}
 	cryptedfile := datadir + "/" + appname + "." + ext
-	privatekeyfile := keydir + "/" + appname + ".pem"
-	pubkeyfile := keydir + "/" + appname + ".pub"
+	privatekeyfile := keydir + "/" + appname + privExt
+	pubkeyfile := keydir + "/" + appname + pubExt
 	plainfile := datadir + "/" + appname + ".plain"
 	sessionpassfile := keydir + "/" + appname + ".dat"
 
