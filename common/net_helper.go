@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
+
+const hostDefaultDomain = "localdomain"
 
 // GetHostPort returns host and port from a string
 func GetHostPort(input string) (host string, port int, err error) {
@@ -61,4 +64,17 @@ func SetHostPort(host string, port int) string {
 	}
 	p := fmt.Sprintf("%d", port)
 	return net.JoinHostPort(host, p)
+}
+
+// GetHostname returns the hostname as full qualified domain name
+func GetHostname() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "localhost." + hostDefaultDomain
+	}
+	hostname = strings.ReplaceAll(hostname, "\\", ".")
+	if !strings.Contains(hostname, ".") {
+		hostname += "." + hostDefaultDomain
+	}
+	return hostname
 }

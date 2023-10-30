@@ -100,3 +100,12 @@ func TestSetHostPort(t *testing.T) {
 		assert.Equalf(t, "localhost", actual, "actual not expected: %s", actual)
 	})
 }
+
+func TestGetHostname(t *testing.T) {
+	t.Run("Test GetHostname", func(t *testing.T) {
+		actual := GetHostname()
+		assert.NotEmpty(t, actual, "Hostname empty")
+		assert.Contains(t, actual, ".", "Hostname not FQDN")
+		t.Logf("Hostname: %s", actual)
+	})
+}
