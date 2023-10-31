@@ -1,5 +1,12 @@
 # Go Library
 
+## [v1.10.1 - 2023-11-01]
+### New
+- common: add GetHostname function
+- maillib: add setHELO function and set Helo in Connect
+- dblib: add GetJDBCUrl function with ModifyJDBCTransportConnectTimeout flag (default true) 
+to update build jdbc url from tns entry and replace TRANSPORT_CONNECT_TIMEOUT in ms if <1000
+
 # [v1.10.0 - 2023-10-27]
 ### New
 - use go 1.21

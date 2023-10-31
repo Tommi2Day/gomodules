@@ -36,6 +36,9 @@ type TNSEntries map[string]TNSEntry
 const ldapora = "ldap.ora"
 const sqlnetora = "sqlnet.ora"
 
+// ModifyJDBCTransportConnectTimeout if true, TRANSPORT_CONNECT_TIMEOUT is modified to be *1000
+var ModifyJDBCTransportConnectTimeout = true
+
 // CheckTNSadmin verify TNS-Admin Settings
 func CheckTNSadmin(tnsadmin string) (dn string, err error) {
 	dn, err = filepath.Abs(tnsadmin)
@@ -186,6 +189,36 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 	// chdir back
 	_ = os.Chdir(wd)
 	return tnsEntries, domain, err
+}
+
+// GetJDBCUrl build a jdbc url from a tns description
+func GetJDBCUrl(desc string) (out string, err error) {
+	var pattern *regexp.Regexp
+	repl := strings.NewReplacer("\r", "", "\n", "", "\t", "", " ", "")
+	desc = repl.Replace(desc)
+
+	// handle transport connect timeout to be *1000
+	if ModifyJDBCTransportConnectTimeout {
+		pattern = regexp.MustCompile("(?i)TRANSPORT_CONNECT_TIMEOUT=([0-9]+)")
+		subStr := pattern.FindStringSubmatch(desc)
+		if len(subStr) > 1 {
+			tcval := 0
+			tc := subStr[1]
+			tcval, err = common.GetIntVal(tc)
+			if err == nil {
+				if tcval > 0 && tcval < 1000 {
+					tcval *= 1000
+					tc = fmt.Sprintf("TRANSPORT_CONNECT_TIMEOUT=%d", tcval)
+					desc = strings.ReplaceAll(desc, subStr[0], tc)
+					log.Debugf("set TRANSPORT_CONNECT_TIMEOUT to %d", tcval)
+				}
+			}
+		}
+	}
+
+	err = nil
+	out = fmt.Sprintf("jdbc:oracle:thin:@%s", desc)
+	return
 }
 
 func tnsSanity(entries TNSEntries) (tnsEntries TNSEntries, deletes int) {

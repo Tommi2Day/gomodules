@@ -217,4 +217,63 @@ func TestParseTns(t *testing.T) {
 			assert.NotEmpty(t, server.Port, "Port ist empty")
 		}
 	})
+	const jdbcprefix = "jdbc:oracle:thin:@"
+	const jdbcaddr1 = "(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))" +
+		"(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=XE)))"
+	t.Run("Test JDBC Output normal", func(t *testing.T) {
+		desc := `(DESCRIPTION =
+	(ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
+	(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE)))`
+		actual, err := GetJDBCUrl(desc)
+		expected := jdbcprefix + jdbcaddr1
+		assert.NoError(t, err, "GetJDBCUrl failed")
+		assert.NotEmptyf(t, actual, "JDBC Url empty")
+		assert.Equal(t, expected, actual, "JDBC Url not expected")
+	})
+	const jdbcdesc = "(DESCRIPTION=(CONNECT_TIMEOUT=15)(RETRY_COUNT=20)(RETRY_DELAY=3)"
+	const jdbc3 = "(TRANSPORT_CONNECT_TIMEOUT=3)"
+	const jdbc3a = "(TRANSPORT_CONNECT_TIMEOUT=3000)"
+	const jdbcaddr2 = "(ADDRESS_LIST=(LOAD_BALANCE=ON)(FAILOVER=ON)" +
+		"(ADDRESS=(PROTOCOL=TCP)(HOST=vdb1.ora.local)(PORT=1672))" +
+		"(ADDRESS=(PROTOCOL=TCP)(HOST=vdb2.ora.local)(PORT=1672)))" +
+		"(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=Test.local)))"
+	t.Run("Test JDBC Output with TRANSPORT_CONNECT_TIMEOUT", func(t *testing.T) {
+		desc := `
+(DESCRIPTION =
+	(CONNECT_TIMEOUT=15)
+	(RETRY_COUNT=20)
+	(RETRY_DELAY=3)
+	(transport_connect_timeout=3)
+	(ADDRESS_LIST =
+		(LOAD_BALANCE=ON)
+		(FAILOVER=ON)
+		(ADDRESS=(PROTOCOL=TCP)(HOST=vdb1.ora.local)(PORT=1672))
+		(ADDRESS=(PROTOCOL=TCP)(HOST=vdb2.ora.local)(PORT=1672))
+	)
+	(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = Test.local))
+)
+`
+		actual, err := GetJDBCUrl(desc)
+		expected := jdbcprefix + jdbcdesc + jdbc3a + jdbcaddr2
+		assert.NoError(t, err, "GetJDBCUrl failed")
+		assert.NotEmptyf(t, actual, "JDBC Url empty")
+		assert.Equal(t, expected, actual, "JDBC Url not expected")
+	})
+	t.Run("Test JDBC Output already replaced", func(t *testing.T) {
+		desc := jdbcdesc + jdbc3a + jdbcaddr2
+		actual, err := GetJDBCUrl(desc)
+		expected := jdbcprefix + jdbcdesc + jdbc3a + jdbcaddr2
+		assert.NoError(t, err, "GetJDBCUrl failed")
+		assert.NotEmptyf(t, actual, "JDBC Url empty")
+		assert.Equal(t, expected, actual, "JDBC Url not expected")
+	})
+	t.Run("Test JDBC Output NoReplace", func(t *testing.T) {
+		desc := jdbcdesc + jdbc3 + jdbcaddr2
+		ModifyJDBCTransportConnectTimeout = false
+		actual, err := GetJDBCUrl(desc)
+		expected := jdbcprefix + jdbcdesc + jdbc3 + jdbcaddr2
+		assert.NoError(t, err, "GetJDBCUrl failed")
+		assert.NotEmptyf(t, actual, "JDBC Url empty")
+		assert.Equal(t, expected, actual, "JDBC Url not expected")
+	})
 }
