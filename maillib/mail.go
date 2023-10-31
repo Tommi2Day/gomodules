@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tommi2day/gomodules/common"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,10 +21,12 @@ type MailConfigType struct {
 	StartTLS    bool
 	Timeout     time.Duration
 	tlsConfig   *tls.Config
+	HELO        string
 }
 
 // NewConfig set Mail server parameter
 func NewConfig(server string, port int, username string, password string) *MailConfigType {
+	hostname := common.GetHostname()
 	mailConfig := MailConfigType{}
 	mailConfig.Server = server
 	mailConfig.Port = port
@@ -32,6 +36,7 @@ func NewConfig(server string, port int, username string, password string) *MailC
 	mailConfig.SSLinsecure = false
 	mailConfig.SSL = false
 	mailConfig.Timeout = 15 * time.Second
+	mailConfig.HELO = hostname
 	return &mailConfig
 }
 
@@ -77,6 +82,12 @@ func (mailConfig *MailConfigType) EnableTLS(insecure bool) {
 // GetConfig returns current Mail conf
 func (mailConfig *MailConfigType) GetConfig() *MailConfigType {
 	return mailConfig
+}
+
+// SetHELO configure HELO string
+func (mailConfig *MailConfigType) SetHELO(helo string) {
+	mailConfig.HELO = helo
+	log.Debugf("mailconfig: Set HELO to %s", helo)
 }
 
 // MailType collects all recipients of a mail and attachment

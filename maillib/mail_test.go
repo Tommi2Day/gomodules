@@ -31,9 +31,11 @@ func TestSetMailConfig(t *testing.T) {
 	t.Run("Test mailConfig defaults", func(t *testing.T) {
 		c := NewConfig("127.0.0.1", 25, "", "")
 		actual := c.GetConfig()
+		hostname := common.GetHostname()
 		assert.Equal(t, "127.0.0.1", actual.Server, "Server default entry not equal")
 		assert.Equal(t, 25, actual.Port, "Port entry should be default")
 		assert.Empty(t, actual.Username, "Username entry should not set")
+		assert.Equal(t, hostname, actual.HELO, "HELO entry not equal")
 	})
 	t.Run("Test NewConfig", func(t *testing.T) {
 		s := NewSendMailConfig("test.example.com", sslPort, "testuser", "Testpass")
