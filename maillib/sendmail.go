@@ -34,12 +34,12 @@ func (config *SendMailConfigType) SetMaxSize(maxsize int64) {
 	config.maxSize = maxsize
 }
 
-// SetContentType allows to modify the Content type of the tests
+// SetContentType allows to modify the Content type of the test
 func (config *SendMailConfigType) SetContentType(contentType mail.ContentType) {
 	config.mailContentType = contentType
 }
 
-// buildRecipients add recipients to tests
+// buildRecipients add recipients to test
 func (mt *MailType) buildRecipients(m *mail.Msg) (c int, err error) {
 	var errtxt string
 	// add recipients
@@ -136,7 +136,10 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 	}
 
 	// create mail Conn
-	c, err = mail.NewClient(config.ServerConfig.Server, mail.WithPort(config.ServerConfig.Port), mail.WithTimeout(config.ServerConfig.Timeout))
+	c, err = mail.NewClient(config.ServerConfig.Server,
+		mail.WithPort(config.ServerConfig.Port),
+		mail.WithTimeout(config.ServerConfig.Timeout),
+		mail.WithHELO(config.ServerConfig.HELO))
 	if err != nil {
 		errtxt = fmt.Sprintf("sendmail: failed to create mail Conn: %s", err)
 		err = errors.New(errtxt)
