@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.10.2 - 2023-11-03]
+### Changed
+- dblib: use Oracle-Free 23.3 as test container, which causes to replace XEPDB1 with FREEPDB1
+### Fixed
+- dblib: oracle startup wait retry function
+
 ## [v1.10.1 - 2023-11-01]
 ### New
 - common: add GetHostname function

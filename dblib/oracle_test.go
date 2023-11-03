@@ -19,13 +19,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const DBPDB = "FREEPDB1"
 const DBUSER = "system"
 const DBPASSWORD = "XE-manager21"
 const TIMEOUT = 5
 
 var dbhost = common.GetEnv("DB_HOST", "127.0.0.1")
 var oracleContainer *dockertest.Resource
-var connectora = fmt.Sprintf("XE.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=XEPDB1)))", dbhost, dbPort)
+var connectora = fmt.Sprintf("%s.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=%s)))", DBPDB, dbhost, dbPort, DBPDB)
 var target string
 
 // makeOerr create a pseudo ORA Errorcode
@@ -38,7 +39,7 @@ func makeOerr(code int, msg string) *network.OracleError {
 }
 
 func TestWithOracle(t *testing.T) {
-	const alias = "XE.local"
+	const alias = DBPDB + ".local"
 
 	test.Testinit(t)
 	tnsAdmin = test.TestData

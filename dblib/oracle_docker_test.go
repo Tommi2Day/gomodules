@@ -12,8 +12,8 @@ import (
 )
 
 const dbPort = "21521"
-const repo = "docker.io/gvenzl/oracle-xe"
-const repoTag = "21.3.0-slim"
+const repo = "docker.io/gvenzl/oracle-free"
+const repoTag = "23.3-slim"
 const containerTimeout = 600
 
 var containerName string
@@ -65,7 +65,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	}
 
 	pool.MaxWait = containerTimeout * time.Second
-	target = fmt.Sprintf("oracle://%s:%s@%s:%s/xepdb1", "system", DBPASSWORD, dbhost, dbPort)
+	target = fmt.Sprintf("oracle://%s:%s@%s:%s/%s", "system", DBPASSWORD, dbhost, dbPort, DBPDB)
 	fmt.Printf("Wait to successfully connect to db with %s (max %ds)...\n", target, containerTimeout)
 	start := time.Now()
 	if err = pool.Retry(func() error {
@@ -74,6 +74,9 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		db, err = sql.Open("oracle", target)
 		if err != nil {
 			return err
+		}
+		if db == nil {
+			return fmt.Errorf("db is nil")
 		}
 		return db.Ping()
 	}); err != nil {
