@@ -25,7 +25,6 @@ const (
 	privPemExt        = ".pem"
 	pubPemExt         = ".pub"
 	extGPG            = "gpg"
-	extGopass         = "gpg"
 	pubGPGExt         = ".asc"
 	privGPGExt        = ".gpg.key"
 )
