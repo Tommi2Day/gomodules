@@ -15,13 +15,19 @@ const (
 	typePlain         = "plain"
 	typeEnc           = "b64"
 	typeVault         = "vault"
+	typeGPG           = "gpg"
+	typeGopass        = "gopass"
 	defaultMethod     = typeGO
 	extGo             = "gp"
 	extOpenssl        = "pw"
 	extPlain          = "plain"
 	extB64            = "b64"
-	privExt           = ".pem"
-	pubExt            = ".pub"
+	privPemExt        = ".pem"
+	pubPemExt         = ".pub"
+	extGPG            = "gpg"
+	extGopass         = "gpg"
+	pubGPGExt         = ".asc"
+	privGPGExt        = ".gpg.key"
 )
 
 // PassConfig Type for encryption configuration
@@ -41,6 +47,8 @@ type PassConfig struct {
 }
 
 var label = []byte("")
+var pubExt = pubPemExt
+var privExt = privPemExt
 
 // SSLDigest variable helds common digist algor
 var SSLDigest = openssl.BytesToKeySHA256
@@ -54,15 +62,6 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 	// default names
 	wd, _ := os.Getwd()
 	etc := wd + "/etc"
-	if datadir == "" {
-		datadir = etc
-	}
-	if keydir == "" {
-		keydir = etc
-	}
-	if keypass == "" {
-		keypass = appname
-	}
 	if method == "" {
 		method = defaultMethod
 	}
@@ -77,11 +76,28 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 		ext = extB64
 	case typeVault:
 		ext = extPlain
+	case typeGPG, typeGopass:
+		ext = extGPG
+		privExt = privGPGExt
+		pubExt = pubGPGExt
+		if keypass == "" {
+			keypass = os.Getenv("GPG_PASSPHRASE")
+		}
 	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)
 		method = defaultMethod
 		ext = extGo
 	}
+	if datadir == "" {
+		datadir = etc
+	}
+	if keydir == "" {
+		keydir = etc
+	}
+	if keypass == "" {
+		keypass = appname
+	}
+
 	cryptedfile := datadir + "/" + appname + "." + ext
 	privatekeyfile := keydir + "/" + appname + privExt
 	pubkeyfile := keydir + "/" + appname + pubExt

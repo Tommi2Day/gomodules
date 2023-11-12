@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.10.3 - 2023-11-12]
+### New
+- pwlib: add gpg and gopass method and tests
+### Changed
+- update dependencies
+
 ## [v1.10.2 - 2023-11-03]
 ### Changed
 - dblib: use Oracle-Free 23.3 as test container, which causes to replace XEPDB1 with FREEPDB1

@@ -2,6 +2,8 @@ package pwlib
 
 import (
 	"os"
+	"path"
+	"slices"
 	"testing"
 
 	"github.com/tommi2day/gomodules/common"
@@ -26,34 +28,49 @@ testdp:testuser:xxx:yyy
 func TestCrypt(t *testing.T) {
 	// prepare
 	test.Testinit(t)
-
+	err := os.Chdir(test.TestDir)
+	require.NoErrorf(t, err, "ChDir failed")
+	dataDir := test.TestData
+	keyDir := test.TestData
 	for _, m := range Methods {
-		if m == typeVault {
+		if slices.Contains([]string{typeVault, typeGopass}, m) {
 			continue
 		}
+		if m == typeGPG {
+			keyDir = path.Join(test.TestDir, "gpg")
+		}
 		app := "test_encrypt_" + m
-		pc := NewConfig(app, test.TestData, test.TestData, app, m)
-
-		err := os.Chdir(test.TestDir)
-		require.NoErrorf(t, err, "ChDir failed")
+		pc := NewConfig(app, dataDir, keyDir, app, m)
 		filename := pc.PlainTextFile
 		_ = os.Remove(filename)
 		//nolint gosec
 		err = os.WriteFile(filename, []byte(plain), 0644)
 		require.NoErrorf(t, err, "Create testdata failed")
-		_, _, err = GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
-		require.NoErrorf(t, err, "Prepare Key failed:%s", err)
+
+		// genkey or use existing for GPG
+		if m == typeGPG {
+			pc.PrivateKeyFile = path.Join(test.TestDir, "gpg", "test.gpg.key")
+			pc.PubKeyFile = path.Join(test.TestDir, "gpg", "test.asc")
+			pc.KeyPass, err = common.ReadFileToString(path.Join(test.TestDir, "gpg", "test.gpgpw"))
+			if err != nil {
+				t.Fatal("Cannt load GPG Password")
+			}
+		} else {
+			_, _, err = GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
+			require.NoErrorf(t, err, "Prepare Key failed:%s", err)
+		}
 
 		// run
 		t.Run("default Encrypt File method "+m, func(t *testing.T) {
-			err := pc.EncryptFile()
+			err = pc.EncryptFile()
 			assert.NoErrorf(t, err, "Encryption failed: %s", err)
 			assert.FileExists(t, pc.CryptedFile)
 		})
 		t.Run("default Decrypt File method "+m, func(t *testing.T) {
-			plain, err := common.ReadFileByLine(pc.PlainTextFile)
+			var plaintxt []string
+			plaintxt, err = common.ReadFileByLine(pc.PlainTextFile)
 			require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
-			expected := len(plain)
+			expected := len(plaintxt)
 			content, err := pc.DecryptFile()
 			assert.NoErrorf(t, err, "Decryption failed: %s", err)
 			assert.NotEmpty(t, content)

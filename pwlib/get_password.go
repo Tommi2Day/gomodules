@@ -12,13 +12,14 @@ import (
 )
 
 // Methods all available methods for get_passwword
-var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault}
+var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault, typeGPG, typeGopass}
 
 // DecryptFile decripts an rsa protected file
 func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 	cryptedfile := pc.CryptedFile
 	privatekeyfile := pc.PrivateKeyFile
 	keypass := pc.KeyPass
+	datadir := pc.DataDir
 	sessionpassfile := pc.SessionPassFile
 	passflag := "open"
 	content := ""
@@ -43,6 +44,10 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		content = string(data)
 	case typeVault:
 		content, err = GetVaultSecret(cryptedfile, "", "")
+	case typeGPG:
+		content, err = GPGDecryptFile(cryptedfile, privatekeyfile, keypass, "")
+	case typeGopass:
+		content, err = GetGopassSecrets(datadir, privatekeyfile, keypass)
 	default:
 		log.Fatalf("encryption method %s not known", method)
 		os.Exit(1)
@@ -76,9 +81,11 @@ func (pc *PassConfig) EncryptFile() (err error) {
 	case typePlain:
 		// no need to do anything
 		err = nil
-	case typeVault:
+	case typeGPG:
+		err = GPGEncryptFile(plaintextfile, cryptedFile, pubKeyFile)
+	case typeVault, typeGopass:
 		// not implemented yet
-		err = nil
+		err = fmt.Errorf("encryption method %s not implemented yet", method)
 	default:
 		log.Fatalf("Enc method %s not known", method)
 		os.Exit(1)
@@ -88,7 +95,7 @@ func (pc *PassConfig) EncryptFile() (err error) {
 		log.Debug("encryption data failed")
 		return
 	}
-	log.Debug("encrytion data success")
+	log.Debug("encryption data success")
 	return
 }
 
@@ -162,7 +169,7 @@ func (pc *PassConfig) match(lines []string, system string, account string) (pass
 			password = fields[2]
 			break
 		}
-		if pc.Method == typeVault {
+		if pc.Method == typeVault || pc.Method == typeGopass {
 			// vault method has no default entries
 			continue
 		}
