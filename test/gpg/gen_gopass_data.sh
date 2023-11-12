@@ -30,7 +30,7 @@ set -e
 TESTDIR="$WD/.."
 KEYDIR="$TESTDIR/gpg"
 cd "$WD"
-APP=test
+APP="test"
 export GNUPGHOME=$TESTDIR/testdata/.gnupg
 #export GPG_TTY=/dev/tty
 if [ -d "$GNUPGHOME" ]; then
