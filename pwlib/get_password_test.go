@@ -2,12 +2,12 @@ package pwlib
 
 import (
 	"os"
-	"path"
 	"slices"
 	"testing"
 
-	"github.com/tommi2day/gomodules/common"
+	"github.com/ProtonMail/go-crypto/openpgp"
 
+	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -32,13 +32,12 @@ func TestCrypt(t *testing.T) {
 	require.NoErrorf(t, err, "ChDir failed")
 	dataDir := test.TestData
 	keyDir := test.TestData
+	var entity *openpgp.Entity
 	for _, m := range Methods {
 		if slices.Contains([]string{typeVault, typeGopass}, m) {
 			continue
 		}
-		if m == typeGPG {
-			keyDir = path.Join(test.TestDir, "gpg")
-		}
+
 		app := "test_encrypt_" + m
 		pc := NewConfig(app, dataDir, keyDir, app, m)
 		filename := pc.PlainTextFile
@@ -49,27 +48,25 @@ func TestCrypt(t *testing.T) {
 
 		// genkey or use existing for GPG
 		if m == typeGPG {
-			pc.PrivateKeyFile = path.Join(test.TestDir, "gpg", "test.gpg.key")
-			pc.PubKeyFile = path.Join(test.TestDir, "gpg", "test.asc")
-			pc.KeyPass, err = common.ReadFileToString(path.Join(test.TestDir, "gpg", "test.gpgpw"))
-			if err != nil {
-				t.Fatal("Cannt load GPG Password")
-			}
+			entity, _, err = CreateGPGEntity(testGPGName, "TestCrypt", testGPGEmail, pc.KeyPass)
+			require.NoErrorf(t, err, "Prepare GPG Keys failed:%s", err)
+			err = ExportGPGKeyPair(entity, pc.PubKeyFile, pc.PrivateKeyFile)
+			require.NoErrorf(t, err, "Export GPG Keys failed:%s", err)
 		} else {
 			_, _, err = GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
 			require.NoErrorf(t, err, "Prepare Key failed:%s", err)
 		}
 
 		// run
-		t.Run("default Encrypt File method "+m, func(t *testing.T) {
+		t.Run("Encrypt File method "+m, func(t *testing.T) {
 			err = pc.EncryptFile()
 			assert.NoErrorf(t, err, "Encryption failed: %s", err)
 			assert.FileExists(t, pc.CryptedFile)
 		})
-		t.Run("default Decrypt File method "+m, func(t *testing.T) {
+		t.Run("Decrypt File method "+m, func(t *testing.T) {
 			var plaintxt []string
 			plaintxt, err = common.ReadFileByLine(pc.PlainTextFile)
-			require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
+			require.NoErrorf(t, err, "Plain textfile %s not readable:%s", err)
 			expected := len(plaintxt)
 			content, err := pc.DecryptFile()
 			assert.NoErrorf(t, err, "Decryption failed: %s", err)

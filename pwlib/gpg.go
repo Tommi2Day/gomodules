@@ -14,6 +14,7 @@ import (
 	"github.com/tommi2day/gomodules/common"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,42 +27,12 @@ type GPGConfig struct {
 }
 
 // GPGUnlockKey decrypt private key and subkeys
-func GPGUnlockKey(gpgEntity *openpgp.Entity, keypass string) (decryptedEntity *openpgp.Entity, err error) {
+func GPGUnlockKey(gpgEntity *openpgp.Entity, keypass string) (err error) {
 	if gpgEntity == nil {
 		err = fmt.Errorf("no key loaded")
 		return
 	}
-	// decrypt main key
-	if gpgEntity.PrivateKey.Encrypted {
-		if keypass == "" {
-			err = fmt.Errorf("no passphrase for key %s", gpgEntity.PrivateKey.KeyIdString())
-			return
-		}
-		err = gpgEntity.PrivateKey.Decrypt([]byte(keypass))
-		if err != nil {
-			err = fmt.Errorf("cannot decrypt private key for ID '%s':%s", gpgEntity.PrivateKey.KeyIdString(), err)
-			return
-		}
-	} else {
-		log.Debugf("main key %s is not encrypted", gpgEntity.PrivateKey.KeyIdString())
-	}
-	// decrypt sub keys
-	for i, subkey := range gpgEntity.Subkeys {
-		if keypass == "" {
-			err = fmt.Errorf("no passphrase for key %s", subkey.PrivateKey.KeyIdString())
-			return
-		}
-		if subkey.PrivateKey.Encrypted {
-			err = subkey.PrivateKey.Decrypt([]byte(keypass))
-			if err != nil {
-				err = fmt.Errorf("cannot decrypt subkey %d for ID %s: %s", i, subkey.PrivateKey.KeyIdString(), err)
-				return
-			}
-		} else {
-			log.Debugf("sub key %s is not encrypted", subkey.PrivateKey.KeyIdString())
-		}
-	}
-	decryptedEntity = gpgEntity
+	err = gpgEntity.DecryptPrivateKeys([]byte(keypass))
 	return
 }
 
@@ -79,14 +50,20 @@ func GPGSelectEntity(entityList openpgp.EntityList, keyID string) (gpgEntity *op
 		keyID = strings.TrimPrefix(keyID, "0x")
 		keyID = strings.TrimRight(keyID, "\r\n")
 		for e := range entityList {
+			if entityList[e].PrimaryKey == nil {
+				continue
+			}
 			primID := entityList[e].PrimaryKey.KeyIdString()
-			privID := entityList[e].PrivateKey.KeyIdString()
 			if primID == keyID {
 				gpgEntity = entityList[e]
 				log.Debugf("matched primary key Id %s", keyID)
 				break
 			}
 			// match private subkey ID
+			if entityList[e].PrivateKey == nil {
+				continue
+			}
+			privID := entityList[e].PrivateKey.KeyIdString()
 			if privID == keyID {
 				gpgEntity = entityList[e]
 				log.Debugf("matched private key Id %s", keyID)
@@ -208,7 +185,7 @@ func GPGDecryptFile(filename string, secretKeyFile string, keypass string, gpgid
 	if err != nil {
 		return
 	}
-	_, err = GPGUnlockKey(entity, keypass)
+	err = GPGUnlockKey(entity, keypass)
 	if err != nil {
 		return
 	}
@@ -272,3 +249,148 @@ func GPGEncryptFile(plainFile string, targetFile string, publicKeyFile string) (
 	err = os.WriteFile(targetFile, encryptedBytes, 0644)
 	return
 }
+
+// CreateGPGEntity create GPG entity with new key pair
+func CreateGPGEntity(name string, comment string, email string, passPhrase string) (entity *openpgp.Entity, privKeyID string, err error) {
+	var e *openpgp.Entity
+
+	e, err = openpgp.NewEntity(name, comment, email, nil)
+	if err != nil {
+		return
+	}
+
+	privKeyID = e.PrivateKey.KeyIdString()
+
+	// need to resign self-signature with userid and add flags to make it valid
+	id := ""
+	for _, i := range e.Identities {
+		if i.SelfSignature != nil {
+			id = i.UserId.Id
+			break
+		}
+	}
+	e.Identities[id].SelfSignature.FlagSign = true
+	e.Identities[id].SelfSignature.FlagCertify = true
+	err = e.Identities[id].SelfSignature.SignUserId(id, e.PrimaryKey, e.PrivateKey, nil)
+	if err != nil {
+		err = fmt.Errorf("error selfsigning identity: %s", err)
+		return
+	}
+
+	// add signing subkey
+	err = e.AddSigningSubkey(nil)
+	if err != nil {
+		err = fmt.Errorf("error adding signing subkey: %s", err)
+		return
+	}
+
+	// sign whole identity
+	err = e.SignIdentity(id, e, nil)
+	if err != nil {
+		err = fmt.Errorf("error signing identity: %s", err)
+		return
+	}
+
+	// encrypt private key
+	err = e.EncryptPrivateKeys([]byte(passPhrase), nil)
+	if err != nil {
+		err = fmt.Errorf("error while encrypting private key: %s", err)
+		return
+	}
+	return e, privKeyID, nil
+}
+
+// ExportGPGKeyPair export GPG entity to armored public and private key files
+func ExportGPGKeyPair(entity *openpgp.Entity, publicFilename string, privFilename string) (err error) {
+	var out *os.File
+	var w io.WriteCloser
+	if entity == nil {
+		err = fmt.Errorf("no entity to export")
+		return
+	}
+	//nolint gosec
+	out, err = os.Create(publicFilename)
+	w, err = armor.Encode(out, openpgp.PublicKeyType, make(map[string]string))
+	if err != nil {
+		err = fmt.Errorf("error creating public key file %s: %s", publicFilename, err)
+		return
+	}
+
+	err = entity.Serialize(w)
+	if err != nil {
+		err = fmt.Errorf("error serializing public key: %s", err)
+		return
+	}
+	_ = w.Close()
+
+	//nolint gosec
+	out, err = os.Create(privFilename)
+	w, err = armor.Encode(out, openpgp.PrivateKeyType, make(map[string]string))
+	if err != nil {
+		err = fmt.Errorf("error creating private key file %s: %s", privFilename, err)
+		return
+	}
+	// export withoout signg because of missing crypto.signer bug
+	err = entity.SerializePrivateWithoutSigning(w, nil)
+	if err != nil {
+		err = fmt.Errorf("error serializing private key to %s: %s", privFilename, err)
+	}
+	_ = w.Close()
+	return
+}
+
+/*
+func createEntityFromRSAKeys(pubKey *packet.PublicKey, privKey *packet.PrivateKey,name string,comment string,email string) (entity *openpgp.Entity,err error) {
+	config := packet.Config{
+		DefaultHash:            crypto.SHA256,
+		DefaultCipher:          packet.CipherAES256,
+		DefaultCompressionAlgo: packet.NoCompression,
+	}
+	currentTime := config.Now()
+	uid := packet.NewUserId(name, comment, email)
+
+	e := openpgp.Entity{
+		PrimaryKey: pubKey,
+		PrivateKey: privKey,
+		Identities: make(map[string]*openpgp.Identity),
+	}
+	isPrimaryId := false
+
+	e.Identities[uid.Id] = &openpgp.Identity{
+		Name:   uid.Name,
+		UserId: uid,
+		SelfSignature: &packet.Signature{
+			CreationTime: currentTime,
+			SigType:      packet.SigTypePositiveCert,
+			PubKeyAlgo:   packet.PubKeyAlgoRSA,
+			Hash:         config.Hash(),
+			IsPrimaryId:  &isPrimaryId,
+			FlagsValid:   true,
+			FlagSign:     true,
+			FlagCertify:  true,
+			IssuerKeyId:  &e.PrimaryKey.KeyId,
+		},
+	}
+
+	keyLifetimeSecs := uint32(86400 * 365)
+
+	e.Subkeys = make([]openpgp.Subkey, 1)
+	e.Subkeys[0] = openpgp.Subkey{
+		PublicKey: pubKey,
+		PrivateKey: privKey,
+		Sig: &packet.Signature{
+			CreationTime:              currentTime,
+			SigType:                   packet.SigTypeSubkeyBinding,
+			PubKeyAlgo:                packet.PubKeyAlgoRSA,
+			Hash:                      config.Hash(),
+			PreferredHash:             []uint8{8}, // SHA-256
+			FlagsValid:                true,
+			FlagEncryptStorage:        true,
+			FlagEncryptCommunications: true,
+			IssuerKeyId:               &e.PrimaryKey.KeyId,
+			KeyLifetimeSecs:           &keyLifetimeSecs,
+		},
+	}
+	return &e
+}
+*/

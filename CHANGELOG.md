@@ -1,8 +1,9 @@
 # Go Library
 
-## [v1.10.3 - 2023-11-12]
+## [v1.10.4 - 2023-11-13]
 ### New
 - pwlib: add gpg and gopass method and tests
+- add codecov.yml
 ### Changed
 - update dependencies
 
