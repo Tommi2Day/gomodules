@@ -85,8 +85,8 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 	_ = l.Close()
-	// wait 5s to init container
-	time.Sleep(5 * time.Second)
+	// wait 15s to init container
+	time.Sleep(15 * time.Second)
 	elapsed := time.Since(start)
 	fmt.Printf("LDAP Container is available after %s\n", elapsed.Round(time.Millisecond))
 	err = nil
