@@ -63,6 +63,18 @@ func TestDBConnect(t *testing.T) {
 			_ = os.Remove(filename)
 		}
 	})
+
+	// test for DBLogout
+	t.Run("Test DB Logout", func(t *testing.T) {
+		dbh, err := DBConnect("sqlite", ":memory:", 5)
+		require.NoError(t, err, "DB Open sqlite failed")
+		assert.NotEmpty(t, dbh, "DB Handle not set")
+		if dbh != nil {
+			dbh, err = DBLogout(dbh)
+			require.NoErrorf(t, err, "DB Logout failed with error %s", err)
+			assert.Nil(t, dbh, "DB Handle is not nil")
+		}
+	})
 }
 func TestSQL(t *testing.T) {
 	var actualString string

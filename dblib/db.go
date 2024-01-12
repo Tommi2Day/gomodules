@@ -45,6 +45,16 @@ func DBConnect(driver string, source string, timeout int) (dbh *sqlx.DB, err err
 	return dbh, err
 }
 
+// DBLogout disconnect from a database and set handler to nil on success otherwise return error and old handler
+func DBLogout(dbh *sqlx.DB) (h *sqlx.DB, err error) {
+	err = dbh.Close()
+	if err != nil {
+		log.Debugf("DB Logout returned error= %s", err)
+	}
+	dbh = nil
+	return dbh, err
+}
+
 // SelectOneStringValue Select a single string
 func SelectOneStringValue(dbh *sqlx.DB, mySQL string, args ...any) (resultString string, err error) {
 	log.Debugf("SelectOneStringValue entered")
