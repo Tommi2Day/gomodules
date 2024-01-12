@@ -24,9 +24,9 @@ const DBUSER = "system"
 const DBPASSWORD = "XE-manager21"
 const TIMEOUT = 5
 
-var dbhost = common.GetEnv("DB_HOST", "127.0.0.1")
+var DBhost = common.GetEnv("DB_HOST", "127.0.0.1")
 var oracleContainer *dockertest.Resource
-var connectora = fmt.Sprintf("%s.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=%s)))", DBPDB, dbhost, dbPort, DBPDB)
+var connectora = fmt.Sprintf("%s.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=%s)))", DBPDB, DBhost, DBPort, DBPDB)
 var target string
 
 // makeOerr create a pseudo ORA Errorcode
