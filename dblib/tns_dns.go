@@ -11,7 +11,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// ServiceEntryType holds  host/ip/dbPort of a tns address section
+// ServiceEntryType holds  host/ip/port of a tns address section
 type ServiceEntryType struct {
 	Host    string
 	IP      string
@@ -156,7 +156,7 @@ func getRACAddressesFromRacInfo(rachost string, filename string) (services Servi
 	return
 }
 
-// getServiceList returns a list of IP addresses for given tnshost and dbPort
+// getServiceList returns a list of IP addresses for given tnshost and port
 func getServiceList(host string, port string) (services ServiceEntries) {
 	// configure resolver
 	if Resolver == nil {

@@ -15,7 +15,7 @@ import (
 	"github.com/tommi2day/gomodules/common"
 )
 
-// TNSAddress holds  host/dbPort of an address section
+// TNSAddress holds  host/port of an address section
 type TNSAddress struct {
 	Host string
 	Port string

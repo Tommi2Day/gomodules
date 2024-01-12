@@ -21,7 +21,7 @@ const LdapAdminUser = "cn=admin," + LdapBaseDn
 const LdapAdminPassword = "admin"
 const LdapConfigPassword = "config"
 
-const ldaptns = ` 
+const ldaptns = `
 (DESCRIPTION =
 (ADDRESS_LIST = (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))
 (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME = XE))
@@ -111,7 +111,7 @@ func TestOracleLdap(t *testing.T) {
 	context := ""
 
 	t.Run("Ldap Connect", func(t *testing.T) {
-		t.Logf("Connect '%s' using SSL on dbPort %d", LdapAdminUser, sslport)
+		t.Logf("Connect '%s' using SSL on port %d", LdapAdminUser, sslport)
 		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
 		assert.NotNilf(t, lc.Conn, "Ldap Connect is nil")
