@@ -79,7 +79,7 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 	container, err = pool.BuildAndRunWithBuildOptions(
 		&dockertest.BuildOptions{
 			BuildArgs:  buildArgs,
-			ContextDir: test.TestDir + "/dns",
+			ContextDir: test.TestDir + "/docker/dns",
 			Dockerfile: "Dockerfile",
 		},
 		&dockertest.RunOptions{

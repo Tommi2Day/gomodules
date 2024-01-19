@@ -29,7 +29,7 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 	}
 	ldapcontainerName = os.Getenv("LDAP_CONTAINER_NAME")
 	if ldapcontainerName == "" {
-		ldapcontainerName = "tnscli-ldap"
+		ldapcontainerName = "dblib-ldap"
 	}
 	var pool *dockertest.Pool
 	pool, err = common.GetDockerPool()
@@ -54,8 +54,8 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 			"LDAP_SEED_INTERNAL_SCHEMA_PATH=/bootstrap/schema",
 		},
 		Mounts: []string{
-			test.TestDir + "/oracle-ldap/ldif:/bootstrap/ldif:ro",
-			test.TestDir + "/oracle-ldap/schema:/bootstrap/schema:ro",
+			test.TestDir + "/docker/oracle-ldap/ldif:/bootstrap/ldif:ro",
+			test.TestDir + "/docker/oracle-ldap/schema:/bootstrap/schema:ro",
 		},
 		Hostname: ldapcontainerName,
 		Name:     ldapcontainerName,

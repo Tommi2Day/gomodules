@@ -2,6 +2,7 @@ package pwlib
 
 import (
 	"fmt"
+	"github.com/tommi2day/gomodules/test"
 	"net/http"
 	"os"
 	"time"
@@ -10,11 +11,10 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/tommi2day/gomodules/test"
 )
 
 const repo = "docker.io/hashicorp/vault"
-const repoTag = "1.14.0"
+const repoTag = "1.15.4"
 const containerTimeout = 120
 const rootToken = "pwlib-test"
 
@@ -57,7 +57,7 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 			},
 		*/
 		Mounts: []string{
-			test.TestDir + "/vault_provision:/vault_provision/",
+			test.TestDir + "/docker/vault_provision:/vault_provision/",
 		},
 	}, func(config *docker.HostConfig) {
 		// set AutoRemove to true so that stopped container goes away by itself

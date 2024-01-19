@@ -3,7 +3,6 @@ package maillib
 import (
 	"fmt"
 	"net"
-
 	"os"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 )
 
 const mailRepo = "docker.io/mailserver/docker-mailserver"
-const mailRepoTag = "11.3.1"
+const mailRepoTag = "13.2.0"
 const smtpPort = 31025
 const imapPort = 31143
 const sslPort = 31465
@@ -70,8 +69,8 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		Hostname: mailHostname,
 		Name:     mailContainerName,
 		Mounts: []string{
-			test.TestDir + "/mail/config:/tmp/docker-mailserver/",
-			test.TestDir + "/mail/ssl:/tmp/custom-certs/:ro",
+			test.TestDir + "/docker/mail/config:/tmp/docker-mailserver/",
+			test.TestDir + "/docker/mail/ssl:/tmp/custom-certs/:ro",
 		},
 		/*
 			CapAdd: []string{

@@ -92,8 +92,8 @@ func TestMail(t *testing.T) {
 		assert.NoErrorf(t, err, "Sendmail anonym returned error %v", err)
 	})
 	t.Run("Send Mail TLS 25", func(t *testing.T) {
-		// will not work with mailserver 12.1.0,: no SMTP_AUTH supported
-		s := NewSendMailConfig(mailServer, smtpPort, FROM, rootPass)
+		// with mailserver 12.1.0+ no SMTP_AUTH on port 25 supported
+		s := NewSendMailConfig(mailServer, smtpPort, "", "")
 		s.ServerConfig.EnableTLS(true)
 		l := NewMail(FROM, TO)
 		h := time.Now()
@@ -112,8 +112,8 @@ func TestMail(t *testing.T) {
 		l := NewMail(FROM, TO)
 		l.SetCc("cc@mail.local")
 		l.SetAttach([]string{
-			test.TestDir + "/mail/ssl/ca.crt",
-			test.TestDir + "/mail/ssl/mail.test.local.crt",
+			test.TestDir + "/docker/mail/ssl/ca.crt",
+			test.TestDir + "/docker/mail/ssl/mail.test.local.crt",
 		})
 		err = s.SendMail(l, "Testmail3", fmt.Sprintf("Test with ssl and attachment at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail SSL returned error %v", err)
