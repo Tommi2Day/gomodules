@@ -63,7 +63,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 		},
 		// "./oracle:/container-entrypoint-initdb.d"
 		Mounts: []string{
-			test.TestDir + "/oracle-db:/container-entrypoint-initdb.d:ro",
+			test.TestDir + "/docker/oracle-db:/container-entrypoint-initdb.d:ro",
 		},
 	}, func(config *docker.HostConfig) {
 		// set AutoRemove to true so that stopped container goes away by itself
@@ -73,7 +73,9 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 
 	if err != nil {
 		err = fmt.Errorf("error starting DB docker %s container: %v", containerName, err)
-		_ = pool.Purge(container)
+		if container != nil {
+			_ = pool.Purge(container)
+		}
 		return
 	}
 	err = WaitForOracle(pool)
