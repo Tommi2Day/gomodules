@@ -13,9 +13,11 @@ this is a collection of my often used functions
 - dblib: db related functions, esp. for oracle and tns handling
 - maillib: function to send Mails
 - ldaplib: base ldap functions
+- hmlib: handle access to homematic devices using [XMLAPI-Addon](https://github.com/homematic-community/XML-API)
 
 ### usage
 for usage see the provided test cases and the implemenations as is:
 
 - [tnscli](https://github.com/tommi2day/tnscli)
 - [pwcli](https://github.com/tommi2day/pwcli)
+- [check_hm](https://github.com/Tommi2Day/check_hm
