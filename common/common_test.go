@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -170,6 +171,42 @@ func TestInArray(t *testing.T) {
 			actual, index := InArray(testconfig.needle, testconfig.haystack)
 			assert.Equal(t, testconfig.result, actual, "unexpected answer")
 			assert.Equal(t, testconfig.index, index, "unexpected index")
+		})
+	}
+}
+
+func TestFormatUnixtsString(t *testing.T) {
+	type testTableType struct {
+		name     string
+		input    string
+		layout   string
+		expected string
+	}
+	ts := time.Now().Unix()
+
+	for _, testconfig := range []testTableType{
+		{
+			name:     "FormatUnixtsStringRFC3339",
+			input:    fmt.Sprintf("%d", ts),
+			layout:   time.RFC822,
+			expected: time.Unix(ts, 0).Format(time.RFC822),
+		},
+		{
+			name:     "FormatUnixtsStringRFC822",
+			input:    fmt.Sprintf("%d", ts),
+			layout:   time.RFC822,
+			expected: time.Unix(ts, 0).Format(time.RFC822),
+		},
+		{
+			name:     "FormatUnixtsStringRFCNotNumeric",
+			input:    fmt.Sprintf("%dxxx", ts),
+			layout:   time.RFC822,
+			expected: fmt.Sprintf("%dxxx", ts),
+		},
+	} {
+		t.Run(testconfig.name, func(t *testing.T) {
+			actual := FormatUnixtsString(testconfig.input, testconfig.layout)
+			assert.Equal(t, testconfig.expected, actual, "unexpected answer")
 		})
 	}
 }

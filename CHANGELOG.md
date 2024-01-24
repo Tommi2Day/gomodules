@@ -1,25 +1,33 @@
 # Go Library
 
+## [v1.11.1 - 2024-01-25]
+### New
+- common: add IsNumeric function
+- common: add FormatUnixtsString function
+
 ## [v1.11.0 - 2024-01-20]
 ### New
-- dblib: add wait till the init_done table indicates db is ready
-- dblib: add DBLogout function
 - add hmlib module for using Homematic Devices using [XMLAPI-Addon](https://github.com/homematic-community/XML-API)
 ### changed
 - move docker resources to separate folder
 - update dependencies
 - maillib: use mailserver 13.2.0 as test container
+- pwlib: use vault 1.15.4 test container
+### fixed
+- NPE on dblib container purge
+
+## [v1.10.4 - 2024-01-12]
+### New
+- dblib: add wait till the init_done table indicates db is ready
+- dblib: add DBLogout function
 ### Changed
 - update dependencies
 - dblib: rename variables
 - dblib: change oracle port
 - ldaplib: increase time for provisioning to 15s
 - remove tools.go
-### fixed
-- NPE on dblib container purge
 
-
-## [v1.10.4 - 2023-11-13]
+## [v1.10.3 - 2023-11-13]
 ### New
 - pwlib: add gpg and gopass method and tests
 - add codecov.yml

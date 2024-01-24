@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"time"
 	"unicode"
 
 	log "github.com/sirupsen/logrus"
@@ -133,4 +134,16 @@ func InArray(needle interface{}, haystack interface{}) (exists bool, index int) 
 		}
 	}
 	return
+}
+
+// FormatUnixtsString converts a unix timestamp string to a human readable
+func FormatUnixtsString(ts string, layout string) string {
+	if !IsNumeric(ts) {
+		return ts
+	}
+	timestamp, err := GetInt64Val(ts)
+	if err != nil {
+		return ts
+	}
+	return time.Unix(timestamp, 0).Format(layout)
 }
