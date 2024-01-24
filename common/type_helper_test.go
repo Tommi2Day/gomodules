@@ -168,3 +168,63 @@ func TestCheckType(t *testing.T) {
 		})
 	})
 }
+
+func TestIsNumeric(t *testing.T) {
+	type testTableType struct {
+		name     string
+		input    string
+		expected bool
+	}
+	for _, testconfig := range []testTableType{
+		{
+			name:     "isNumeric",
+			input:    "123",
+			expected: true,
+		},
+		{
+			name:     "isNumericFloat",
+			input:    "123.456",
+			expected: true,
+		},
+		{
+			name:     "isNumericNegative",
+			input:    "-123",
+			expected: true,
+		},
+		{
+			name:     "isNumericNegativeFloat",
+			input:    "+123.456",
+			expected: true,
+		},
+		{
+			name:     "isNumericEmpty",
+			input:    "",
+			expected: false,
+		},
+		{
+			name:     "isNumericString",
+			input:    "abc",
+			expected: false,
+		},
+		{
+			name:     "isNumericStringWithNumber",
+			input:    "abc123",
+			expected: false,
+		},
+		{
+			name:     "isNumericStringWithNumberNegative",
+			input:    "abc-123",
+			expected: false,
+		},
+		{
+			name:     "isNumericStringWithSpaces",
+			input:    " 123 ",
+			expected: false,
+		},
+	} {
+		t.Run(testconfig.name, func(t *testing.T) {
+			actual := IsNumeric(testconfig.input)
+			assert.Equal(t, testconfig.expected, actual, "unexpected answer")
+		})
+	}
+}

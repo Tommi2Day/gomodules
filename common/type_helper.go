@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 )
 
@@ -38,6 +39,13 @@ func IsNil(i interface{}) bool {
 		return reflect.ValueOf(i).IsNil()
 	}
 	return false
+}
+
+// IsNumeric checks if a trimmed string is numeric using regexp
+func IsNumeric(s string) bool {
+	re := regexp.MustCompile(`^[+-\\d.]+$`)
+	r := re.MatchString(s)
+	return r
 }
 
 // CheckType checks if an interface is of a certain type and returns if it matches expected or is Nil
