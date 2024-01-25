@@ -148,7 +148,7 @@ func (e DeviceListEntry) String() string {
 
 // String returns a string representation of a channel
 func (e DeviceChannel) String() string {
-	return fmt.Sprintf("ID:%s, Name: %s, Address: %s, Type: %s, Parent: %s ", e.IseID, e.Name, e.Address, e.Type, e.ParentDevice)
+	return fmt.Sprintf("  C_ID:%s, Name: %s, Address: %s, Type: %s, Parent: %s ", e.IseID, e.Name, e.Address, e.Type, e.ParentDevice)
 }
 
 // String returns a string representation of a device type list
