@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/tommi2day/gomodules/common"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +48,7 @@ var SysVarIDMap = map[string]SysVarEntry{}
 
 // String returns a string representation of the system variable list
 func (e SysVarEntry) String() string {
-	return fmt.Sprintf("%s= %s (%s), ID:%s, ts %s\n", e.Name, e.Value, e.Unit, e.IseID, FormatUnixtsString(e.Timestamp))
+	return fmt.Sprintf("ID:%s, %s= %s (%s),  ts %s\n", e.IseID, e.Name, e.Value, e.Unit, common.FormatUnixtsString(e.Timestamp, "2006-01-02 15:04:05"))
 }
 
 // GetSysvar returns a single system variable
