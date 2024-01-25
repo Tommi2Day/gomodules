@@ -29,6 +29,7 @@ func TestState(t *testing.T) {
 		stateList, err = GetStateList()
 		require.NoErrorf(t, err, "GetStateList should not return an error:%s", err)
 		sl := len(stateList.StateDevices)
+		assert.Equal(t, len(StateList.StateDevices), sl, "global StateList should equal GetStateList devices")
 		assert.Equal(t, 2, sl, "GetStateList should return 2 devices")
 		l := len(AllIds)
 		assert.Equal(t, 44, l, "AllIds should return 44 entries")
@@ -164,5 +165,53 @@ func TestState(t *testing.T) {
 		err = QueryAPI(changeURL, &r, p)
 		require.Errorf(t, err, "ChangeState should return an error")
 		t.Log(r.String())
+	})
+	t.Run("GetChannelOfDatapoint", func(t *testing.T) {
+		var channelID string
+		channelID, err = GetChannelOfDatapoint("4748")
+		require.NoErrorf(t, err, "GetChannelOfDatapoint should not return an error:%s", err)
+		assert.Equal(t, "4741", channelID, "GetChannelOfDatapoint should return channel 4741")
+	})
+	t.Run("GetChannelOfDatapoint not found", func(t *testing.T) {
+		var channelID string
+		channelID, err = GetChannelOfDatapoint("9999")
+		require.Errorf(t, err, "GetChannelOfDatapoint should return an error")
+		assert.Equal(t, "", channelID, "GetChannelOfDatapoint should return empty channel")
+	})
+	t.Run("GetChannelOfDatapoint not a datapoint", func(t *testing.T) {
+		var channelID string
+		channelID, err = GetChannelOfDatapoint("4740")
+		require.Errorf(t, err, "GetChannelOfDatapoint should return an error")
+		assert.Equal(t, "", channelID, "GetChannelOfDatapoint should return empty channel")
+	})
+	t.Run("GetChannelOfDatapoint empty", func(t *testing.T) {
+		var channelID string
+		channelID, err = GetChannelOfDatapoint("")
+		require.Errorf(t, err, "GetChannelOfDatapoint should return an error")
+		assert.Equal(t, "", channelID, "GetChannelOfDatapoint should return empty channel")
+	})
+	t.Run("GetDeviceOfChannel", func(t *testing.T) {
+		var deviceID string
+		deviceID, err = GetDeviceOfChannel("4741")
+		require.NoErrorf(t, err, "GetDeviceOfChannel should not return an error:%s", err)
+		assert.Equal(t, "4740", deviceID, "GetDeviceOfChannel should return device 4740")
+	})
+	t.Run("GetDeviceOfChannel not found", func(t *testing.T) {
+		var deviceID string
+		deviceID, err = GetDeviceOfChannel("9999")
+		require.Errorf(t, err, "GetDeviceOfChannel should return an error")
+		assert.Equal(t, "", deviceID, "GetDeviceOfChannel should return empty device")
+	})
+	t.Run("GetDeviceOfChannel not a channel", func(t *testing.T) {
+		var deviceID string
+		deviceID, err = GetDeviceOfChannel("4740")
+		require.Errorf(t, err, "GetDeviceOfChannel should return an error")
+		assert.Equal(t, "", deviceID, "GetDeviceOfChannel should return empty device")
+	})
+	t.Run("GetDeviceOfChannel empty", func(t *testing.T) {
+		var deviceID string
+		deviceID, err = GetDeviceOfChannel("")
+		require.Errorf(t, err, "GetDeviceOfChannel should return an error")
+		assert.Equal(t, "", deviceID, "GetDeviceOfChannel should return empty device")
 	})
 }

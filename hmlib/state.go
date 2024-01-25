@@ -52,6 +52,7 @@ type StateChannel struct {
 	IseID            string      `xml:"ise_id,attr"`
 	LastDPActionTime string      `xml:"lastdpactiontime,attr"`
 	Datapoints       []Datapoint `xml:"datapoint"`
+	DeviceID         string
 }
 
 // Datapoint returns the state of a single datapoint
@@ -64,6 +65,7 @@ type Datapoint struct {
 	ValueUnit     string   `xml:"valueunit,attr"`
 	Timestamp     string   `xml:"timestamp,attr"`
 	LastTimestamp string   `xml:"lasttimestamp,attr"`
+	ChannelID     string
 }
 
 // StateChangeResponse is the result of a statechange.cgi call
@@ -97,9 +99,11 @@ func GetStateList() (stateList StateListResponse, err error) {
 		AllIds[e.IseID] = IDMapEntry{e.IseID, e.Name, "Device", e}
 		NameIDMap[e.Name] = e.IseID
 		for _, c := range e.Channels {
+			c.DeviceID = e.IseID
 			AllIds[c.IseID] = IDMapEntry{c.IseID, c.Name, "Channel", c}
 			NameIDMap[c.Name] = c.IseID
 			for _, d := range c.Datapoints {
+				d.ChannelID = c.IseID
 				AllIds[d.IseID] = IDMapEntry{d.IseID, d.Name, "Datapoint", d}
 				NameIDMap[d.Name] = d.IseID
 			}
@@ -149,6 +153,52 @@ func GetStateByDataPointID(ids []string) (result StateDatapointResponse, err err
 	return
 }
 
+// GetDeviceOfChannel returns the device id of the given channel
+func GetDeviceOfChannel(id string) (deviceID string, err error) {
+	log.Debug("getchannelparent called")
+	if len(AllIds) == 0 {
+		err = fmt.Errorf("no ids set, run GetStateList first")
+		return
+	}
+	if len(id) == 0 {
+		err = fmt.Errorf("no id given")
+		return
+	}
+	c, ok := AllIds[id]
+	if !ok {
+		err = fmt.Errorf("channel id %s not found", id)
+		return
+	}
+	if c.EntryType != "Channel" {
+		err = fmt.Errorf("ID %s is not a channel", id)
+		return
+	}
+	deviceID = c.Entry.(StateChannel).DeviceID
+	log.Debugf("getchannelparent returned device id : %s", deviceID)
+	return
+}
+
+// GetChannelOfDatapoint returns the channel id of the given datapoint
+func GetChannelOfDatapoint(id string) (channelID string, err error) {
+	log.Debug("getdatapointparent called")
+	if len(id) == 0 {
+		err = fmt.Errorf("no id given")
+		return
+	}
+	dp, ok := AllIds[id]
+	if !ok {
+		err = fmt.Errorf("datapoint id %s not found", id)
+		return
+	}
+	if dp.EntryType != "Datapoint" {
+		err = fmt.Errorf("datapoint id %s is not a datapoint", id)
+		return
+	}
+	channelID = dp.Entry.(Datapoint).ChannelID
+	log.Debugf("getdatapointparent returned channel id : %s", channelID)
+	return
+}
+
 // ChangeState changes the state of the given id
 func ChangeState(ids []string, values []string) (result StateChangeResponse, err error) {
 	result = StateChangeResponse{}
@@ -170,7 +220,7 @@ func ChangeState(ids []string, values []string) (result StateChangeResponse, err
 	}
 
 	if len(result.Changes) == 0 && len(result.NotFound) == 0 {
-		err = fmt.Errorf("no changes, wrong parameter?")
+		err = fmt.Errorf("no changes, maybe wrong parameter")
 		return
 	}
 	l := len(result.NotFound)
@@ -190,12 +240,12 @@ func (e StateDevice) String() string {
 
 // String returns a string representation of a StateChannel
 func (e StateChannel) String() string {
-	return fmt.Sprintf("ID:%s, Name: %s", e.IseID, e.Name)
+	return fmt.Sprintf("  C_ID:%s, Name: %s", e.IseID, e.Name)
 }
 
 // String returns a string representation of a Datapoint
 func (e Datapoint) String() string {
-	return fmt.Sprintf("ID:%s, Name: %s, Value: %s%s, Type: %s Last: %s", e.IseID, e.Name, e.Value, e.ValueUnit, e.ValueType, e.LastTimestamp)
+	return fmt.Sprintf("    D_ID:%s, Name: %s, Value: %s%s, Type: %s Last: %s", e.IseID, e.Name, e.Value, e.ValueUnit, e.ValueType, e.LastTimestamp)
 }
 
 // String returns a string representation of a StateDeviceResponse
