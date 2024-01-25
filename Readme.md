@@ -20,4 +20,4 @@ for usage see the provided test cases and the implemenations as is:
 
 - [tnscli](https://github.com/tommi2day/tnscli)
 - [pwcli](https://github.com/tommi2day/pwcli)
-- [check_hm](https://github.com/Tommi2Day/check_hm
+- [check_hm](https://github.com/Tommi2Day/check_hm)
