@@ -107,7 +107,11 @@ func ChangeMasterValues(deviceIds []string, names []string, values []string) (re
 
 // String returns a string representation of a MasterValueDevice
 func (e MasterValueDevice) String() string {
-	return fmt.Sprintf("Name: %s Error: %s Content:%s\n", e.Name, e.Error, e.MasterValue)
+	s := fmt.Sprintf("ID: %s, '%s', Type: %s\n", e.IseID, e.Name, e.DeviceType)
+	for _, v := range e.MasterValue {
+		s += fmt.Sprintf("  %s=%s\n", v.Name, v.Value)
+	}
+	return s
 }
 
 // String returns a string representation of a MasterValueEntry
