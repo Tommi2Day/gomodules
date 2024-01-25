@@ -4,6 +4,11 @@
 ### New
 - common: add IsNumeric function
 - common: add FormatUnixtsString function
+- hmlib: add GetDeviceIDofChannel function
+- hmlib: add GetChannelIDofDatapoint function
+### Changed
+- hmlib: modify object string format
+- hmlib: add more tests
 
 ## [v1.11.0 - 2024-01-20]
 ### New
