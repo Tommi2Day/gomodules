@@ -50,7 +50,7 @@ func SetResolver(nameserver string, port int, tcp bool) *net.Resolver {
 		log.Debugf("Configured custom DNS resolver: %s", a)
 		resolver = &net.Resolver{
 			PreferGo: true,
-			Dial: func(ctx context.Context, _, address string) (net.Conn, error) {
+			Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				d := net.Dialer{}
 				return d.DialContext(ctx, n, a)
 			},
