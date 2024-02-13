@@ -1,5 +1,15 @@
 # Go Library
 
+## [v1.11.2 - 2024-02-13]
+### New
+- ldaplib: add new function RetrieveEntry
+- ldaplib: add new function HasObjectClass
+- ldaplib: add new function HasAttribute
+- ldaplib: add schemas
+- ldaplib: use bitnami/openldap as test container
+### Changed
+- update dependencies
+
 ## [v1.11.1 - 2024-01-25]
 ### New
 - common: add IsNumeric function

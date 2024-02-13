@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/test"
+
 	"github.com/tommi2day/gomodules/common"
 
 	ldap "github.com/go-ldap/ldap/v3"
@@ -11,15 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const ldapOrganisation = "Ldap Test Ltd"
-const LdapDomain = "ldap.test"
-const LdapBaseDn = "dc=ldap,dc=test"
+const LdapDomain = "example.local"
+const LdapBaseDn = "dc=example,dc=local"
 const LdapAdminUser = "cn=admin," + LdapBaseDn
 const LdapAdminPassword = "admin"
 const LdapConfigPassword = "config"
 
-var ldapPort = 10389
-var sslport = 10636
+var ldapPort int
+var sslport int
 var lc *LdapConfigType
 var timeout = 20
 
@@ -36,20 +37,22 @@ func TestLdapConfig(t *testing.T) {
 func TestBaseLdap(t *testing.T) {
 	var l *ldap.Conn
 	var err error
-	var server string
+	var ldapserver string
 	var entries []*ldap.Entry
+	var entry *ldap.Entry
 	if os.Getenv("SKIP_LDAP") != "" {
 		t.Skip("Skipping LDAP testing in CI environment")
 	}
-
-	ldapContainer, err = prepareContainer()
+	test.Testinit(t)
+	ldapContainer, err = prepareLdapContainer()
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(ldapContainer)
 
-	server, ldapPort = common.GetContainerHostAndPort(ldapContainer, "389/tcp")
+	ldapserver, ldapPort = common.GetContainerHostAndPort(ldapContainer, "1389/tcp")
 	base := LdapBaseDn
-	lc = NewConfig(server, ldapPort, false, false, LdapBaseDn, timeout)
+
+	lc = NewConfig(ldapserver, ldapPort, false, false, LdapBaseDn, timeout)
 	t.Run("Anonymous Connect", func(t *testing.T) {
 		t.Logf("Connect anonymous plain on ldapPort %d", ldapPort)
 		err = lc.Connect("", "")
@@ -60,8 +63,8 @@ func TestBaseLdap(t *testing.T) {
 		_ = l.Close()
 	})
 	// test container should not be validaed
-	server, sslport = common.GetContainerHostAndPort(ldapContainer, "636/tcp")
-	lc = NewConfig(server, sslport, true, true, LdapBaseDn, timeout)
+	ldapserver, sslport = common.GetContainerHostAndPort(ldapContainer, "1636/tcp")
+	lc = NewConfig(ldapserver, sslport, true, true, LdapBaseDn, timeout)
 	t.Run("Admin SSL Connect", func(t *testing.T) {
 		t.Logf("Connect Admin '%s' using SSL on ldapPort %d", LdapAdminUser, sslport)
 		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
@@ -71,12 +74,11 @@ func TestBaseLdap(t *testing.T) {
 		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
 	})
 	t.Run("BaseDN Search", func(t *testing.T) {
-		entries, err = lc.Search(base, "(objectclass=*)", []string{"DN"}, ldap.ScopeBaseObject, ldap.DerefInSearching)
+		entry, err = lc.RetrieveEntry(base, "", "DN")
 		require.NoErrorf(t, err, "Search returned error:%v", err)
-		count := len(entries)
-		assert.Greaterf(t, count, 0, "Zero Entries")
-		if count > 0 {
-			dn := entries[0].DN
+		require.NotNil(t, entry, "Should return vald entry")
+		if entry != nil {
+			dn := entry.DN
 			t.Logf("Base DN: %s", dn)
 			assert.Equal(t, base, dn, "DN not equal to base")
 		}
@@ -96,6 +98,22 @@ func TestBaseLdap(t *testing.T) {
 		assert.NoErrorf(t, err, "Add User failed")
 		_, err = lc.SetPassword(userDN, "", userPass)
 		require.NoErrorf(t, err, "Test Bind fix Pass returned error %v", err)
+	})
+	t.Run("Test HasObjectclass", func(t *testing.T) {
+		entry, err = lc.RetrieveEntry(userDN, "", "DN,objectclass")
+		require.NoErrorf(t, err, "search for %s returned error %v", userDN, err)
+		hasClass := HasObjectClass(entry, "iNetOrgPerson")
+		assert.Truef(t, hasClass, "Objectclass iNetOrgPerson should exists")
+		hasClass = HasObjectClass(entry, "ldapPublicKey")
+		assert.False(t, hasClass, "Objectclass ldapPublicKey should not exists")
+	})
+	t.Run("Test HasAttribute", func(t *testing.T) {
+		entry, err = lc.RetrieveEntry(userDN, "", "*")
+		require.NoErrorf(t, err, "search for %s returned error %v", userDN, err)
+		hasAttr := HasAttribute(entry, "mail")
+		assert.Truef(t, hasAttr, "Attribute mail should exists")
+		hasAttr = HasAttribute(entry, "sshPublicKey")
+		assert.False(t, hasAttr, "Attribute sshPublic should not exists")
 	})
 	t.Run("Modify Attribute", func(t *testing.T) {
 		newMail := "testmail@test.com"

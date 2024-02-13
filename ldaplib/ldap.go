@@ -4,6 +4,7 @@ package ldaplib
 import (
 	"crypto/tls"
 	"fmt"
+	"strings"
 	"time"
 
 	ldap "github.com/go-ldap/ldap/v3"
@@ -204,4 +205,67 @@ func (lc *LdapConfigType) SetPassword(dn string, oldPass string, newPass string)
 		generatedPass = passwdModResp.GeneratedPassword
 	}
 	return
+}
+
+// RetrieveEntry returns the first entry found for the given DN
+func (lc *LdapConfigType) RetrieveEntry(dn string, filter string, fields string) (entry *ldap.Entry, err error) {
+	if len(dn) == 0 {
+		err = fmt.Errorf("ldap lookup: dn empty")
+		return
+	}
+	if len(filter) == 0 {
+		filter = "(objectclass=*)"
+	}
+	f := strings.Split(fields, ",")
+	if f[0] == "" {
+		f = []string{"*"}
+	}
+	entries, err := lc.Search(dn, filter, f, ldap.ScopeBaseObject, ldap.DerefInSearching)
+	if err != nil {
+		err = fmt.Errorf("ldap search for %s returned error %v", dn, err)
+		return
+	}
+	if len(entries) == 0 {
+		err = fmt.Errorf("ldap search for %s returned no entry", dn)
+		return
+	}
+	entry = entries[0]
+	return
+}
+
+// HasAttribute checks if the given entry has the given attribute
+func HasAttribute(entry *ldap.Entry, attribute string) bool {
+	if entry == nil {
+		return false
+	}
+	if len(entry.Attributes) == 0 {
+		return false
+	}
+	attribute = strings.ToLower(attribute)
+	for _, a := range entry.Attributes {
+		name := strings.ToLower(a.Name)
+		if name == attribute {
+			return true
+		}
+	}
+	return false
+}
+
+// HasObjectClass checks if the given entry has the given objectClass
+func HasObjectClass(entry *ldap.Entry, objectClass string) bool {
+	if entry == nil {
+		return false
+	}
+	if len(entry.Attributes) == 0 {
+		return false
+	}
+	objectClass = strings.ToLower(objectClass)
+	oc := entry.GetAttributeValues("objectClass")
+	for _, c := range oc {
+		c = strings.ToLower(c)
+		if c == objectClass {
+			return true
+		}
+	}
+	return false
 }
