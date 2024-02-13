@@ -83,18 +83,18 @@ type DeviceTypeForm struct {
 }
 
 // GetDeviceList returns the list of devices
-func GetDeviceList(deviceIds []string, internal bool) (result DeviceListResponse, err error) {
+func GetDeviceList(deviceIDs []string, internal bool) (result DeviceListResponse, err error) {
 	result = DeviceListResponse{}
 	log.Debug("devicelist called")
 	var parameter = map[string]string{}
-	if len(deviceIds) > 0 {
-		parameter["device_id"] = strings.Join(deviceIds, ",")
+	if len(deviceIDs) > 0 {
+		parameter["device_id"] = strings.Join(deviceIDs, ",")
 	}
 	if internal {
 		parameter["show_internal"] = "1"
 	}
 	// reset maps
-	AllIds = map[string]IDMapEntry{}
+	AllIDs = map[string]IDMapEntry{}
 	DeviceAddressMap = map[string]DeviceListEntry{}
 	DeviceIDMap = map[string]DeviceListEntry{}
 	// query
@@ -106,9 +106,9 @@ func GetDeviceList(deviceIds []string, internal bool) (result DeviceListResponse
 	for _, e := range result.DeviceListEntries {
 		DeviceIDMap[e.IseID] = e
 		DeviceAddressMap[e.Address] = e
-		AllIds[e.IseID] = IDMapEntry{e.IseID, e.Name, "Device", e}
+		AllIDs[e.IseID] = IDMapEntry{e.IseID, e.Name, "Device", e}
 		for _, c := range e.Channels {
-			AllIds[c.IseID] = IDMapEntry{c.IseID, c.Name, "Channel", c}
+			AllIDs[c.IseID] = IDMapEntry{c.IseID, c.Name, "Channel", c}
 		}
 	}
 	log.Debugf("devicelist returned %d devices", len(result.DeviceListEntries))

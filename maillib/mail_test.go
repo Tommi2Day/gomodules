@@ -192,7 +192,7 @@ func TestMail(t *testing.T) {
 			t.Logf("Search ids:%v", ids)
 		})
 		t.Run("Imap Get Unseen", func(t *testing.T) {
-			ids, err = i.GetUnseenMessageIds()
+			ids, err = i.GetUnseenMessageIDs()
 			assert.NoErrorf(t, err, "GetUnseenMessages Error:%s", err)
 			t.Logf("unseen ids:%v", ids)
 		})

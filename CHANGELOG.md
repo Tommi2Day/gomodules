@@ -9,6 +9,8 @@
 - ldaplib: use bitnami/openldap as test container
 ### Changed
 - update dependencies
+### Fixed
+- linter issues
 
 ## [v1.11.1 - 2024-01-25]
 ### New

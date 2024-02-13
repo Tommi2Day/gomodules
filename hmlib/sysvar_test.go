@@ -26,7 +26,7 @@ func TestSysvar(t *testing.T) {
 		err = GetSysvarList(true)
 		assert.NoErrorf(t, err, "GetSysvarList should not return an error:%s", err)
 		assert.Equal(t, 7, len(SysVarIDMap), "GetSysvarList should return 7 entries")
-		s, ok := AllIds["8254"]
+		s, ok := AllIDs["8254"]
 		assert.True(t, ok, "GetDeviceList should contain 4740")
 		if ok && s.EntryType == "systemVariable" {
 			assert.Equal(t, "Sysvar", s.EntryType, "GetDeviceList should contain 6.000000")

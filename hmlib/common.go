@@ -9,8 +9,8 @@ type IDMapEntry struct {
 	Entry     any
 }
 
-// AllIds is a map of all iseIDs to IDMapEntry
-var AllIds = map[string]IDMapEntry{}
+// AllIDs is a map of all iseIDs to IDMapEntry
+var AllIDs = map[string]IDMapEntry{}
 
 // NameIDMap is a map of all names to iseIDs
 var NameIDMap = map[string]string{}

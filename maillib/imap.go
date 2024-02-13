@@ -319,8 +319,8 @@ func (it *ImapType) ParseMessage(imapData ImapMsg, saveAttachments bool) (mailCo
 	return
 }
 
-// GetUnseenMessageIds returns IDs of unseen Messages
-func (it *ImapType) GetUnseenMessageIds() (ids []uint32, err error) {
+// GetUnseenMessageIDs returns IDs of unseen Messages
+func (it *ImapType) GetUnseenMessageIDs() (ids []uint32, err error) {
 	log.Debug("imap:GetUnseenMessages entered..")
 	// Set search criteria
 	criteria := imap.NewSearchCriteria()

@@ -31,12 +31,12 @@ func TestState(t *testing.T) {
 		sl := len(stateList.StateDevices)
 		assert.Equal(t, len(StateList.StateDevices), sl, "global StateList should equal GetStateList devices")
 		assert.Equal(t, 2, sl, "GetStateList should return 2 devices")
-		l := len(AllIds)
-		assert.Equal(t, 44, l, "AllIds should return 44 entries")
-		e, ok := AllIds["4740"]
-		assert.True(t, ok, "AllIds should contain 4740")
+		l := len(AllIDs)
+		assert.Equal(t, 44, l, "AllIDs should return 44 entries")
+		e, ok := AllIDs["4740"]
+		assert.True(t, ok, "AllIDs should contain 4740")
 		if ok {
-			assert.Equal(t, "Bewegungsmelder Garage", e.Name, "AllIds should contain Bewegungsmelder Garage")
+			assert.Equal(t, "Bewegungsmelder Garage", e.Name, "AllIDs should contain Bewegungsmelder Garage")
 			assert.Equal(t, "Device", e.EntryType, "ID 4740 should be a device")
 			assert.IsType(t, StateDevice{}, e.Entry, "ID 4740 should be a device")
 			c := e.Entry.(StateDevice).Channels

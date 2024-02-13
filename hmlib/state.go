@@ -96,20 +96,20 @@ func GetStateList() (stateList StateListResponse, err error) {
 		return
 	}
 	for _, e := range stateList.StateDevices {
-		AllIds[e.IseID] = IDMapEntry{e.IseID, e.Name, "Device", e}
+		AllIDs[e.IseID] = IDMapEntry{e.IseID, e.Name, "Device", e}
 		NameIDMap[e.Name] = e.IseID
 		for _, c := range e.Channels {
 			c.DeviceID = e.IseID
-			AllIds[c.IseID] = IDMapEntry{c.IseID, c.Name, "Channel", c}
+			AllIDs[c.IseID] = IDMapEntry{c.IseID, c.Name, "Channel", c}
 			NameIDMap[c.Name] = c.IseID
 			for _, d := range c.Datapoints {
 				d.ChannelID = c.IseID
-				AllIds[d.IseID] = IDMapEntry{d.IseID, d.Name, "Datapoint", d}
+				AllIDs[d.IseID] = IDMapEntry{d.IseID, d.Name, "Datapoint", d}
 				NameIDMap[d.Name] = d.IseID
 			}
 		}
 	}
-	log.Debugf("getstateList returned %d IDs", len(AllIds))
+	log.Debugf("getstateList returned %d IDs", len(AllIDs))
 	StateList = stateList
 	return
 }
@@ -156,7 +156,7 @@ func GetStateByDataPointID(ids []string) (result StateDatapointResponse, err err
 // GetDeviceOfChannel returns the device id of the given channel
 func GetDeviceOfChannel(id string) (deviceID string, err error) {
 	log.Debug("getchannelparent called")
-	if len(AllIds) == 0 {
+	if len(AllIDs) == 0 {
 		err = fmt.Errorf("no ids set, run GetStateList first")
 		return
 	}
@@ -164,7 +164,7 @@ func GetDeviceOfChannel(id string) (deviceID string, err error) {
 		err = fmt.Errorf("no id given")
 		return
 	}
-	c, ok := AllIds[id]
+	c, ok := AllIDs[id]
 	if !ok {
 		err = fmt.Errorf("channel id %s not found", id)
 		return
@@ -185,7 +185,7 @@ func GetChannelOfDatapoint(id string) (channelID string, err error) {
 		err = fmt.Errorf("no id given")
 		return
 	}
-	dp, ok := AllIds[id]
+	dp, ok := AllIDs[id]
 	if !ok {
 		err = fmt.Errorf("datapoint id %s not found", id)
 		return

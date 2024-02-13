@@ -39,15 +39,15 @@ type MasterValueEntry struct {
 }
 
 // GetMasterValues returns the master values of the given devices
-func GetMasterValues(deviceIds []string, requestedNames []string) (result MasterValues, err error) {
+func GetMasterValues(deviceIDs []string, requestedNames []string) (result MasterValues, err error) {
 	var parameter = map[string]string{}
 	log.Debug("getmastervalue called")
-	if len(deviceIds) == 0 {
+	if len(deviceIDs) == 0 {
 		err = fmt.Errorf("no device id given")
 		return
 	}
 
-	parameter["device_id"] = strings.Join(deviceIds, ",")
+	parameter["device_id"] = strings.Join(deviceIDs, ",")
 	if len(requestedNames) > 0 {
 		parameter["requested_names"] = strings.Join(requestedNames, ",")
 	}
@@ -71,15 +71,15 @@ func GetMasterValues(deviceIds []string, requestedNames []string) (result Master
 }
 
 // ChangeMasterValues changes the master values of the given devices
-func ChangeMasterValues(deviceIds []string, names []string, values []string) (result MasterValues, err error) {
+func ChangeMasterValues(deviceIDs []string, names []string, values []string) (result MasterValues, err error) {
 	var parameter = map[string]string{}
 	log.Debug("getmastervalue called")
-	if len(deviceIds) == 0 {
+	if len(deviceIDs) == 0 {
 		err = fmt.Errorf("no device id given")
 		return
 	}
 
-	parameter["device_id"] = strings.Join(deviceIds, ",")
+	parameter["device_id"] = strings.Join(deviceIDs, ",")
 	if len(names) > 0 {
 		parameter["name"] = strings.Join(names, ",")
 	}

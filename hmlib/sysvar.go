@@ -78,7 +78,7 @@ func GetSysvarList(text bool) (err error) {
 
 	for _, e := range result.SysvarEntry {
 		SysVarIDMap[e.IseID] = e
-		AllIds[e.IseID] = IDMapEntry{e.IseID, e.Name, "Sysvar", e}
+		AllIDs[e.IseID] = IDMapEntry{e.IseID, e.Name, "Sysvar", e}
 	}
 
 	log.Debugf("getSysvarList returned %d entries", len(result.SysvarEntry))

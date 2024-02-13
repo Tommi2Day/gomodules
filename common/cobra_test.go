@@ -19,7 +19,7 @@ var (
 		Use:   "flags",
 		Short: "flags – unit test for Cobra",
 		Long:  ``,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			log.SetLevel(log.DebugLevel)
 			log.SetOutput(cmd.OutOrStdout())
 			if debugFlag {
