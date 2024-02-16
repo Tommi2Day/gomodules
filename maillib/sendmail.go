@@ -74,9 +74,6 @@ func (mt *MailType) buildRecipients(m *mail.Msg) (c int, err error) {
 		}
 		c++
 	}
-	if err != nil {
-		return
-	}
 	log.Debugf("recipients: %d Recipients added", c)
 	return
 }
@@ -134,7 +131,27 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 			return
 		}
 	}
+	// prepare mail object
+	if c, err = prepareMailObject(config); err != nil {
+		errtxt = fmt.Sprintf("sendmail: failed to prepare mail object: %s", err)
+		err = errors.New(errtxt)
+		log.Error(errtxt)
+		return
+	}
 
+	// send mail
+	log.Debugf("sendmail: send via %s", c.ServerAddr())
+	if err = c.DialAndSend(m); err != nil {
+		errtxt = fmt.Sprintf("sendmail: failed: %s", err)
+		err = errors.New(errtxt)
+		log.Error(errtxt)
+		return
+	}
+	return
+}
+
+func prepareMailObject(config *SendMailConfigType) (c *mail.Client, err error) {
+	var errtxt string
 	// create mail Conn
 	c, err = mail.NewClient(config.ServerConfig.Server,
 		mail.WithPort(config.ServerConfig.Port),
@@ -162,15 +179,6 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 		c.SetPassword(config.ServerConfig.Password)
 		c.SetSMTPAuth(mail.SMTPAuthPlain)
 		log.Debug("sendmail: Use Authentication")
-	}
-
-	// send mail
-	log.Debugf("sendmail: send via %s", c.ServerAddr())
-	if err = c.DialAndSend(m); err != nil {
-		errtxt = fmt.Sprintf("sendmail: failed: %s", err)
-		err = errors.New(errtxt)
-		log.Error(errtxt)
-		return
 	}
 	return
 }

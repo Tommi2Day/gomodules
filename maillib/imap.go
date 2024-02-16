@@ -299,24 +299,28 @@ func (it *ImapType) ParseMessage(imapData ImapMsg, saveAttachments bool) (mailCo
 			mailContent.Attachments = append(mailContent.Attachments, filename)
 			if saveAttachments {
 				fn := path.Join(dir, filename)
-				//nolint gosec
-				dst, err := os.Create(fn)
-				if err != nil {
-					log.Errorf("imap: Create Attachement file '%s' failed:%s", fn, err)
-					break
-				}
-				size, err := io.Copy(dst, p.Body)
-				if err != nil {
-					log.Errorf("imap: write Attachment file '%s' failed:%s", fn, err)
-					break
-				}
-				log.Debugf("imap: Attachment file '%s' (%d bytes) written", fn, size)
-				_ = dst.Close()
+				writeAttachment(fn, p.Body)
 			}
 		}
 	}
 	log.Debug("imap:ParseMessage leaved..")
 	return
+}
+
+func writeAttachment(fn string, body io.Reader) {
+	//nolint gosec
+	dst, err := os.Create(fn)
+	if err != nil {
+		log.Errorf("imap: Create Attachement file '%s' failed:%s", fn, err)
+		return
+	}
+	size, err := io.Copy(dst, body)
+	if err != nil {
+		log.Errorf("imap: write Attachment file '%s' failed:%s", fn, err)
+		return
+	}
+	log.Debugf("imap: Attachment file '%s' (%d bytes) written", fn, size)
+	_ = dst.Close()
 }
 
 // GetUnseenMessageIDs returns IDs of unseen Messages
