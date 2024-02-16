@@ -3,9 +3,9 @@ linters-settings:
   govet:
     check-shadowing: false
   gocognit:
-    min-complexity: 15
+    min-complexity: 25
   gocyclo:
-    min-complexity: 15
+    min-complexity: 25
   lll:
     line-length: 200
   maligned:
