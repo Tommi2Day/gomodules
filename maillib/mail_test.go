@@ -98,7 +98,7 @@ func TestMail(t *testing.T) {
 		l := NewMail(FROM, TO)
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
-		l.SetBcc("bcc@mail.local")
+		l.SetBcc(FROM)
 		assert.Equal(t, 1, len(l.Bcc), "BCC should be set")
 		err = s.SendMail(l, "Testmail2", fmt.Sprintf("Test at %s", timeStr))
 		assert.NoErrorf(t, err, "Sendmail with login returned error %v", err)
@@ -144,7 +144,7 @@ func TestMail(t *testing.T) {
 		i.ServerConfig.SetTimeout(20)
 		err = i.Connect()
 		t.Logf("expected Error:%v", err)
-		assert.Errorf(t, err, "Imap Plain Connect returned not the expected error", err)
+		assert.Errorf(t, err, "imap plain connect returned not the expected error:%s", err)
 		i.LogOut()
 	})
 	t.Run("Imap Connect TLS 143", func(t *testing.T) {

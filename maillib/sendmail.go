@@ -194,7 +194,12 @@ func (mt *MailType) attachFiles(m *mail.Msg, maxSize int64) error {
 				return err
 			}
 			lr := io.LimitReader(f, maxSize)
-			m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
+			err := m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
+			if err != nil {
+				errtxt := fmt.Sprintf("attach: Cannot attach %s: %v", fn, err)
+				log.Error(errtxt)
+				return err
+			}
 		}
 	}
 	return nil
