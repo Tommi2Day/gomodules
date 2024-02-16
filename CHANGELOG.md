@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.11.3 - 2024-02-16]
+### Changed
+- dblib: use bitnami/openldap as test container
+
 ## [v1.11.2 - 2024-02-13]
 ### New
 - ldaplib: add new function RetrieveEntry

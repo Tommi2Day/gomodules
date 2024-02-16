@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const ldapOrganisation = "TNS Ltd"
-const LdapDomain = "oracle.local"
 const LdapBaseDn = "dc=oracle,dc=local"
 const LdapAdminUser = "cn=admin," + LdapBaseDn
 const LdapAdminPassword = "admin"
@@ -37,7 +35,7 @@ const ldaptns2 = `
 
 const ldaporaOK = `
 DEFAULT_ADMIN_CONTEXT = "dc=oracle,dc=local"
-DIRECTORY_SERVERS = (localhost:1389:1636, localhost:389)
+DIRECTORY_SERVERS = (localhost:1389:1636, localhost:1389)
 DIRECTORY_SERVER_TYPE = OID
 `
 const ldaporaFail = `
@@ -51,7 +49,7 @@ func TestOracleLdap(t *testing.T) {
 	var err error
 	var server string
 	var results []*ldap.Entry
-	var sslport int
+	var port int
 	var ldapTnsEntries TNSEntries
 	var lc *ldaplib.LdapConfigType
 
@@ -90,7 +88,7 @@ func TestOracleLdap(t *testing.T) {
 			actual := fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
 			assert.Equal(t, expected, actual, "ldap entry 1 not match")
 			s = ldapservers[1]
-			expected = "localhost:389:0"
+			expected = "localhost:1389:0"
 			actual = fmt.Sprintf("%s:%d:%d", s.Hostname, s.Port, s.SSLPort)
 			assert.Equal(t, expected, actual, "ldap entry 2 not match")
 		}
@@ -100,18 +98,18 @@ func TestOracleLdap(t *testing.T) {
 	if os.Getenv("SKIP_LDAP") != "" {
 		t.Skip("Skipping LDAP testing in CI environment")
 	}
-	ldapContainer, err = prepareLdapContainer()
+	TnsLdapContainer, err = prepareTnsLdapContainer()
 	require.NoErrorf(t, err, "Ldap Server not available")
-	require.NotNil(t, ldapContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(ldapContainer)
+	require.NotNil(t, TnsLdapContainer, "Prepare failed")
+	defer common.DestroyDockerContainer(TnsLdapContainer)
 
 	base := LdapBaseDn
-	server, sslport = common.GetContainerHostAndPort(ldapContainer, "636/tcp")
-	lc = ldaplib.NewConfig(server, sslport, true, true, base, ldapTimeout)
+	server, port = common.GetContainerHostAndPort(TnsLdapContainer, "1389/tcp")
+	lc = ldaplib.NewConfig(server, port, false, false, base, ldapTimeout)
 	context := ""
 
 	t.Run("Ldap Connect", func(t *testing.T) {
-		t.Logf("Connect '%s' using SSL on port %d", LdapAdminUser, sslport)
+		t.Logf("Connect '%s' on port %d", LdapAdminUser, port)
 		err = lc.Connect(LdapAdminUser, LdapAdminPassword)
 		require.NoErrorf(t, err, "admin Connect returned error %v", err)
 		assert.NotNilf(t, lc.Conn, "Ldap Connect is nil")
