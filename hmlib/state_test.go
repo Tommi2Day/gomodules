@@ -48,7 +48,7 @@ func TestState(t *testing.T) {
 	})
 	t.Run("single device state", func(t *testing.T) {
 		var s StateDeviceResponse
-		s, err = GetStateByDeviceID([]string{"4740"})
+		s, err = GetStateByDeviceID("4740")
 		require.NoErrorf(t, err, "GetStateBy should not return an error:%s", err)
 		assert.Equal(t, 1, len(s.StateDevices), "GetStateByDeviceID should return 1 device")
 		if len(s.StateDevices) > 0 {
@@ -59,7 +59,7 @@ func TestState(t *testing.T) {
 	})
 	t.Run("single channel state", func(t *testing.T) {
 		var s StateDeviceResponse
-		s, err = GetStateByChannelID([]string{"4741"})
+		s, err = GetStateByChannelID("4741")
 		require.NoErrorf(t, err, "GetStateBy should not return an error:%s", err)
 		assert.Equal(t, 1, len(s.StateDevices), "GetStateByDeviceID should return 1 device")
 		if len(s.StateDevices) > 0 {
@@ -79,7 +79,7 @@ func TestState(t *testing.T) {
 		httpmock.RegisterResponderWithQuery(
 			"GET", stateURL, queryDP,
 			httpmock.NewStringResponder(200, StateDP4748))
-		s, err := GetStateByDataPointID([]string{"4748"})
+		s, err := GetStateByDataPointID("4748")
 		require.NoErrorf(t, err, "GetStateBy should not return an error:%s", err)
 		assert.Equal(t, 1, len(s.StateDatapoints), "GetStateByDatapointID should return 1 datapoint")
 		if len(s.StateDatapoints) > 0 {
@@ -98,7 +98,7 @@ func TestState(t *testing.T) {
 			"GET", stateURL, queryStateEmpty,
 			httpmock.NewStringResponder(200, StateEmptyTest))
 
-		s, err = GetStateByDataPointID([]string{"9999"})
+		s, err = GetStateByDataPointID("9999")
 		require.NoErrorf(t, err, "GetStateBy should not return an error:%s", err)
 		assert.Equal(t, 0, len(s.StateDatapoints), "GetStateByDatapointID should return 0 datapoint")
 		t.Logf(s.String())
@@ -114,7 +114,7 @@ func TestState(t *testing.T) {
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,
 			httpmock.NewStringResponder(200, StateChangeTest))
-		r, err = ChangeState([]string{"4740"}, []string{"11"})
+		r, err = ChangeState("4740", "11")
 		require.NoErrorf(t, err, "ChangeState should not return an error")
 		l := len(r.Changes)
 		assert.Equal(t, 1, l, "GetMasterValues should return 1 devices")
@@ -125,7 +125,7 @@ func TestState(t *testing.T) {
 		}
 		t.Log(r.String())
 	})
-	t.Run("state change not found", func(t *testing.T) {
+	t.Run("one state change not found, space in list", func(t *testing.T) {
 		var r StateChangeResponse
 		queryChange := url.Values{
 			"ise_id":    []string{"474,4740"},
@@ -135,7 +135,7 @@ func TestState(t *testing.T) {
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,
 			httpmock.NewStringResponder(200, StateChangeNotFoundTest))
-		r, err = ChangeState([]string{"474", "4740"}, []string{"11"})
+		r, err = ChangeState("474, 4740", "11")
 		require.Errorf(t, err, "ChangeState should return an error")
 		l := len(r.NotFound)
 		assert.Equal(t, 1, l, "ChangeState should return 1 id not found")

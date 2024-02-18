@@ -24,7 +24,7 @@ func TestDevice(t *testing.T) {
 		fakeURL := hmURL + DeviceListEndpoint
 		httpmock.RegisterResponder("GET", fakeURL, responder)
 
-		deviceList, err = GetDeviceList(nil, false)
+		deviceList, err = GetDeviceList("", false)
 		assert.NoErrorf(t, err, "GetDeviceList should not return an error:%s", err)
 		require.Greater(t, len(deviceList.DeviceListEntries), 0, "GetDeviceList should return entries")
 		assert.Equal(t, 1, len(DeviceAddressMap), "GetDeviceList should return 1 entry")
@@ -44,7 +44,7 @@ func TestDevice(t *testing.T) {
 		responder := httpmock.NewStringResponder(200, response)
 		fakeURL := hmURL + DeviceListEndpoint
 		httpmock.RegisterResponder("GET", fakeURL, responder)
-		deviceList, err = GetDeviceList(nil, true)
+		deviceList, err = GetDeviceList("", true)
 		assert.NoErrorf(t, err, "GetDeviceList should not return an error:%s", err)
 		require.Equal(t, len(deviceList.DeviceListEntries), 0, "GetDeviceList should return entries")
 		assert.Equal(t, 0, len(DeviceAddressMap), "GetDeviceList should return 0 entry")

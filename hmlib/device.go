@@ -3,7 +3,8 @@ package hmlib
 import (
 	"encoding/xml"
 	"fmt"
-	"strings"
+
+	"github.com/tommi2day/gomodules/common"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -83,12 +84,12 @@ type DeviceTypeForm struct {
 }
 
 // GetDeviceList returns the list of devices
-func GetDeviceList(deviceIDs []string, internal bool) (result DeviceListResponse, err error) {
+func GetDeviceList(deviceIDs string, internal bool) (result DeviceListResponse, err error) {
 	result = DeviceListResponse{}
 	log.Debug("devicelist called")
 	var parameter = map[string]string{}
 	if len(deviceIDs) > 0 {
-		parameter["device_id"] = strings.Join(deviceIDs, ",")
+		parameter["device_id"] = common.RemoveSpace(deviceIDs)
 	}
 	if internal {
 		parameter["show_internal"] = "1"

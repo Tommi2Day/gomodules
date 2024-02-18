@@ -22,11 +22,11 @@ func TestValue(t *testing.T) {
 	t.Run("mastervalue", func(t *testing.T) {
 		var v MasterValues
 		var err error
-		rn := []string{"ARR_TIMEOUT", "CYCLIC_BIDI_INFO_MSG_DISCARD_FACTOR"}
-		devices := []string{"4740", "4741"}
+		rn := "ARR_TIMEOUT,LOW_BAT_LIMIT"
+		devices := "4740,4741"
 		queryValue := url.Values{
-			"device_id":       []string{strings.Join(devices, ",")},
-			"requested_names": []string{strings.Join(rn, ",")},
+			"device_id":       []string{devices},
+			"requested_names": []string{rn},
 			"sid":             []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
@@ -44,16 +44,16 @@ func TestValue(t *testing.T) {
 	t.Run("mastervalue error", func(t *testing.T) {
 		var v MasterValues
 		var err error
-		rn := []string{"ARR_TIMEOUT", "CYCLIC_BIDI_INFO_MSG_DISCARD_FACTOR"}
+		rn := "ARR_TIMEOUT,CYCLIC_BIDI_INFO_MSG_DISCARD_FACTOR"
 		queryValueError := url.Values{
 			"device_id":       []string{"2850"},
-			"requested_names": []string{strings.Join(rn, ",")},
+			"requested_names": []string{rn},
 			"sid":             []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", valueURL, queryValueError,
 			httpmock.NewStringResponder(200, MasterValueErrorTest))
-		v, err = GetMasterValues([]string{"2850"}, rn)
+		v, err = GetMasterValues("2850", rn)
 		require.Errorf(t, err, "GetValueList should return an error")
 		l := len(v.MasterValueDevices)
 		assert.Equal(t, 1, l, "GetMasterValues should return 1 devices")
@@ -75,7 +75,7 @@ func TestValue(t *testing.T) {
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,
 			httpmock.NewStringResponder(200, MasterValueChangeTest))
-		v, err = ChangeMasterValues([]string{"4740"}, []string{"ARR_TIMEOUT"}, []string{"11"})
+		v, err = ChangeMasterValues("4740", "ARR_TIMEOUT", "11")
 		require.NoErrorf(t, err, "ChangeMasterValues should not return an error")
 		l := len(v.MasterValueDevices)
 		assert.Equal(t, 1, l, "GetMasterValues should return 1 devices")

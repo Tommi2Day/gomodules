@@ -37,18 +37,21 @@ func QueryAPI(endpoint string, result interface{}, parameter map[string]string) 
 		return
 	}
 
-	callingURL := fmt.Sprintf("%s%s", hmURL, endpoint)
+	// reset params
 	httpClient.QueryParam = url.Values{}
-	httpClient.SetHeader("Content-Type", "text/xml")
-	httpClient.SetQueryParam("sid", hmToken)
-	httpClient.SetDebug(viper.GetBool("debug"))
-	// reset query params
 
+	httpClient.SetHeader("Content-Type", "text/xml")
+	httpClient.SetDebug(viper.GetBool("debug"))
+
+	// query params
+	qp := fmt.Sprintf("sid=%s", hmToken)
 	if len(parameter) > 0 {
-		httpClient.SetQueryParams(parameter)
+		for k, v := range parameter {
+			qp += fmt.Sprintf("&%s=%s", k, v)
+		}
 	}
-	qp := httpClient.QueryParam
-	log.Debugf("query called to %s(%v)", callingURL, qp)
+	callingURL := fmt.Sprintf("%s%s?%s", hmURL, endpoint, qp)
+	log.Debugf("query called to %s", callingURL)
 	resp, err := httpClient.R().
 		EnableTrace().
 		Get(callingURL)

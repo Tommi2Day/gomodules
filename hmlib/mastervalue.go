@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/tommi2day/gomodules/common"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,7 +41,7 @@ type MasterValueEntry struct {
 }
 
 // GetMasterValues returns the master values of the given devices
-func GetMasterValues(deviceIDs []string, requestedNames []string) (result MasterValues, err error) {
+func GetMasterValues(deviceIDs string, requestedNames string) (result MasterValues, err error) {
 	var parameter = map[string]string{}
 	log.Debug("getmastervalue called")
 	if len(deviceIDs) == 0 {
@@ -47,9 +49,9 @@ func GetMasterValues(deviceIDs []string, requestedNames []string) (result Master
 		return
 	}
 
-	parameter["device_id"] = strings.Join(deviceIDs, ",")
+	parameter["device_id"] = common.RemoveSpace(deviceIDs)
 	if len(requestedNames) > 0 {
-		parameter["requested_names"] = strings.Join(requestedNames, ",")
+		parameter["requested_names"] = common.RemoveSpace(requestedNames)
 	}
 
 	err = QueryAPI(MasterValueEndpoint, &result, parameter)
@@ -71,7 +73,7 @@ func GetMasterValues(deviceIDs []string, requestedNames []string) (result Master
 }
 
 // ChangeMasterValues changes the master values of the given devices
-func ChangeMasterValues(deviceIDs []string, names []string, values []string) (result MasterValues, err error) {
+func ChangeMasterValues(deviceIDs string, names string, values string) (result MasterValues, err error) {
 	var parameter = map[string]string{}
 	log.Debug("getmastervalue called")
 	if len(deviceIDs) == 0 {
@@ -79,12 +81,12 @@ func ChangeMasterValues(deviceIDs []string, names []string, values []string) (re
 		return
 	}
 
-	parameter["device_id"] = strings.Join(deviceIDs, ",")
+	parameter["device_id"] = common.RemoveSpace(deviceIDs)
 	if len(names) > 0 {
-		parameter["name"] = strings.Join(names, ",")
+		parameter["name"] = common.RemoveSpace(names)
 	}
 	if len(values) > 0 {
-		parameter["value"] = strings.Join(values, ",")
+		parameter["value"] = common.RemoveSpace(values)
 	}
 
 	err = QueryAPI(MasterValueChangeEndpoint, &result, parameter)

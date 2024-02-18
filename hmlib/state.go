@@ -3,9 +3,9 @@ package hmlib
 import (
 	"encoding/xml"
 	"fmt"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tommi2day/gomodules/common"
 )
 
 // StateEndpoint is the endpoint to retrieve the state for a given list of devices
@@ -115,39 +115,39 @@ func GetStateList() (stateList StateListResponse, err error) {
 }
 
 // GetStateByDeviceID returns the state of the given devices
-func GetStateByDeviceID(ids []string) (result StateDeviceResponse, err error) {
+func GetStateByDeviceID(ids string) (result StateDeviceResponse, err error) {
 	log.Debug("getstatebyid called")
 	if len(ids) == 0 {
 		err = fmt.Errorf("no ids given")
 		return
 	}
-	parameter := map[string]string{"device_id": strings.Join(ids, ",")}
+	parameter := map[string]string{"device_id": common.RemoveSpace(ids)}
 	err = QueryAPI(StateEndpoint, &result, parameter)
 	log.Debugf("getstate returned: %v", result)
 	return
 }
 
 // GetStateByChannelID returns the state of the given channels
-func GetStateByChannelID(ids []string) (result StateDeviceResponse, err error) {
+func GetStateByChannelID(ids string) (result StateDeviceResponse, err error) {
 	log.Debug("getstatebychannelid called")
 	if len(ids) == 0 {
 		err = fmt.Errorf("no ids given")
 		return
 	}
-	parameter := map[string]string{"channel_id": strings.Join(ids, ",")}
+	parameter := map[string]string{"channel_id": common.RemoveSpace(ids)}
 	err = QueryAPI(StateEndpoint, &result, parameter)
 	log.Debugf("getstate returned: %v", result)
 	return
 }
 
 // GetStateByDataPointID returns the state of the given datapoints
-func GetStateByDataPointID(ids []string) (result StateDatapointResponse, err error) {
+func GetStateByDataPointID(ids string) (result StateDatapointResponse, err error) {
 	log.Debug("getstatebydpid called")
 	if len(ids) == 0 {
 		err = fmt.Errorf("no ids given")
 		return
 	}
-	parameter := map[string]string{"datapoint_id": strings.Join(ids, ",")}
+	parameter := map[string]string{"datapoint_id": common.RemoveSpace(ids)}
 	err = QueryAPI(StateEndpoint, &result, parameter)
 	log.Debugf("getstate returned: %v", result)
 	return
@@ -200,7 +200,7 @@ func GetChannelOfDatapoint(id string) (channelID string, err error) {
 }
 
 // ChangeState changes the state of the given id
-func ChangeState(ids []string, values []string) (result StateChangeResponse, err error) {
+func ChangeState(ids string, values string) (result StateChangeResponse, err error) {
 	result = StateChangeResponse{}
 	log.Debug("changestatebyid called")
 	if len(ids) == 0 {
@@ -211,8 +211,8 @@ func ChangeState(ids []string, values []string) (result StateChangeResponse, err
 		err = fmt.Errorf("no values given")
 		return
 	}
-	parameter := map[string]string{"ise_id": strings.Join(ids, ",")}
-	parameter["new_value"] = strings.Join(values, ",")
+	parameter := map[string]string{"ise_id": common.RemoveSpace(ids)}
+	parameter["new_value"] = common.RemoveSpace(values)
 	err = QueryAPI(StateChangeEndpoint, &result, parameter)
 	if err != nil {
 		err = fmt.Errorf("value query Error id %v", err)
