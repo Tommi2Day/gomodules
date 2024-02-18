@@ -3,7 +3,6 @@ package hmlib
 import (
 	"encoding/xml"
 	"fmt"
-	"strings"
 
 	"github.com/tommi2day/gomodules/common"
 
@@ -25,7 +24,7 @@ type SysvarListResponse struct {
 // SysVarEntry is a single system variable in SysvarListResponse
 type SysVarEntry struct {
 	XMLName    xml.Name `xml:"systemVariable"`
-	Name       string   `xml:"Name,attr"`
+	Name       string   `xml:"name,attr"`
 	Variable   string   `xml:"variable,attr"`
 	Value      string   `xml:"value,attr"`
 	ValueList  string   `xml:"value_list,attr"`
@@ -39,6 +38,7 @@ type SysVarEntry struct {
 	Timestamp  string   `xml:"timestamp,attr"`
 	ValueName0 string   `xml:"value_name_0,attr"`
 	ValueName1 string   `xml:"value_name_1,attr"`
+	Info       string   `xml:"info,attr"`
 }
 
 const pmTrue = "true"
@@ -48,15 +48,61 @@ var SysVarIDMap = map[string]SysVarEntry{}
 
 // String returns a string representation of the system variable list
 func (e SysVarEntry) String() string {
-	return fmt.Sprintf("ID:%s, %s= %s (%s),  ts %s\n", e.IseID, e.Name, e.Value, e.Unit, common.FormatUnixtsString(e.Timestamp, "2006-01-02 15:04:05"))
+	ts := ""
+	if len(e.Timestamp) > 0 && e.Timestamp != "0" {
+		ts = fmt.Sprintf(", Since:%s", common.FormatUnixtsString(e.Timestamp, "2006-01-02 15:04:05"))
+	}
+	v := e.GetValue()
+	if e.Unit != "" {
+		v = fmt.Sprintf("%s %s", v, e.Unit)
+	}
+	i := ""
+	if e.Info != "" {
+		i = fmt.Sprintf(", INFO: %s", e.Info)
+	}
+	output := fmt.Sprintf("ID:%s, Name: %s, Value: %s%s%s", e.IseID, e.Name, v, i, ts)
+	return output
+}
+
+// GetValue returns the value of the system variable depending on the type
+func (e SysVarEntry) GetValue() string {
+	v := e.Value
+	switch e.Type {
+	case "2":
+		// boolean
+		switch e.Subtype {
+		case "2":
+			// logical
+			if e.Value == "true" {
+				v = e.ValueName1
+			} else {
+				v = e.ValueName0
+			}
+		case "6":
+			// Alarm
+			if len(e.Value) > 0 {
+				v = e.ValueName1
+			} else {
+				v = e.ValueName0
+			}
+		}
+	case "4":
+	// number
+	case "16":
+		// Liste
+		v = e.ValueText
+	case "20":
+		// string
+	}
+	return v
 }
 
 // GetSysvar returns a single system variable
-func GetSysvar(sysvarIDs []string, text bool) (result SysvarListResponse, err error) {
+func GetSysvar(sysvarIDs string, text bool) (result SysvarListResponse, err error) {
 	log.Debug("sysvars called")
 	var parameter = make(map[string]string)
 	if len(sysvarIDs) > 0 {
-		parameter["ise_id"] = strings.Join(sysvarIDs, ",")
+		parameter["ise_id"] = common.RemoveSpace(sysvarIDs)
 	}
 	if text {
 		parameter["text"] = pmTrue

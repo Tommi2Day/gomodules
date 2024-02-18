@@ -61,7 +61,7 @@ func TestSysvar(t *testing.T) {
 		httpmock.RegisterResponderWithQuery(
 			"GET", fakeURL, queryVar,
 			httpmock.NewStringResponder(200, SysVarEmptyTest))
-		l, err := GetSysvar([]string{"4711"}, false)
+		l, err := GetSysvar("4711", false)
 		assert.NoErrorf(t, err, "GetSysvar should not return an error:%s", err)
 		assert.NotNil(t, l, "GetSysvar should return a list")
 		assert.Equal(t, 0, len(l.SysvarEntry), "GetSysvar should return 0 entry")

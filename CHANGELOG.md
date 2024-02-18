@@ -1,5 +1,10 @@
 # Go Library
 
+## [v1.11.4 - 2024-02-18]
+### Changed
+- hmlib: use plain url insead of httpclient query params encoded strings
+- hmlib: change sysvar structure and output
+
 ## [v1.11.3 - 2024-02-16]
 ### Changed
 - dblib: use bitnami/openldap as test container
