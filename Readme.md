@@ -4,6 +4,7 @@
 ![CI](https://github.com/tommi2day/gomodules/actions/workflows/main.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Tommi2Day/gomodules/branch/main/graph/badge.svg?token=4KLVC3TT6A)](https://codecov.io/gh/Tommi2Day/gomodules)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/tommi2day/gomodules)
+[![Go Reference](https://pkg.go.dev/badge/github.com/tommi2day/gomodules.svg)](https://pkg.go.dev/github.com/tommi2day/gomodules)
 
 this is a collection of my often used functions
 
@@ -21,3 +22,6 @@ for usage see the provided test cases and the implemenations as is:
 - [tnscli](https://github.com/tommi2day/tnscli)
 - [pwcli](https://github.com/tommi2day/pwcli)
 - [check_hm](https://github.com/Tommi2Day/check_hm)
+
+### API
+see [godoc](https://pkg.go.dev/github.com/tommi2day/gomodules)
