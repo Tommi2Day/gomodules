@@ -2,7 +2,7 @@
 
 ## [v1.11.5 - 2024-03-01]
 ### New
-- add scram hash method
+- pwlib: add scram hash method
 ### Changed
 - update dependencies
 
