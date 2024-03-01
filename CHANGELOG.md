@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.11.5 - 2024-03-01]
+### New
+- add scram hash method
+### Changed
+- update dependencies
+
 ## [v1.11.4 - 2024-02-18]
 ### Changed
 - hmlib: use plain url insead of httpclient query params encoded strings
