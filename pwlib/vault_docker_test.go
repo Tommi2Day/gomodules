@@ -24,10 +24,13 @@ var containerName string
 // prepareVaultContainer create an Oracle Docker Container
 func prepareVaultContainer() (container *dockertest.Resource, err error) {
 	if os.Getenv("SKIP_VAULT") != "" {
-		err = fmt.Errorf("skipping ORACLE Container in CI environment")
+		err = fmt.Errorf("skipping Vault Container in CI environment")
 		return
 	}
 	containerName = os.Getenv("CONTAINER_NAME")
+	if containerName == "" {
+		containerName = "pwlib-vault"
+	}
 	pool, err := common.GetDockerPool()
 	if err != nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
