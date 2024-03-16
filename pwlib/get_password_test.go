@@ -34,7 +34,7 @@ func TestCrypt(t *testing.T) {
 	keyDir := test.TestData
 	var entity *openpgp.Entity
 	for _, m := range Methods {
-		if slices.Contains([]string{typeVault, typeGopass}, m) {
+		if slices.Contains([]string{typeVault, typeGopass, typeKMS}, m) {
 			continue
 		}
 

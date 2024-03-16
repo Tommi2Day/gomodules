@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.12.0 - 2024-03-16]
+### New
+- pwlib: add amazon kms encryption methods
+### Changed
+- update dependencies
+
 ## [v1.11.5 - 2024-03-01]
 ### New
 - pwlib: add scram hash method

@@ -17,6 +17,7 @@ const (
 	typeVault         = "vault"
 	typeGPG           = "gpg"
 	typeGopass        = "gopass"
+	typeKMS           = "kms"
 	defaultMethod     = typeGO
 	extGo             = "gp"
 	extOpenssl        = "pw"
@@ -25,8 +26,9 @@ const (
 	privPemExt        = ".pem"
 	pubPemExt         = ".pub"
 	extGPG            = "gpg"
-	pubGPGExt         = ".asc"
-	privGPGExt        = ".gpg.key"
+	extKMS            = "kms"
+	pubGPGExt         = ".pub.gpg"
+	privGPGExt        = ".priv.gpg"
 )
 
 // PassConfig Type for encryption configuration
@@ -43,6 +45,7 @@ type PassConfig struct {
 	Method          string
 	KeySize         int
 	SSLDigest       openssl.CredsGenerator
+	KMSKeyID        string
 }
 
 var label = []byte("")
@@ -75,6 +78,8 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 		ext = extB64
 	case typeVault:
 		ext = extPlain
+	case typeKMS:
+		ext = extKMS
 	case typeGPG, typeGopass:
 		ext = extGPG
 		privExt = privGPGExt
@@ -116,5 +121,6 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 	config.Method = method
 	config.KeySize = defaultRsaKeySize
 	config.SSLDigest = SSLDigest
+	config.KMSKeyID = ""
 	return &config
 }

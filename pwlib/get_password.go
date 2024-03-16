@@ -12,7 +12,7 @@ import (
 )
 
 // Methods all available methods for get_passwword
-var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault, typeGPG, typeGopass}
+var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault, typeGPG, typeGopass, typeKMS}
 
 // DecryptFile decripts an rsa protected file
 func (pc *PassConfig) DecryptFile() (lines []string, err error) {
@@ -24,6 +24,7 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 	passflag := "open"
 	content := ""
 	method := pc.Method
+	keyID := pc.KMSKeyID
 	var data []byte
 	if len(keypass) > 0 {
 		passflag = "Encypted"
@@ -48,6 +49,8 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		content, err = GPGDecryptFile(cryptedfile, privatekeyfile, keypass, "")
 	case typeGopass:
 		content, err = GetGopassSecrets(datadir, privatekeyfile, keypass)
+	case typeKMS:
+		content, err = KMSDecryptFile(cryptedfile, keyID, sessionpassfile)
 	default:
 		log.Fatalf("encryption method %s not known", method)
 		os.Exit(1)
@@ -70,6 +73,7 @@ func (pc *PassConfig) EncryptFile() (err error) {
 	plaintextfile := pc.PlainTextFile
 	sessionpassfile := pc.SessionPassFile
 	method := pc.Method
+	keyID := pc.KMSKeyID
 	log.Debugf("Encrypt data from %s method %s", plaintextfile, method)
 	switch method {
 	case typeOpenssl:
@@ -83,6 +87,8 @@ func (pc *PassConfig) EncryptFile() (err error) {
 		err = nil
 	case typeGPG:
 		err = GPGEncryptFile(plaintextfile, cryptedFile, pubKeyFile)
+	case typeKMS:
+		err = KMSEncryptFile(plaintextfile, cryptedFile, keyID, sessionpassfile)
 	case typeVault, typeGopass:
 		// not implemented yet
 		err = fmt.Errorf("encryption method %s not implemented yet", method)
