@@ -177,6 +177,7 @@ func TestGopassSecrets(t *testing.T) {
 		app := "test"
 		pass := ""
 		pc := NewConfig(app, storeRoot, path.Dir(secretGPGKeyFile), keyPass, typeGopass)
+		pc.PrivateKeyFile = secretGPGKeyFile
 		pass, err = pc.GetPassword("pwlib-store/test", "test1")
 		expected := "123456"
 		assert.NoErrorf(t, err, "Got unexpected error: %s", err)
