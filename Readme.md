@@ -9,7 +9,11 @@
 this is a collection of my often used functions
 
 - common: Common functions used in modules and implementations
-- pwlib: password generation, storing and handling with RSA, Openssl and Hashicorp Vault functions
+- pwlib: 
+  - password generation, 
+  - password storing and handling with RSA, Openssl, GoPass, Amazon KMS and Hashicorp Vault
+  - totp generation
+  - scram hashing
 - tools: collection of often used tools as build loader
 - dblib: db related functions, esp. for oracle and tns handling
 - maillib: function to send Mails
