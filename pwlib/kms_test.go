@@ -39,12 +39,10 @@ func TestKMS(t *testing.T) {
 	_ = os.Setenv("AWS_ACCESS_KEY_ID", "abcdef")
 	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", "abcdefSecret")
 	_ = os.Setenv("AWS_DEFAULT_REGION", "eu-central-1")
-
-	// host, kmsPort := common.GetContainerHostAndPort(kmsContainer, "8080/tcp")
-	// address := fmt.Sprintf("http://%s:%d", kmsHost, kmsPort)
+	_ = os.Setenv("KMS_ENDPOINT", kmsAddress)
 
 	// test
-	kmsEndpoint = kmsAddress
+
 	t.Run("TestKMSConnect", func(t *testing.T) {
 		kmsClient = ConnectToKMS()
 		require.NotNil(t, kmsClient, "Connect to KMS failed")
@@ -148,7 +146,7 @@ func TestKMS(t *testing.T) {
 	})
 	t.Run("default Decrypt File", func(t *testing.T) {
 		plaintxt, err := common.ReadFileToString(pc.PlainTextFile)
-		require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", err)
+		require.NoErrorf(t, err, "PlainTextfile %s not readable:%s", pc.PlainTextFile, err)
 		expected := len(plaintxt)
 		content, err := KMSDecryptFile(pc.CryptedFile, myKeyID, pc.SessionPassFile)
 		assert.NoErrorf(t, err, "Decryption failed: %s", err)

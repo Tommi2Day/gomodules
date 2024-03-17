@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/Luzifer/go-openssl/v4"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,7 +20,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var kmsEndpoint = ""
+// KmsEndpoint is the alternative endpoint for the KMS service
+var KmsEndpoint = ""
 
 const aliasPrefix = "alias/"
 
@@ -29,10 +32,14 @@ func ConnectToKMS() (svc *kms.Client) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	ep := common.GetStringEnv("KMS_ENDPOINT", "")
+	if ep != "" {
+		KmsEndpoint = ep
+	}
 	svc = kms.NewFromConfig(cfg, func(o *kms.Options) {
-		if kmsEndpoint != "" {
-			log.Debugf("use KMS Endpoint %s", kmsEndpoint)
-			o.BaseEndpoint = aws.String(kmsEndpoint)
+		if KmsEndpoint != "" {
+			log.Debugf("use KMS Endpoint %s", KmsEndpoint)
+			o.BaseEndpoint = aws.String(KmsEndpoint)
 		}
 	})
 	return svc
@@ -174,12 +181,14 @@ func DeleteKMSAlias(svc *kms.Client, aliasName string) (*kms.DeleteAliasOutput, 
 
 // GetKMSAliasIDs Get KMS AliasIDs from Alias Entry
 func GetKMSAliasIDs(entry *types.AliasListEntry) (targetKeyID string, aliasName string, aliasARN string) {
+	log.Debugf("Get KMS IDs from Aliias entry")
 	if entry == nil {
 		return
 	}
 	aliasName = *entry.AliasName
 	targetKeyID = *entry.TargetKeyId
 	aliasARN = *entry.AliasArn
+	log.Debugf("Entry %s point to target %s", aliasName, targetKeyID)
 	return
 }
 
@@ -210,6 +219,7 @@ func DescribeKMSAlias(svc *kms.Client, aliasName string) (*types.AliasListEntry,
 			return &a, nil
 		}
 	}
+	log.Debugf("Alias %s not found", aliasName)
 	return nil, fmt.Errorf("alias %s not found", aliasName)
 }
 
@@ -297,7 +307,7 @@ func KMSDecryptString(svc *kms.Client, keyID string, ciphertext string) (string,
 // KMSEncryptFile Encrypt a file using the KMS key
 func KMSEncryptFile(plainFile string, targetFile string, keyID string, sessionPassFile string) (err error) {
 	const rb = 16
-	log.Debugf("Encrypt %s with KMS key %s in OpenSSL format", plainFile, keyID)
+	log.Debugf("Encrypt %s with KMS key %s in OpenSSL compatible format", plainFile, keyID)
 	if keyID == "" || plainFile == "" || targetFile == "" {
 		err = fmt.Errorf("keyID, plainFile or targetFile is empty")
 		log.Debug(err)

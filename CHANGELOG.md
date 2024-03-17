@@ -1,6 +1,6 @@
 # Go Library
 
-## [v1.12.0 - 2024-03-16]
+## [v1.12.0 - 2024-03-17]
 ### New
 - pwlib: add amazon kms encryption methods
 ### Changed
