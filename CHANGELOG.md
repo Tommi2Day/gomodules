@@ -1,5 +1,18 @@
 # Go Library
 
+## [v1.13.0 - 2024-04-09]
+### New
+- test: add InitTestDirs function
+- new module netlib for IP/DNS related functions
+### Changed
+- use go v1.21
+- update dependencies
+- update linter
+- dblib: replace rename dns vars to dblibDNS
+- dblib: replace local ip dns functions with netlib
+- dblib: add more tests
+- dblib: rename dns docker dir to oracle-dns
+
 ## [v1.12.1 - 2024-04-01]
 ### Changed
 - update dependencies
