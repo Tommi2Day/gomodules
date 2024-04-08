@@ -6,7 +6,7 @@ FROM ${BIND_IMAGE}
 #Copy configuration files
 COPY named.conf.options /etc/bind/
 COPY named.conf.local /etc/bind/
-COPY netlib.lan.zone /etc/bind/zones/
+COPY rac.lan.zone /etc/bind/zones/
 
 # Expose Ports
 EXPOSE 53/tcp
