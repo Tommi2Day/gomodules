@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
+	"github.com/tommi2day/gomodules/netlib"
 	"gopkg.in/ini.v1"
 )
 
@@ -22,45 +21,14 @@ type ServiceEntryType struct {
 // ServiceEntries List of Map of service entries
 type ServiceEntries []ServiceEntryType
 
-// IgnoreDNSLookup if true, no dns lookup is done
+// IgnoreDNSLookup if true, no oracle-dns lookup is done
 var IgnoreDNSLookup = false
 
 // IPv4Only if true, only IPv4 addresses are returned
 var IPv4Only = true
 
-// NameserverTimeout is the timeout for DNS lookups
-var NameserverTimeout = 5 * time.Second
-
-// Resolver is the DNS resolver
-var Resolver *net.Resolver
-
-// SetResolver returns a net.Resolver
-func SetResolver(nameserver string, port int, tcp bool) *net.Resolver {
-	var resolver *net.Resolver
-	if nameserver != "" {
-		if port == 0 {
-			port = 53
-		}
-		// network type
-		n := "udp"
-		if tcp {
-			n = "tcp"
-		}
-		a := net.JoinHostPort(nameserver, fmt.Sprintf("%d", port))
-		log.Debugf("Configured custom DNS resolver: %s", a)
-		resolver = &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				d := net.Dialer{}
-				return d.DialContext(ctx, n, a)
-			},
-		}
-	} else {
-		resolver = net.DefaultResolver
-		log.Debug("use default DNS resolver")
-	}
-	return resolver
-}
+// DNSConfig holds the netlib DNS object
+var DNSConfig *netlib.DNSconfig
 
 // GetRacAdresses reads racinfo.ini or DNS SRV and returns all IP addresses for given rac
 func GetRacAdresses(rachost string, racini string) (services ServiceEntries) {
@@ -86,21 +54,16 @@ func getRACAddressesFromDNSSrv(rachost string) (services ServiceEntries) {
 		return
 	}
 	// check if host contains only digits
-	ip := net.ParseIP(rachost)
-	if ip != nil {
+	if netlib.IsValidIP(rachost) {
 		log.Debugf("DNSSrv: %s is an IP address, skip", rachost)
 		return
 	}
 
 	// configure resolver
-	if Resolver == nil {
+	if DNSConfig == nil {
 		// set default resolver
-		Resolver = SetResolver("", 0, false)
+		DNSConfig = netlib.NewResolver("", 0, false)
 	}
-	// add timeout
-	ctx, cancel := context.WithTimeout(context.Background(), NameserverTimeout)
-	defer cancel()
-
 	// split host and domain
 	domain := ""
 	parts := strings.Split(rachost, ".")
@@ -109,19 +72,18 @@ func getRACAddressesFromDNSSrv(rachost string) (services ServiceEntries) {
 		domain = strings.Join(parts[1:], ".")
 	}
 	// create SRV record query
-	srv := fmt.Sprintf("_%s._tcp.%s", host, domain)
-	_, addrs, err := Resolver.LookupSRV(ctx, host, "tcp", domain)
+	srvList, err := DNSConfig.LookupSrv(host, domain)
 	if err != nil {
-		log.Warnf("DNSSrv: cannot resolve %s:%s", srv, err)
+		log.Warnf("DNSSrv: cannot resolve %s:%s", host, err)
 		return
 	}
 
 	// process returned addresses
-	for _, addr := range addrs {
-		host = addr.Target
+	for _, srv := range srvList {
+		host = srv.Target
 		// delete trailing dot
 		host = strings.TrimSuffix(host, ".")
-		port := addr.Port
+		port := srv.Port
 		services = append(services, getServiceList(host, fmt.Sprintf("%v", port))...)
 	}
 	log.Debugf("DNSSrv: Rac %s Add %d adresses", rachost, len(services))
@@ -159,20 +121,18 @@ func getRACAddressesFromRacInfo(rachost string, filename string) (services Servi
 // getServiceList returns a list of IP addresses for given tnshost and port
 func getServiceList(host string, port string) (services ServiceEntries) {
 	// configure resolver
-	if Resolver == nil {
+	// configure resolver
+	if DNSConfig == nil {
 		// set default resolver
-		Resolver = SetResolver("", 0, false)
-	}
-	// add timeout
-	ctx, cancel := context.WithTimeout(context.Background(), NameserverTimeout)
-	defer cancel()
-	// set resolver network ip =ipv4+ipv6 or ip4 only
-	n := "ip"
-	if IPv4Only {
-		n = "ip4"
+		DNSConfig = netlib.NewResolver("", 0, false)
 	}
 
-	ips, err := Resolver.LookupIP(ctx, n, host)
+	// set resolver network ip =ipv4+ipv6 or ip4 only
+	if IPv4Only {
+		DNSConfig.IPv4Only = true
+	}
+
+	ips, err := DNSConfig.LookupIP(host)
 	if err != nil || len(ips) == 0 {
 		if IgnoreDNSLookup {
 			log.Debugf("getServiceList: cannot resolve %s", host)
@@ -185,7 +145,7 @@ func getServiceList(host string, port string) (services ServiceEntries) {
 	}
 	for _, ip := range ips {
 		hostip := ip.String()
-		if IPv4Only && ip.To4() == nil {
+		if IPv4Only && !netlib.IsIPv4(hostip) {
 			log.Debugf("getServiceList: skip non ipv4 %s", hostip)
 			continue
 		}

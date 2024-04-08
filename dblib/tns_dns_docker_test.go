@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/tommi2day/gomodules/netlib"
+
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/tommi2day/gomodules/common"
@@ -14,15 +16,15 @@ import (
 	"github.com/tommi2day/gomodules/test"
 )
 
-const DNScontainerTimeout = 10
-const networkName = "dblib-dnsnetwork"
+const dblibDNSContainerTimeout = 10
+const dblibNetworkName = "dblib-dns"
 
-var dnscontainerName string
-var dnsContainer *dockertest.Resource
-var dnsnetwork *dockertest.Network
-var networkCreated = false
-var dnsserver = ""
-var dnsport = 0
+var dblibDNSContainerName string
+var dblibDNSContainer *dockertest.Resource
+var dblibDNSNetwork *dockertest.Network
+var dblibNetworkCreated = false
+var dblibDNSServer = ""
+var dblibDNSPort = 0
 
 // prepareDNSContainer create a Bind9 Docker Container
 func prepareDNSContainer() (container *dockertest.Resource, err error) {
@@ -30,19 +32,19 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 		err = fmt.Errorf("skipping DNS Container in CI environment")
 		return
 	}
-	dnscontainerName = os.Getenv("DNS_CONTAINER_NAME")
-	if dnscontainerName == "" {
-		dnscontainerName = "dblib-bind9"
+	dblibDNSContainerName = os.Getenv("DNS_CONTAINER_NAME")
+	if dblibDNSContainerName == "" {
+		dblibDNSContainerName = "dblib-bind9"
 	}
 	var pool *dockertest.Pool
 	pool, err = common.GetDockerPool()
 	if err != nil {
 		return
 	}
-	networks, err := pool.NetworksByName(networkName)
+	networks, err := pool.NetworksByName(dblibNetworkName)
 	if err != nil || len(networks) == 0 {
-		dnsnetwork, err = pool.CreateNetwork(networkName, func(options *docker.CreateNetworkOptions) {
-			options.Name = networkName
+		dblibDNSNetwork, err = pool.CreateNetwork(dblibNetworkName, func(options *docker.CreateNetworkOptions) {
+			options.Name = dblibNetworkName
 			options.CheckDuplicate = true
 			options.IPAM = &docker.IPAMOptions{
 				Driver: "default",
@@ -55,17 +57,17 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 			// options.Internal = true
 		})
 		if err != nil {
-			err = fmt.Errorf("could not create Network: %s:%s", networkName, err)
+			err = fmt.Errorf("could not create Network: %s:%s", dblibNetworkName, err)
 			return
 		}
-		networkCreated = true
+		dblibNetworkCreated = true
 	} else {
-		dnsnetwork = &networks[0]
+		dblibDNSNetwork = &networks[0]
 	}
 
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 
-	fmt.Printf("Try to build and start docker container  %s\n", dnscontainerName)
+	fmt.Printf("Try to build and start docker container  %s\n", dblibDNSContainerName)
 	buildArgs := []docker.BuildArg{
 		{
 			Name:  "VENDOR_IMAGE_PREFIX",
@@ -79,24 +81,24 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 	container, err = pool.BuildAndRunWithBuildOptions(
 		&dockertest.BuildOptions{
 			BuildArgs:  buildArgs,
-			ContextDir: test.TestDir + "/docker/dns",
+			ContextDir: test.TestDir + "/docker/oracle-dns",
 			Dockerfile: "Dockerfile",
 		},
 		&dockertest.RunOptions{
-			Hostname:     dnscontainerName,
-			Name:         dnscontainerName,
-			Networks:     []*dockertest.Network{dnsnetwork},
+			Hostname:     dblibDNSContainerName,
+			Name:         dblibDNSContainerName,
+			Networks:     []*dockertest.Network{dblibDNSNetwork},
 			ExposedPorts: []string{"53/tcp", "53/udp", "953/tcp"},
 
 			/*
 				// need fixed mapping here
 				PortBindings: map[docker.Port][]docker.PortBinding{
 					"53/tcp": {
-						{HostIP: "0.0.0.0", HostPort: dnsport},
+						{HostIP: "0.0.0.0", HostPort: dblibDNSPort},
 					},
 
 					"53/udp": {
-						{HostIP: "0.0.0.0", HostPort: dnsport},
+						{HostIP: "0.0.0.0", HostPort: dblibDNSPort},
 					},
 					"953/tcp": {
 						{HostIP: "127.0.0.1", HostPort: "953"},
@@ -110,22 +112,22 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 		})
 
 	if err != nil {
-		err = fmt.Errorf("error starting dns docker container: %v", err)
+		err = fmt.Errorf("error starting oracle-dns docker container: %v", err)
 		return
 	}
-	// ip := container.Container.NetworkSettings.Networks[networkName].IPAddress
-	ip := container.GetIPInNetwork(dnsnetwork)
+	// ip := container.Container.NetworkSettings.Networks[dblibNetworkName].IPAddress
+	ip := container.GetIPInNetwork(dblibDNSNetwork)
 	if ip != "172.24.0.2" {
 		err = fmt.Errorf("internal ip not as expected: %s", ip)
 		return
 	}
-	pool.MaxWait = DNScontainerTimeout * time.Second
-	dnsserver, dnsport = common.GetContainerHostAndPort(container, "53/tcp")
-	fmt.Printf("Wait to successfully connect to DNS to %s:%d (max %ds)...\n", dnsserver, dnsport, DNScontainerTimeout)
+	pool.MaxWait = dblibDNSContainerTimeout * time.Second
+	dblibDNSServer, dblibDNSPort = common.GetContainerHostAndPort(container, "53/tcp")
+	fmt.Printf("Wait to successfully connect to DNS to %s:%d (max %ds)...\n", dblibDNSServer, dblibDNSPort, dblibDNSContainerTimeout)
 	start := time.Now()
 	var c net.Conn
 	if err = pool.Retry(func() error {
-		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", dnsserver, dnsport))
+		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", dblibDNSServer, dblibDNSPort))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
 		}
@@ -140,9 +142,9 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 	time.Sleep(5 * time.Second)
 	elapsed := time.Since(start)
 	fmt.Printf("DNS Container is available after %s\n", elapsed.Round(time.Millisecond))
-	// test dns
-	r := SetResolver(dnsserver, dnsport, true)
-	ips, e := r.LookupHost(context.Background(), racaddr)
+	// test oracle-dns
+	dns := netlib.NewResolver(dblibDNSServer, dblibDNSPort, true)
+	ips, e := dns.Resolver.LookupHost(context.Background(), racaddr)
 	if e != nil || len(ips) == 0 {
 		fmt.Printf("Could not resolve DNS with %s: %v", racaddr, e)
 		return
@@ -154,7 +156,7 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 
 func destroyDNSContainer(container *dockertest.Resource) {
 	common.DestroyDockerContainer(container)
-	if networkCreated {
-		_ = dnsnetwork.Close()
+	if dblibNetworkCreated {
+		_ = dblibDNSNetwork.Close()
 	}
 }

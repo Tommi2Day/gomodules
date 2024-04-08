@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/netlib"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,13 +34,12 @@ func TestRACInfo(t *testing.T) {
 	if os.Getenv("SKIP_DNS") != "" {
 		t.Skip("Skipping DNS testing in CI environment")
 	}
-	dnsContainer, err = prepareDNSContainer()
+	dblibDNSContainer, err = prepareDNSContainer()
 	require.NoErrorf(t, err, "DNS Server not available")
-	require.NotNil(t, dnsContainer, "Prepare failed")
-	defer destroyDNSContainer(dnsContainer)
+	require.NotNil(t, dblibDNSContainer, "Prepare failed")
+	defer destroyDNSContainer(dblibDNSContainer)
 	// use DNS from Docker
-	Resolver = SetResolver(dnsserver, dnsport, true)
-
+	DNSConfig = netlib.NewResolver(dblibDNSServer, dblibDNSPort, true)
 	t.Run("Test RacInfo.ini resolution", func(t *testing.T) {
 		IgnoreDNSLookup = false
 		IPv4Only = true
