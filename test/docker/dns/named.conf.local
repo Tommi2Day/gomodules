@@ -1,4 +1,4 @@
-zone "rac.lan" {
+zone "netlib.lan" {
     type master;
-    file "/etc/bind/zones/rac.lan.zone";
+    file "/etc/bind/zones/netlib.lan.zone";
 };

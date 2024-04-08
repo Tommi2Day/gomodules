@@ -1,0 +1,33 @@
+$TTL    1d ; default expiration time (in seconds) of all RRs without their own TTL value
+@       IN      SOA     ns1.netlib.lan. root.netlib.lan. (
+                  3      ; Serial
+                  1d     ; Refresh
+                  1h     ; Retry
+                  1w     ; Expire
+                  1h )   ; Negative Cache TTL
+
+; name servers - NS records
+     IN      NS      ns1.netlib.lan.
+
+; name servers - A records
+ns1.netlib.lan.         IN      A      172.25.0.2
+
+db.netlib.lan.          IN      A      172.25.0.3
+ldap.netlib.lan.        IN      A      172.25.0.4
+db.netlib.lan.          IN      AAAA   2001:db8::3
+ldap.netlib.lan.        IN      AAAA   2001:db8::4
+db-ip4.netlib.lan.      IN      A      172.25.0.3
+ldap-ip4.netlib.lan.    IN      A      172.25.0.4
+db-ip6.netlib.lan.      IN      AAAA   2001:db8::3
+ldap-ip6.netlib.lan.    IN      AAAA   2001:db8::4
+
+; CNAME records
+psql.netlib.lan.        IN      CNAME  db.netlib.lan.
+
+; SRV records
+_db._tcp.netlib.lan.    IN      SRV     10 5 5432 db.netlib.lan.
+_ldap._tcp.netlib.lan.  IN      SRV     10 5 389 ldap.netlib.lan.
+
+; TXT records
+db.netlib.lan.          IN      TXT     "Database server"
+ldap.netlib.lan.        IN      TXT     "LDAP server"
