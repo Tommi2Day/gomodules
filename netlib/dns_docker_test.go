@@ -18,7 +18,7 @@ const netlibDNSContainerTimeout = 10
 const netlibNetworkName = "netlib-dns"
 const netlibNetworkPrefix = "172.25.0"
 const netlibDomain = "netlib.lan"
-const netlibTestAddr = "db." + netlibDomain
+const netlibTestAddr = tDB
 
 var netlibDNSContainerName string
 var netlibDNSContainer *dockertest.Resource
