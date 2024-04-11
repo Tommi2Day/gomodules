@@ -117,7 +117,7 @@ func TestExecuteOsCommand(t *testing.T) {
 	var cmdArg []string
 	myOs := runtime.GOOS
 	switch myOs {
-	case "windows":
+	case osWin:
 		cmdArg = []string{"cmd.exe", "/c", "dir"}
 	default:
 		cmdArg = []string{"/bin/ls"}
@@ -129,6 +129,21 @@ func TestExecuteOsCommand(t *testing.T) {
 	assert.NotEmpty(t, stdout, "Output is empty")
 }
 
+func TestCommandExists(t *testing.T) {
+	t.Run("Test Command Exists", func(t *testing.T) {
+		// Test with existing command
+		c := "ls"
+		if runtime.GOOS == osWin {
+			c = "cmd.exe"
+		}
+		actual := CommandExists(c)
+		assert.Truef(t, actual, "Command %s not found", c)
+
+		// Test with non existing command
+		actual = CommandExists("nonexistingcommand")
+		assert.False(t, actual, "nonexisting Command found")
+	})
+}
 func TestInArray(t *testing.T) {
 	type testTableType struct {
 		name     string

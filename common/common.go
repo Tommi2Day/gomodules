@@ -14,6 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const osWin = "windows"
+
 func init() {
 	// use text formatter
 	// log.SetFormatter(&log.TextFormatter{})
@@ -96,6 +98,18 @@ func RemoveSpace(s string) string {
 		}
 	}
 	return string(rr)
+}
+
+// CommandExists checks if a command exists in PATH
+func CommandExists(command string) bool {
+	log.Debugf("checking if command %s exists", command)
+	p, err := exec.LookPath(command)
+	if err != nil {
+		log.Debugf("%s not found in PATH: %v", command, err)
+		return false
+	}
+	log.Debugf("command %s found as: %s", command, p)
+	return true
 }
 
 // ExecuteOsCommand runs an OS command and returns output
