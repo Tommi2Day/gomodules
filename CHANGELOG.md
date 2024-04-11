@@ -1,7 +1,9 @@
 # Go Library
 
-## [v1.13.0 - 2024-04-09]
+## [v1.13.0 - 2024-04-11]
 ### New
+- common: add CommandExists function
+- common: add DefaultPorts map
 - test: add InitTestDirs function
 - new module netlib for IP/DNS related functions
 ### Changed
@@ -12,6 +14,10 @@
 - dblib: replace local ip dns functions with netlib
 - dblib: add more tests
 - dblib: rename dns docker dir to oracle-dns
+### Fixed
+- GetHostPort function when no port supplied
+- linter issues
+
 
 ## [v1.12.1 - 2024-04-01]
 ### Changed
