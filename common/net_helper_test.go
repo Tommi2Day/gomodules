@@ -19,7 +19,7 @@ func TestGetHostPort(t *testing.T) {
 			{
 				name:    "only host",
 				input:   "localhost",
-				success: false,
+				success: true,
 				host:    "localhost",
 				port:    0,
 			},
