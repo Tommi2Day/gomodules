@@ -2,9 +2,10 @@ package maillib
 
 import (
 	"crypto/tls"
-	"github.com/wneessen/go-mail"
 	"strings"
 	"time"
+
+	"github.com/wneessen/go-mail"
 
 	"github.com/tommi2day/gomodules/common"
 
