@@ -2,7 +2,7 @@
 
 ## [v1.13.1 - 2024-04-23]
 ### New
-- maillib: add MailAuth function
+- maillib: add SetAuthMethod function
 ### Changed
 - update dependencies
 
