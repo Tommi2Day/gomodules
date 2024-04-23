@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.13.1 - 2024-04-23]
+### New
+- maillib: add MailAuth function
+### Changed
+- update dependencies
+
 ## [v1.13.0 - 2024-04-11]
 ### New
 - common: add CommandExists function
