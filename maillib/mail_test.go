@@ -75,7 +75,7 @@ func TestMail(t *testing.T) {
 	if os.Getenv("SKIP_MAIL") != "" {
 		t.Skip("Skipping Mail testing in CI environment")
 	}
-	test.Testinit(t)
+	test.InitTestDirs()
 	var err error
 	mailContainer, err = prepareMailContainer()
 	require.NoErrorf(t, err, "Mailserver not available: %s", err)
@@ -104,9 +104,10 @@ func TestMail(t *testing.T) {
 		assert.NoErrorf(t, err, "Sendmail with login returned error %v", err)
 	})
 
-	t.Run("Send Mail SSL 465", func(t *testing.T) {
+	t.Run("Send Mail SSL 465 using login auth", func(t *testing.T) {
 		s := NewSendMailConfig(mailServer, sslPort, FROM, rootPass)
 		s.ServerConfig.EnableSSL(true)
+		s.ServerConfig.SetAuthMethod("login")
 		h := time.Now()
 		timeStr := h.Format("15:04:05")
 		l := NewMail(FROM, TO)

@@ -177,8 +177,8 @@ func prepareMailObject(config *SendMailConfigType) (c *mail.Client, err error) {
 	if len(config.ServerConfig.Username) > 0 && len(config.ServerConfig.Password) > 0 {
 		c.SetUsername(config.ServerConfig.Username)
 		c.SetPassword(config.ServerConfig.Password)
-		c.SetSMTPAuth(mail.SMTPAuthPlain)
-		log.Debug("sendmail: Use Authentication")
+		c.SetSMTPAuth(config.ServerConfig.AuthMethod)
+		log.Debugf("sendmail: Use Authentication %s", config.ServerConfig.AuthMethod)
 	}
 	return
 }

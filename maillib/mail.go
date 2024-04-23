@@ -2,6 +2,7 @@ package maillib
 
 import (
 	"crypto/tls"
+	"github.com/wneessen/go-mail"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ type MailConfigType struct {
 	Timeout     time.Duration
 	tlsConfig   *tls.Config
 	HELO        string
+	AuthMethod  mail.SMTPAuthType
 }
 
 // NewConfig set Mail server parameter
@@ -37,6 +39,7 @@ func NewConfig(server string, port int, username string, password string) *MailC
 	mailConfig.SSL = false
 	mailConfig.Timeout = 15 * time.Second
 	mailConfig.HELO = hostname
+	mailConfig.AuthMethod = mail.SMTPAuthPlain
 	return &mailConfig
 }
 
@@ -88,6 +91,26 @@ func (mailConfig *MailConfigType) GetConfig() *MailConfigType {
 func (mailConfig *MailConfigType) SetHELO(helo string) {
 	mailConfig.HELO = helo
 	log.Debugf("mailconfig: Set HELO to %s", helo)
+}
+
+// SetAuthMethod configure Auth Method
+func (mailConfig *MailConfigType) SetAuthMethod(method string) {
+	var a mail.SMTPAuthType
+	switch method {
+	case "plain":
+		a = mail.SMTPAuthPlain
+	case "login":
+		a = mail.SMTPAuthLogin
+	case "crammd5":
+		a = mail.SMTPAuthCramMD5
+	case "xoauth2":
+		a = mail.SMTPAuthXOAUTH2
+	default:
+		log.Warnf("mailconfig: Auth Method %s not supported, using plain", method)
+		a = mail.SMTPAuthPlain
+	}
+	mailConfig.AuthMethod = a
+	log.Debugf("mailconfig: Set Auth Mech to %s", a)
 }
 
 // MailType collects all recipients of a mail and attachment
