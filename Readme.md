@@ -27,7 +27,7 @@ for usage see the provided test cases and the implemenations as is:
 - [tnscli](https://github.com/tommi2day/tnscli)
 - [pwcli](https://github.com/tommi2day/pwcli)
 - [check_hm](https://github.com/Tommi2Day/check_hm)
-- [tcping](https://github.com/Tommi2Day/tcping)
+- [tcping2](https://github.com/Tommi2Day/tcping2)
 
 ### API
 see [godoc](https://pkg.go.dev/github.com/tommi2day/gomodules)
