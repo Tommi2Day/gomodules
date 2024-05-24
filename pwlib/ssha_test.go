@@ -12,16 +12,16 @@ var sshaPlain = []byte("password")
 func TestSSHA(t *testing.T) {
 	t.Run("TestSSHAEncoder_Encode", func(t *testing.T) {
 		enc := SSHAEncoder{}
-		encoded, err := enc.Encode(sshaPlain)
+		encoded, err := enc.Encode(sshaPlain, SSHAPrefix)
 		require.NoError(t, err)
-		assert.Contains(t, string(encoded), "{SSHA}")
+		assert.Contains(t, string(encoded), SSHAPrefix)
 		assert.Greater(t, len(encoded), 6)
 		t.Log(string(encoded))
 	})
 
 	t.Run("TestSSHAEncoder_Matches", func(t *testing.T) {
 		enc := SSHAEncoder{}
-		encoded, err := enc.Encode(sshaPlain)
+		encoded, err := enc.Encode(sshaPlain, SSHAPrefix)
 		require.NoError(t, err)
 		assert.True(t, enc.Matches(encoded, sshaPlain))
 	})
