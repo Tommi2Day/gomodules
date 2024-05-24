@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.13.2 - 2024-05-24]
+### New
+- pwlib: add SSHA functions
+### Changed
+- update dependencies
+
 ## [v1.13.1 - 2024-04-23]
 ### New
 - maillib: add SetAuthMethod function

@@ -13,7 +13,7 @@ this is a collection of my often used functions
   - password generation, 
   - password storing and handling with RSA, Openssl, GoPass, Amazon KMS and Hashicorp Vault
   - totp generation
-  - scram hashing
+  - scram(e.g.for postgresql) and ssha(e.g for LDAP userPassword) hashing
 - tools: collection of often used tools as build loader
 - dblib: db related functions, esp. for oracle and tns handling
 - maillib: function to send Mails
