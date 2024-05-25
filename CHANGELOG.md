@@ -1,5 +1,10 @@
 # Go Library
 
+## [v1.13.3 - 2024-05-25]
+### Changed
+- use Go1.22
+- update dependencies
+
 ## [v1.13.2 - 2024-05-24]
 ### New
 - pwlib: add SSHA functions
