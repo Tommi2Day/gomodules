@@ -28,7 +28,7 @@ func QueryAPI(endpoint string, result interface{}, parameter map[string]string) 
 		return
 	}
 	if hmURL == "" {
-		err = fmt.Errorf("no hmWarnThreshold server url set")
+		err = fmt.Errorf("no server url set")
 		return
 	}
 
