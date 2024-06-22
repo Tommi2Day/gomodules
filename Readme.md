@@ -27,9 +27,10 @@ for usage see the provided test cases and the implemenations as is:
 
 - [tnscli](https://github.com/tommi2day/tnscli)
 - [pwcli](https://github.com/tommi2day/pwcli)
-- [check_hm](https://github.com/Tommi2Day/check_hm)
+- [hmcli](https://github.com/Tommi2Day/hmcli)
+- [symconcli](https://github.com/Tommi2Day/symconcli)
 - [tcping2](https://github.com/Tommi2Day/tcping2)
-- [check_symcon](https://github.com/Tommi2Day/check_symcon)
+
 
 ### API
 see [godoc](https://pkg.go.dev/github.com/tommi2day/gomodules)

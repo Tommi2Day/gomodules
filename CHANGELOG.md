@@ -11,6 +11,7 @@
 ### Changed
 - update dependencies
 - fix linter issues
+
 ## [v1.13.3 - 2024-05-25]
 ### Changed
 - use Go1.22
