@@ -2,11 +2,14 @@ package common
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const hostDefaultDomain = "localdomain"
@@ -63,6 +66,22 @@ var (
 		"radius-acct":    1813,
 	}
 )
+
+// HTTPGet returns the body of a GET request
+func HTTPGet(url string, timeout int) (resp string, err error) {
+	if timeout == 0 {
+		timeout = 5
+	}
+	tr := new(http.Transport)
+	client := &http.Client{Transport: tr}
+	client.Timeout = time.Duration(timeout) * time.Second
+	rc, err := client.Get(url)
+	if err != nil {
+		return
+	}
+	data, _ := io.ReadAll(rc.Body)
+	return string(data), nil
+}
 
 // GetHostPort returns host and port from a string
 func GetHostPort(input string) (host string, port int, err error) {

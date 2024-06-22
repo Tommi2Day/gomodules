@@ -1,10 +1,13 @@
 package common
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+const testHTTPUrl = "https://google.com"
 
 func TestGetHostPort(t *testing.T) {
 	t.Run("Check Host parsing", func(t *testing.T) {
@@ -107,5 +110,17 @@ func TestGetHostname(t *testing.T) {
 		assert.NotEmpty(t, actual, "Hostname empty")
 		assert.Contains(t, actual, ".", "Hostname not FQDN")
 		t.Logf("Hostname: %s", actual)
+	})
+}
+
+func TestHttpGet(t *testing.T) {
+	t.Run("Test HTTPGet", func(t *testing.T) {
+		if os.Getenv("SKIP_HTTP") != "" {
+			t.Skip("Skipping HTTP testing in CI environment")
+		}
+		d, err := HTTPGet(testHTTPUrl, 5)
+		assert.NoError(t, err, "HTTPGet failed: %s", err)
+		assert.NotEmpty(t, d, "Data empty")
+		// t.Logf("Data: %s", d)
 	})
 }
