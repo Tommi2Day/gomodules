@@ -75,6 +75,24 @@ func TestConversion(t *testing.T) {
 				success: false,
 				f:       testGetFloatVal,
 			},
+			{
+				name:    "Test HexInt",
+				input:   "00FF00",
+				success: true,
+				f:       testGetHexInt64Val,
+			},
+			{
+				name:    "Test HexInt with 0x",
+				input:   "0x1234567890abcdef",
+				success: true,
+				f:       testGetHexInt64Val,
+			},
+			{
+				name:    "Test HexInt wrong char",
+				input:   "abcxxdqf",
+				success: false,
+				f:       testGetHexInt64Val,
+			},
 		} {
 			t.Run(testconfig.name, func(t *testing.T) {
 				err := testconfig.f(testconfig.input)
@@ -104,6 +122,10 @@ func testGetBoolVal(input string) error {
 	return err
 }
 
+func testGetHexInt64Val(input string) error {
+	_, err := GetHexInt64Val(input)
+	return err
+}
 func TestIsNil(t *testing.T) {
 	t.Run("Test IsNil", func(t *testing.T) {
 		assert.True(t, IsNil(nil))

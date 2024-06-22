@@ -2,9 +2,11 @@ package common
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // GetBoolVal convert String to bool
@@ -21,6 +23,17 @@ func GetInt64Val(value string) (int64, error) {
 func GetIntVal(value string) (int, error) {
 	v, err := strconv.ParseInt(value, 10, 32)
 	return int(v), err
+}
+
+func GetHexInt64Val(value string) (int64, error) {
+	var err error
+	i := new(big.Int)
+	v := strings.TrimPrefix(value, "0x")
+	_, ok := i.SetString(v, 16)
+	if !ok {
+		err = fmt.Errorf("cannot convert %s to int64", v)
+	}
+	return i.Int64(), err
 }
 
 // GetFloatVal convert String to float64
