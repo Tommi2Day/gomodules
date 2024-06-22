@@ -225,3 +225,15 @@ func TestFormatUnixtsString(t *testing.T) {
 		})
 	}
 }
+func TestReverseMap(t *testing.T) {
+	input := map[string]int{
+		"one": 1,
+		"two": 2,
+	}
+	expected := map[int]string{
+		1: "one",
+		2: "two",
+	}
+	actual := ReverseMap(input)
+	assert.Equal(t, expected, actual, "Reverse Map not as expected")
+}
