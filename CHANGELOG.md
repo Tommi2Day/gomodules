@@ -1,5 +1,15 @@
 # Go Library
 
+## [v1.14.0 - 2024-06-22]
+### New
+- add symcon module for [Symcon Json Api](https://www.symcon.de/service/dokumentation/datenaustausch/)
+- add symcon tests
+- common: add HTTPGet function
+- common: add ReverseMap function
+- common: add GetHexInt64Val function
+### Changed
+- update dependencies
+- fix linter issues
 ## [v1.13.3 - 2024-05-25]
 ### Changed
 - use Go1.22

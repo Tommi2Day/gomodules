@@ -57,7 +57,7 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 			},
 		},
 		Mounts: []string{
-			test.TestDir + "/docker/ips:/root",
+			test.TestDir + "/docker/symcon:/root",
 		},
 	}, func(config *docker.HostConfig) {
 		// set AutoRemove to true so that stopped kmsContainer goes away by itself
