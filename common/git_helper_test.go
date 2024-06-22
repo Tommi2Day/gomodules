@@ -88,18 +88,19 @@ func TestGit(t *testing.T) {
 		require.IsTypef(t, &object.Commit{}, c, "GetLastCommit returned wrong type")
 		if c == nil {
 			t.Fatal("GetLastCommit returned nil")
+		} else {
+			hs := c.Hash.String()
+			assert.NotEmptyf(t, hs, "Hash empty")
+			m := c.Message
+			assert.NotEmptyf(t, m, "Message empty")
+			author := c.Author.Name
+			assert.NotEmptyf(t, author, "Author empty")
+			ct := c.Committer.When
+			assert.Greaterf(t, ct.Unix(), int64(0), "Commit time empty")
+			cts := ct.Format("02.01.2006 15:04")
+			commit := fmt.Sprintf("Commit: %s has been committed by %s at %s (%s) with message '%s'", gitName, author, cts, hs[0:8], strings.TrimSuffix(m, "\n"))
+			t.Log(commit)
 		}
-		hs := c.Hash.String()
-		assert.NotEmptyf(t, hs, "Hash empty")
-		m := c.Message
-		assert.NotEmptyf(t, m, "Message empty")
-		author := c.Author.Name
-		assert.NotEmptyf(t, author, "Author empty")
-		ct := c.Committer.When
-		assert.Greaterf(t, ct.Unix(), int64(0), "Commit time empty")
-		cts := ct.Format("02.01.2006 15:04")
-		commit := fmt.Sprintf("Commit: %s has been committed by %s at %s (%s) with message '%s'", gitName, author, cts, hs[0:8], strings.TrimSuffix(m, "\n"))
-		t.Log(commit)
 	})
 	t.Run("TestNonGit ERROR", func(t *testing.T) {
 		filename := path.Join(test.TestData, "testgit.txt")
