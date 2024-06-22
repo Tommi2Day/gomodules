@@ -20,6 +20,7 @@ this is a collection of my often used functions
 - ldaplib: base ldap functions
 - hmlib: handle access to homematic devices using [XMLAPI-Addon](https://github.com/homematic-community/XML-API)
 - netlib: IP/DNS related funtions
+- symcon: access to [Symcon Json Api](https://www.symcon.de/service/dokumentation/datenaustausch/)
 
 ### usage
 for usage see the provided test cases and the implemenations as is:
@@ -28,6 +29,7 @@ for usage see the provided test cases and the implemenations as is:
 - [pwcli](https://github.com/tommi2day/pwcli)
 - [check_hm](https://github.com/Tommi2Day/check_hm)
 - [tcping2](https://github.com/Tommi2Day/tcping2)
+- [check_symcon](https://github.com/Tommi2Day/check_symcon)
 
 ### API
 see [godoc](https://pkg.go.dev/github.com/tommi2day/gomodules)
