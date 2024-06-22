@@ -75,8 +75,8 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 	fmt.Printf("Wait to successfully connect to IPS with %s (max %ds)...\n", ipsTestURL, ipsContainerTimeout)
 	start := time.Now()
 
-	// wait 5s to init IPS Container
-	time.Sleep(5 * time.Second)
+	// wait 15s to init IPS Container
+	time.Sleep(15 * time.Second)
 
 	if err = pool.Retry(func() error {
 		resp, err := common.HTTPGet(ipsTestURL, 2)

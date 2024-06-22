@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var HTTPClient *resty.Client
+var httpClient *resty.Client
 var debug = false
 
 const defaultTimeout = 10
@@ -20,15 +20,15 @@ const defaultTimeout = 10
 // New creates a new Symcon object
 func New(endpoint, email, password string) *Symcon {
 	// set resty logger
-	HTTPClient = resty.New()
+	httpClient = resty.New()
 	l := log.StandardLogger()
 	if debug {
 		l.SetLevel(log.DebugLevel)
 	} else {
 		l.SetLevel(log.ErrorLevel)
 	}
-	HTTPClient.SetDebug(debug)
-	HTTPClient.SetLogger(l)
+	httpClient.SetDebug(debug)
+	httpClient.SetLogger(l)
 	return &Symcon{
 		Endpoint: endpoint,
 		Email:    email,
@@ -67,8 +67,8 @@ func (s *Symcon) SetDebug(d bool) {
 	} else {
 		l.SetLevel(log.ErrorLevel)
 	}
-	HTTPClient.SetDebug(debug)
-	HTTPClient.SetLogger(l)
+	httpClient.SetDebug(debug)
+	httpClient.SetLogger(l)
 }
 
 // QueryAPI queries the Symcon API with the given method and arguments
@@ -94,12 +94,23 @@ func (s *Symcon) QueryAPI(method string, arguments ...interface{}) (apiResponse 
 		return
 	}
 
+	l := log.StandardLogger()
+	if debug {
+		l.SetLevel(log.DebugLevel)
+	} else {
+		l.SetLevel(log.ErrorLevel)
+	}
 	// reset params
-	HTTPClient.QueryParam = url.Values{}
-	HTTPClient.SetHeader("Content-Type", "application/json; charset=utf-8'")
-	HTTPClient.SetBasicAuth(email, pass)
-	HTTPClient.SetHeader("Accept", "application/json")
-	HTTPClient.SetTimeout(s.GetTimeout())
+	httpClient.QueryParam = url.Values{}
+	httpClient.SetHeader("Content-Type", "text/xml")
+	httpClient.SetDebug(debug)
+	httpClient.SetLogger(l)
+	// reset params
+	httpClient.QueryParam = url.Values{}
+	httpClient.SetHeader("Content-Type", "application/json; charset=utf-8'")
+	httpClient.SetBasicAuth(email, pass)
+	httpClient.SetHeader("Accept", "application/json")
+	httpClient.SetTimeout(s.GetTimeout())
 
 	if len(arguments) == 0 {
 		arguments = []interface{}{}
@@ -116,7 +127,7 @@ func (s *Symcon) QueryAPI(method string, arguments ...interface{}) (apiResponse 
 		err = fmt.Errorf("cannot marshal request: %s", err)
 		return
 	}
-	req := HTTPClient.R().SetBody(j)
+	req := httpClient.R().SetBody(j)
 	resp, err = req.Post(endpoint)
 	if err != nil {
 		err = fmt.Errorf("cannot do api request: %s", err)
@@ -457,4 +468,9 @@ func (r *APIRequest) String() string {
 func (a IPSVariableAssociation) String() string {
 	return fmt.Sprintf("Name: %s, Value: %f, Icon: %s, Color: %d",
 		a.Name, a.Value, a.Icon, a.Color)
+}
+
+// SetDebug sets the Logging Level and activates RESTY Debug
+func SetDebug(debugFlag bool) {
+	debug = debugFlag
 }
