@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"golang.org/x/net/html/charset"
 )
 
@@ -19,6 +18,7 @@ var (
 )
 
 var httpClient *resty.Client = resty.New()
+var debug = false
 
 // QueryAPI function for retrieving via http hmurl/endpoint  and return result as xml
 func QueryAPI(endpoint string, result interface{}, parameter map[string]string) (err error) {
@@ -28,7 +28,7 @@ func QueryAPI(endpoint string, result interface{}, parameter map[string]string) 
 		return
 	}
 	if hmURL == "" {
-		err = fmt.Errorf("no server url set")
+		err = fmt.Errorf("no hmWarnThreshold server url set")
 		return
 	}
 
@@ -36,12 +36,17 @@ func QueryAPI(endpoint string, result interface{}, parameter map[string]string) 
 		err = fmt.Errorf("no endpoint set")
 		return
 	}
-
+	l := log.StandardLogger()
+	if debug {
+		l.SetLevel(log.DebugLevel)
+	} else {
+		l.SetLevel(log.ErrorLevel)
+	}
 	// reset params
 	httpClient.QueryParam = url.Values{}
-
 	httpClient.SetHeader("Content-Type", "text/xml")
-	httpClient.SetDebug(viper.GetBool("debug"))
+	httpClient.SetDebug(debug)
+	httpClient.SetLogger(l)
 
 	// query params
 	qp := fmt.Sprintf("sid=%s", hmToken)
@@ -108,4 +113,9 @@ func GetHTTPClient() *resty.Client {
 // SetHTTPClient sets the http client for the next QueryAPI call
 func SetHTTPClient(c *resty.Client) {
 	httpClient = c
+}
+
+// SetDebug sets the Logging Level and activates RESTY Debug
+func SetDebug(debugFlag bool) {
+	debug = debugFlag
 }
