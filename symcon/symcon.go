@@ -81,7 +81,7 @@ func (s *Symcon) QueryAPI(method string, arguments ...interface{}) (apiResponse 
 	endpoint := s.Endpoint
 	// auth = encode_base64(user + ':' + pass)
 	if email == "" {
-		err = fmt.Errorf("no token set")
+		err = fmt.Errorf("no license email set")
 		return
 	}
 	if pass == "" {
@@ -324,6 +324,12 @@ func (s *Symcon) GetIPSObject(id int) (ipsObject *IPSObject, err error) {
 	for _, v := range r["ChildrenIDs"].([]interface{}) {
 		o.ChildrenIDs = append(o.ChildrenIDs, int(v.(float64)))
 	}
+	p, err := s.GetObjectPath(id)
+	if err != nil {
+		err = fmt.Errorf("cannot get object path: %s", err)
+		return nil, err
+	}
+	o.ObjectPath = p
 	return &o, nil
 }
 func (s *Symcon) GetIPSVariableInfo(id int) (ipsVariable *IPSVariable, err error) {
@@ -372,6 +378,7 @@ func (s *Symcon) GetIPSVariableInfo(id int) (ipsVariable *IPSVariable, err error
 	v.VariableID = int(variable["VariableID"].(float64))
 	v.VariableType = int(variable["VariableType"].(float64))
 	v.VariableUpdated = int64(variable["VariableUpdated"].(float64))
+	v.VariablePath = obj.ObjectPath
 	vp := variable["VariableCustomProfile"].(string)
 	if vp == "" {
 		vp = variable["VariableProfile"].(string)
@@ -445,32 +452,53 @@ func (s *Symcon) GetIPSVariableInfo(id int) (ipsVariable *IPSVariable, err error
 
 // GetObjectPath returns the path of an object in the Symcon server
 func (s *Symcon) GetObjectPath(id int) (path string, err error) {
-	var obj *IPSObject
+	var resp *APIResponse
 	path = ""
 	if id == 0 {
 		return
 	}
 	for id > 0 {
-		obj, err = s.GetIPSObject(id)
-		if err != nil {
-			log.Debugf("Symcon path failed for id: %d", id)
+		// get parent
+		resp, err = s.QueryAPI("IPS_GetParent", id)
+		if err != nil || resp == nil {
+			log.Debugf("IPS_GetParent failed for id: %d", id)
 			path = ""
 			return
 		}
-		name := obj.ObjectName
-		if name == "" {
-			name = obj.ObjectIdent
+		parent := int(resp.Result.(float64))
+		log.Debugf("parent for ID %d : %d", id, parent)
+
+		// find actual name
+		resp, err = s.QueryAPI("IPS_GetName", id)
+		if err != nil || resp == nil {
+			log.Debugf("IPS_GetName failed for id: %d", id)
+			path = ""
+			return
 		}
+		name := resp.Result.(string)
 		if name == "" {
 			name = fmt.Sprintf("id-%d", id)
 		}
+		log.Debugf("name for ID %d : %s", id, name)
 		path = name + "/" + path
-		id = obj.ParentID
+		id = parent
 	}
 	path = path[:len(path)-1]
 	log.Debugf("Symcon path: %s", path)
 
 	return
+}
+
+// IsReady checks if the Symcon Kernel is ready
+func (s *Symcon) IsReady() bool {
+	const stReady = 10103
+	ready := false
+	resp, err := s.QueryAPI("IPS_GetKernelRunlevel")
+	if err == nil && resp != nil {
+		status := int(resp.Result.(float64))
+		ready = status == stReady
+	}
+	return ready
 }
 
 func (v *IPSVariable) String() string {
@@ -498,4 +526,9 @@ func (r *APIRequest) String() string {
 func (a IPSVariableAssociation) String() string {
 	return fmt.Sprintf("Name: %s, Value: %f, Icon: %s, Color: %d",
 		a.Name, a.Value, a.Icon, a.Color)
+}
+
+func (o *IPSObject) String() string {
+	return fmt.Sprintf("ID: %d, Name: %s, Type: %s, Ident: %s, Parent: %d, Path: %s",
+		o.ObjectID, o.ObjectName, IPSObjectTypes[o.ObjectType], o.ObjectIdent, o.ParentID, o.ObjectPath)
 }

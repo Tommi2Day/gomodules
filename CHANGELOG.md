@@ -1,5 +1,13 @@
 # Go Library
 
+## [v1.14.3 - 2024-06-24]
+### New
+- symcon: add IsReady and IPSObject.String function
+- symcon: add path to object and variable types
+### Changed
+- symcon: restruct GetObjectPath function
+- symcon: refactor tests
+
 ## [v1.14.2 - 2024-06-23]
 ### New
 - symcon: add functions and tests
