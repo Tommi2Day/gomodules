@@ -51,6 +51,7 @@ type IPSObject struct {
 	ObjectIsLocked   bool   `json:"ObjectIsLocked"`
 	HasChildren      bool   `json:"HasChildren"`
 	ChildrenIDs      []int  `json:"ChildrenIDs"`
+	ObjectPath       string `json:"ObjectPath"`
 }
 
 // IPSVariable is a struct that holds the IPS variable properties
@@ -67,6 +68,7 @@ type IPSVariable struct {
 	VariableProfileName  string                    `json:"VariableProfileName"`
 	VariableProfile      *IPSVariableProfile       `json:"VariableProfile"`
 	VariableAssociations *[]IPSVariableAssociation `json:"VariableAssociations"`
+	VariablePath         string                    `json:"VariablePath"`
 }
 
 // IPSVariableProfile is a struct that holds the IPS variable profile properties
