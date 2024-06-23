@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,6 +18,7 @@ var httpClient *resty.Client
 var debug = false
 
 const defaultTimeout = 10
+const readyState = "KR_READY"
 
 // New creates a new Symcon object
 func New(endpoint, email, password string) *Symcon {
@@ -491,7 +494,8 @@ func (s *Symcon) GetObjectPath(id int) (path string, err error) {
 
 // IsReady checks if the Symcon Kernel is ready
 func (s *Symcon) IsReady() bool {
-	const stReady = 10103
+	rl := common.ReverseMap(IPSKernelRunlevel)
+	stReady := rl[readyState]
 	ready := false
 	resp, err := s.QueryAPI("IPS_GetKernelRunlevel")
 	if err == nil && resp != nil {
