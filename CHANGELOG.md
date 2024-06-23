@@ -1,10 +1,10 @@
 # Go Library
 
-## [v1.14.2 - 2024-09-06]
+## [v1.14.2 - 2024-06-23]
 ### New
-- symcon: add functions
+- symcon: add functions and tests
 ### Changed
-- renamed functions to avoid name collision with symcon function namings
+- symcon: renamed functions to avoid name collision with native symcon function names
 
 ## [v1.14.1 - 2024-06-22]
 ### New
