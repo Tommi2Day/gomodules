@@ -43,22 +43,22 @@ func (s *Symcon) SetTimeout(timeout int) {
 	s.Timeout = timeout
 }
 
-// GetTimeout returns the timeout for the Symcon object
-func (s *Symcon) GetTimeout() time.Duration {
-	return time.Duration(s.Timeout) * time.Second
-}
-
-// GetURL returns the URL for the Symcon Server
-func (s *Symcon) GetURL() string {
-	return s.Endpoint
-}
-
-// SetURL sets the URL for the Symcon Server
+// SetURL updates the URL for the Symcon Server
 func (s *Symcon) SetURL(endpoint string) {
 	s.Endpoint = endpoint
 }
 
-// SetDebug sets the debug flag for the Symcon object
+// SetEmail updates the email for the Symcon object
+func (s *Symcon) SetEmail(email string) {
+	s.Email = email
+}
+
+// SetPassword update the password for the Symcon object
+func (s *Symcon) SetPassword(password string) {
+	s.Password = password
+}
+
+// SetDebug updates the debug flag for the Symcon object
 func (s *Symcon) SetDebug(d bool) {
 	debug = d
 	l := s.Logger
@@ -110,7 +110,7 @@ func (s *Symcon) QueryAPI(method string, arguments ...interface{}) (apiResponse 
 	httpClient.SetHeader("Content-Type", "application/json; charset=utf-8'")
 	httpClient.SetBasicAuth(email, pass)
 	httpClient.SetHeader("Accept", "application/json")
-	httpClient.SetTimeout(s.GetTimeout())
+	httpClient.SetTimeout(time.Duration(s.Timeout) * time.Second)
 
 	if len(arguments) == 0 {
 		arguments = []interface{}{}
@@ -159,8 +159,8 @@ func (s *Symcon) QueryAPI(method string, arguments ...interface{}) (apiResponse 
 	return response, nil
 }
 
-// CheckCmdOK checks if the API response to a command is OK
-func (s *Symcon) CheckCmdOK(resp *APIResponse, e error) (err error) {
+// CheckIPSCmdOK checks if the API response to a command is OK
+func (s *Symcon) CheckIPSCmdOK(resp *APIResponse, e error) (err error) {
 	if e != nil {
 		err = fmt.Errorf("cannot do api request: %s", e)
 		return
@@ -190,15 +190,15 @@ func (s *Symcon) CheckCmdOK(resp *APIResponse, e error) (err error) {
 	return fmt.Errorf("api returned wrong type")
 }
 
-// SetNameIdentParent sets the name, ident and parent of an object in the Symcon server
-func (s *Symcon) SetNameIdentParent(id int, name, ident string, parent int) (err error) {
+// SetIPSNameIdentParent sets the name, ident and parent of an object in the Symcon server
+func (s *Symcon) SetIPSNameIdentParent(id int, name, ident string, parent int) (err error) {
 	var resp *APIResponse
 	if name == "" {
 		err = fmt.Errorf("no name set")
 		return
 	}
 	resp, err = s.QueryAPI("IPS_SetName", id, name)
-	err = s.CheckCmdOK(resp, err)
+	err = s.CheckIPSCmdOK(resp, err)
 	if err != nil {
 		err = fmt.Errorf("cannot set object name: %s", err)
 		return
@@ -206,7 +206,7 @@ func (s *Symcon) SetNameIdentParent(id int, name, ident string, parent int) (err
 
 	if parent > 0 {
 		resp, err = s.QueryAPI("IPS_SetParent", id, parent)
-		err = s.CheckCmdOK(resp, err)
+		err = s.CheckIPSCmdOK(resp, err)
 		if err != nil {
 			err = fmt.Errorf("cannot set object parent: %s", err)
 			return
@@ -215,7 +215,7 @@ func (s *Symcon) SetNameIdentParent(id int, name, ident string, parent int) (err
 
 	if ident != "" {
 		resp, err = s.QueryAPI("IPS_SetIdent", id, ident)
-		err = s.CheckCmdOK(resp, err)
+		err = s.CheckIPSCmdOK(resp, err)
 		if err != nil {
 			err = fmt.Errorf("cannot set object ident: %s", err)
 			return
@@ -225,8 +225,8 @@ func (s *Symcon) SetNameIdentParent(id int, name, ident string, parent int) (err
 	return
 }
 
-// SetValue sets the value of a variable in the Symcon server
-func (s *Symcon) SetValue(id int, value interface{}) (err error) {
+// SetIPSVarValue sets the value of a variable in the Symcon server
+func (s *Symcon) SetIPSVarValue(id int, value interface{}) (err error) {
 	var resp *APIResponse
 	var v *IPSVariable
 	var i interface{}
@@ -272,7 +272,7 @@ func (s *Symcon) SetValue(id int, value interface{}) (err error) {
 	}
 
 	resp, err = s.QueryAPI("SetValue", id, i)
-	err = s.CheckCmdOK(resp, err)
+	err = s.CheckIPSCmdOK(resp, err)
 	if err != nil {
 		err = fmt.Errorf("cannot set value: %s", err)
 		return
@@ -428,7 +428,7 @@ func (s *Symcon) GetIPSVariableInfo(id int) (ipsVariable *IPSVariable, err error
 	switch v.VariableType {
 	case 0: // boolean
 		v.Value = valResp.Result.(bool)
-	case 1: // integer
+	case 1: // integer comes as float
 		v.Value = int64(valResp.Result.(float64))
 	case 2: // float
 		v.Value = valResp.Result.(float64)
@@ -441,6 +441,36 @@ func (s *Symcon) GetIPSVariableInfo(id int) (ipsVariable *IPSVariable, err error
 	}
 	log.Debugf("variable result: %v", v)
 	return &v, nil
+}
+
+// GetObjectPath returns the path of an object in the Symcon server
+func (s *Symcon) GetObjectPath(id int) (path string, err error) {
+	var obj *IPSObject
+	path = ""
+	if id == 0 {
+		return
+	}
+	for id > 0 {
+		obj, err = s.GetIPSObject(id)
+		if err != nil {
+			log.Debugf("Symcon path failed for id: %d", id)
+			path = ""
+			return
+		}
+		name := obj.ObjectName
+		if name == "" {
+			name = obj.ObjectIdent
+		}
+		if name == "" {
+			name = fmt.Sprintf("id-%d", id)
+		}
+		path = name + "/" + path
+		id = obj.ParentID
+	}
+	path = path[:len(path)-1]
+	log.Debugf("Symcon path: %s", path)
+
+	return
 }
 
 func (v *IPSVariable) String() string {
@@ -468,9 +498,4 @@ func (r *APIRequest) String() string {
 func (a IPSVariableAssociation) String() string {
 	return fmt.Sprintf("Name: %s, Value: %f, Icon: %s, Color: %d",
 		a.Name, a.Value, a.Icon, a.Color)
-}
-
-// SetDebug sets the Logging Level and activates RESTY Debug
-func SetDebug(debugFlag bool) {
-	debug = debugFlag
 }

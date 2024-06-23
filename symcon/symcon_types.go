@@ -112,3 +112,19 @@ var IPSObjectTypes = map[int]string{
 	5: "media",
 	6: "link",
 }
+
+// IPSKernelRunlevel is a map of IPS kernel states
+var IPSKernelRunlevel = map[int]string{
+	/*
+		KR_CREATE	10101	Kernel wird erstellt
+		KR_INIT	    10102	Kernel wird initialisiert. z.B. werden Module geladen und Instanzen erstellt
+		KR_READY	10103	Kernel ist bereit und läuft
+		KR_UNINIT	10104	Kernel wird heruntergefahren und alles sauber beendet
+		KR_SHUTDOWN	10105	Kernel wurde vollständig beendet
+	*/
+	10101: "KR_CREATE",
+	10102: "KR_INIT",
+	10103: "KR_READY",
+	10104: "KR_UNINIT",
+	10105: "KR_SHUTDOWN",
+}

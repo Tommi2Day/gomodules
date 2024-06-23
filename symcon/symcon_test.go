@@ -40,25 +40,50 @@ func TestSymcon(t *testing.T) {
 	defer common.DestroyDockerContainer(ipsContainer)
 	t.Run("Test noPassword", func(t *testing.T) {
 		ips := New(testURL, "wronguser", "")
-		resp, err := ips.QueryAPI("GetVariable", 0)
+		resp, err = ips.QueryAPI("GetVariable", 0)
 		assert.Error(t, err, "QueryAPI should return an error")
 		assert.Nil(t, resp, "QueryAPI should not return a response")
 		t.Log(err)
 	})
-	ips := New(testURL, testUser, testPass)
-
+	ips := New("", "", "")
+	t.Run("Test noURL", func(t *testing.T) {
+		resp, err = ips.QueryAPI("GetVariable", 0)
+		assert.Error(t, err, "QueryAPI should return an error")
+		assert.Nil(t, resp, "QueryAPI should not return a response")
+		t.Log(err)
+	})
+	ips.SetEmail(testUser)
+	ips.SetPassword(testPass)
+	ips.SetURL(testURL)
+	ips.SetDebug(true)
+	ready := false
+	t.Run("Test IPS Ready", func(t *testing.T) {
+		kMap := common.ReverseMap(IPSKernelRunlevel)
+		e := kMap["KR_READY"]
+		resp, err = ips.QueryAPI("IPS_GetKernelRunlevel")
+		assert.NoErrorf(t, err, "QueryAPI should not return an error: %v", err)
+		assert.NotNil(t, resp, "QueryAPI should not return a response")
+		if resp != nil {
+			status := int(resp.Result.(float64))
+			assert.Equal(t, e, status, "IPS should be ready")
+			ready = e == status
+		}
+	})
+	if !ready {
+		t.Fatalf("IPS not ready")
+	}
 	varid := 0
 	catid := 0
 	t.Run("Test CreateCategory", func(t *testing.T) {
 		resp, err = ips.QueryAPI("IPS_CreateCategory")
-		err = ips.CheckCmdOK(resp, err)
+		err = ips.CheckIPSCmdOK(resp, err)
 		assert.NoErrorf(t, err, "CreateObject should not return an error:%s", err)
 		assert.NotNil(t, resp, "QueryAPI should return a response")
 		if resp != nil {
 			i := int(resp.Result.(float64))
 			catid = i
-			err = ips.SetNameIdentParent(catid, testCategoryName, testCategoryIdent, 0)
-			assert.NoErrorf(t, err, "SetNameIdentParent should not return an error:%s", err)
+			err = ips.SetIPSNameIdentParent(catid, testCategoryName, testCategoryIdent, 0)
+			assert.NoErrorf(t, err, "SetIPSNameIdentParent should not return an error:%s", err)
 		}
 	})
 	if catid == 0 {
@@ -82,29 +107,29 @@ func TestSymcon(t *testing.T) {
 	}
 	t.Run("Test Create Profile", func(t *testing.T) {
 		resp, err = ips.QueryAPI("IPS_CreateVariableProfile", testVariableProfile, testVariableType)
-		err = ips.CheckCmdOK(resp, err)
+		err = ips.CheckIPSCmdOK(resp, err)
 		assert.NoErrorf(t, err, "CreateObject should not return an error:%s", err)
 		assert.NotNil(t, resp, "QueryAPI should return a response")
 		resp, err = ips.QueryAPI("IPS_SetVariableProfileAssociation", testVariableProfile, 0, "cold", "", hexBlue)
-		err = ips.CheckCmdOK(resp, err)
+		err = ips.CheckIPSCmdOK(resp, err)
 		assert.NoErrorf(t, err, "SetVariableProfileAssociation Blue should not return an error:%s", err)
 		resp, err = ips.QueryAPI("IPS_SetVariableProfileAssociation", testVariableProfile, 40, "hot", "sun", hexRed)
-		err = ips.CheckCmdOK(resp, err)
+		err = ips.CheckIPSCmdOK(resp, err)
 		assert.NoErrorf(t, err, "SetVariableProfileAssociation Red should not return an error:%s", err)
 	})
 	t.Run("Test CreateVariable", func(t *testing.T) {
 		resp, err = ips.QueryAPI("IPS_CreateVariable", testVariableType)
-		err = ips.CheckCmdOK(resp, err)
+		err = ips.CheckIPSCmdOK(resp, err)
 		assert.NoErrorf(t, err, "CreateObject should not return an error:%s", err)
 		assert.NotNil(t, resp, "QueryAPI should return a response")
 		if resp != nil {
 			i := int(resp.Result.(float64))
 			varid = i
 			assert.NotZero(t, varid, "CreateVariable should return an ID")
-			err = ips.SetNameIdentParent(varid, testVariableName, testVariableIdent, catid)
-			assert.NoErrorf(t, err, "SetNameIdentParent should not return an error:%s", err)
+			err = ips.SetIPSNameIdentParent(varid, testVariableName, testVariableIdent, catid)
+			assert.NoErrorf(t, err, "SetIPSNameIdentParent should not return an error:%s", err)
 			resp, err = ips.QueryAPI("IPS_SetVariableCustomProfile", varid, testVariableProfile)
-			err = ips.CheckCmdOK(resp, err)
+			err = ips.CheckIPSCmdOK(resp, err)
 			assert.NoErrorf(t, err, "SetVariableCustomProfile should not return an error:%s", err)
 		}
 	})
@@ -117,8 +142,8 @@ func TestSymcon(t *testing.T) {
 		assert.NoErrorf(t, err, "QueryAPI should not return an error:%s", err)
 		assert.True(t, exists, "Variable should exist")
 	})
-	t.Run("Test SetValue", func(t *testing.T) {
-		err = ips.SetValue(varid, testVariableValue)
+	t.Run("Test SetIPSVarValue", func(t *testing.T) {
+		err = ips.SetIPSVarValue(varid, testVariableValue)
 		assert.NoErrorf(t, err, "SetIPSVariableValue should not return an error:%s", err)
 	})
 	t.Run("Test GetVariable", func(t *testing.T) {
@@ -126,12 +151,20 @@ func TestSymcon(t *testing.T) {
 		assert.NoErrorf(t, err, "GetVariable should not return an error:%s", err)
 		if variable != nil {
 			assert.Equal(t, testVariableType, variable.VariableType, "Variable type should be float64")
-			assert.Equal(t, testVariableName, variable.Name, "Variable name should not be empty")
-			assert.Equal(t, varid, variable.VariableID, "Variable ID should not be empty")
-			assert.Equal(t, testVariableValue, variable.Value, "Variable value should be %f")
-			assert.Equal(t, testVariableIdent, variable.Ident, "Variable ident should be test")
-			assert.Equal(t, catid, variable.Parent, "Variable parent should be category")
+			assert.Equalf(t, testVariableName, variable.Name, "Variable name should  be %s", testVariableName)
+			assert.Equalf(t, varid, variable.VariableID, "Variable ID should not be %d", varid)
+			assert.Equalf(t, testVariableValue, variable.Value, "Variable value should be %f", testVariableValue)
+			assert.Equalf(t, testVariableIdent, variable.Ident, "Variable ident should be %s", testVariableIdent)
+			assert.Equalf(t, catid, variable.Parent, "Variable parent should be category id %d", catid)
 			t.Logf("Variable: %v", variable)
 		}
+	})
+	t.Run("Test Object path", func(t *testing.T) {
+		path := ""
+		path, err = ips.GetObjectPath(varid)
+		assert.NoErrorf(t, err, "GetObjectPath should not return an error:%s", err)
+		assert.NotEmpty(t, path, "Object path should not be empty")
+		assert.Equal(t, testCategoryName+"/"+testVariableName, path, "Object path should be category/variable")
+		t.Logf("Object path: %s", path)
 	})
 }

@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.14.2 - 2024-09-06]
+### New
+- symcon: add functions
+### Changed
+- renamed functions to avoid name collision with symcon function namings
+
 ## [v1.14.1 - 2024-06-22]
 ### New
 - add symcon module for [Symcon Json Api](https://www.symcon.de/service/dokumentation/datenaustausch/)
@@ -83,7 +89,7 @@
 - ldaplib: use bitnami/openldap as test container
 ### Changed
 - update dependencies
-- update github workflows to v4
+- update GitHub workflows to v4
 ### Fixed
 - linter issues
 
