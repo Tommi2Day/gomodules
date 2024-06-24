@@ -27,7 +27,6 @@ var (
 			} else {
 				log.Debugf("Flag is not set")
 			}
-
 		},
 	}
 	debugFlag = false

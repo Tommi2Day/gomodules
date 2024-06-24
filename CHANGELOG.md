@@ -7,6 +7,7 @@
 ### Changed
 - symcon: restruct GetObjectPath function
 - symcon: refactor tests
+- all: replace test init function
 
 ## [v1.14.2 - 2024-06-23]
 ### New

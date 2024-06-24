@@ -9,7 +9,7 @@ import (
 )
 
 func TestRoomlist(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 	httpmock.ActivateNonDefault(httpClient.GetClient())
 	response := RoomListTest
 	responder := httpmock.NewStringResponder(200, response)

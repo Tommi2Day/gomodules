@@ -41,7 +41,7 @@ func makeOerr(code int, msg string) *network.OracleError {
 func TestWithOracle(t *testing.T) {
 	const alias = DBPDB + ".local"
 
-	test.Testinit(t)
+	test.InitTestDirs()
 	tnsAdmin = test.TestData
 	filename := tnsAdmin + "/connect.ora"
 	//_ = os.Chdir(tnsAdmin)

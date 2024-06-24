@@ -24,7 +24,7 @@ testdp:testuser:xxx:yyy
 `
 
 func TestFileHelper(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 	t.Run("TestReadFileToString", func(t *testing.T) {
 		// prepare
 		filename := "testdata/stringtest.test"

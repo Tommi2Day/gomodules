@@ -16,7 +16,7 @@ func TestKMS(t *testing.T) {
 	if os.Getenv("SKIP_KMS") != "" {
 		t.Skip("Skipping KMS testing in CI environment")
 	}
-	test.Testinit(t)
+	test.InitTestDirs()
 
 	app := "test_kms_file"
 	testdata := test.TestData

@@ -9,7 +9,7 @@ import (
 )
 
 func TestRssi(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 	httpmock.ActivateNonDefault(httpClient.GetClient())
 	response := RssiTest
 	responder := httpmock.NewStringResponder(200, response)

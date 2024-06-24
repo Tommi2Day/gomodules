@@ -43,7 +43,7 @@ func TestBaseLdap(t *testing.T) {
 	if os.Getenv("SKIP_LDAP") != "" {
 		t.Skip("Skipping LDAP testing in CI environment")
 	}
-	test.Testinit(t)
+	test.InitTestDirs()
 	ldapContainer, err = prepareLdapContainer()
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")

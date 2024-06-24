@@ -86,7 +86,7 @@ func TestOpensslCompString(t *testing.T) {
 
 	var cmdout bytes.Buffer
 	var cmderr bytes.Buffer
-	test.Testinit(t)
+	test.InitTestDirs()
 	app := "test_openssl_string"
 	testdata := test.TestData
 
@@ -175,7 +175,7 @@ func TestOpensslCompString(t *testing.T) {
 func TestOpensslFile(t *testing.T) {
 	var cmdout bytes.Buffer
 	var cmderr bytes.Buffer
-	test.Testinit(t)
+	test.InitTestDirs()
 	app := "test_openssl_file"
 	testdata := test.TestDir + "/testdata"
 	// set env

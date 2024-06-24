@@ -27,7 +27,7 @@ testdp:testuser:xxx:yyy
 
 func TestCrypt(t *testing.T) {
 	// prepare
-	test.Testinit(t)
+	test.InitTestDirs()
 	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	dataDir := test.TestData
@@ -86,7 +86,7 @@ func TestGetPassword(t *testing.T) {
 		answer   string
 		hasError bool
 	}
-	test.Testinit(t)
+	test.InitTestDirs()
 	app := "test_get_pass"
 	pc := NewConfig(app, test.TestData, test.TestData, app, typeGO)
 	err := os.Chdir(test.TestDir)

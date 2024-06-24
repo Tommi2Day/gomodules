@@ -17,7 +17,7 @@ import (
 )
 
 func TestGit(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 
 	t.Run("TestGetGitRootDir OK", func(t *testing.T) {
 		dir, err := GetGitRootDir(test.TestDir)

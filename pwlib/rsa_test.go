@@ -18,7 +18,7 @@ var (
 )
 
 func TestGenRsaKey(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 	err := os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 
@@ -58,7 +58,7 @@ func TestGenRsaKey(t *testing.T) {
 }
 
 func TestGetKeyFromFile(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 	app := "test_get"
 	testPubFile := path.Join(test.TestData, app+pubExt)
 	testNotEncPrivFile := path.Join(test.TestData, app+"_notenc"+privExt)

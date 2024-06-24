@@ -53,7 +53,7 @@ func TestOracleLdap(t *testing.T) {
 	var ldapTnsEntries TNSEntries
 	var lc *ldaplib.LdapConfigType
 
-	test.Testinit(t)
+	test.InitTestDirs()
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
 	ldapAdmin := test.TestData

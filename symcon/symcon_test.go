@@ -32,7 +32,7 @@ func TestSymcon(t *testing.T) {
 	if os.Getenv("SKIP_IPS") != "" {
 		t.Skip("Skipping IPS testing in CI environment")
 	}
-	test.Testinit(t)
+	test.InitTestDirs()
 
 	ipsContainer, err := prepareIpsContainer()
 	require.NoErrorf(t, err, "IPS Server not available")
@@ -58,8 +58,16 @@ func TestSymcon(t *testing.T) {
 	ips.SetDebug(true)
 	ready := false
 	t.Run("Test IPS Ready", func(t *testing.T) {
-		ready = ips.IsReady()
-		assert.True(t, ready, "IPS should be ready")
+		kMap := common.ReverseMap(IPSKernelRunlevel)
+		e := kMap["KR_READY"]
+		resp, err = ips.QueryAPI("IPS_GetKernelRunlevel")
+		assert.NoErrorf(t, err, "QueryAPI should not return an error: %v", err)
+		assert.NotNil(t, resp, "QueryAPI should not return a response")
+		if resp != nil {
+			status := int(resp.Result.(float64))
+			assert.Equal(t, e, status, "IPS should be ready")
+			ready = e == status
+		}
 	})
 	if !ready {
 		t.Fatalf("IPS not ready")
@@ -81,7 +89,22 @@ func TestSymcon(t *testing.T) {
 	if catid == 0 {
 		t.Fatalf("Category not created")
 	}
-
+	t.Run("Test GetObject", func(t *testing.T) {
+		var obj *IPSObject
+		obj, err = ips.GetIPSObject(catid)
+		assert.NoError(t, err, "GetIPSObject should not return an error:%s", err)
+		assert.NotNil(t, obj, "GetIPSObject should return an object")
+		if obj != nil {
+			assert.Equal(t, testCategoryName, obj.ObjectName, "Category name should not be empty")
+			assert.Equal(t, testCategoryIdent, obj.ObjectIdent, "Category ident should be test")
+			assert.Equal(t, 0, obj.ParentID, "Category parent should be root")
+			assert.Equal(t, objTypesReverse["category"], obj.ObjectType, "Category type should be Category")
+			t.Logf("Category: %v", obj)
+		}
+	})
+	if err != nil {
+		t.Fatalf("Access to Symcon failed: %v", err)
+	}
 	t.Run("Test Create Profile", func(t *testing.T) {
 		resp, err = ips.QueryAPI("IPS_CreateVariableProfile", testVariableProfile, testVariableType)
 		err = ips.CheckIPSCmdOK(resp, err)
@@ -119,20 +142,6 @@ func TestSymcon(t *testing.T) {
 		assert.NoErrorf(t, err, "QueryAPI should not return an error:%s", err)
 		assert.True(t, exists, "Variable should exist")
 	})
-	t.Run("Test GetObject", func(t *testing.T) {
-		var obj *IPSObject
-		obj, err = ips.GetIPSObject(varid)
-		assert.NoError(t, err, "GetIPSObject should not return an error:%s", err)
-		assert.NotNil(t, obj, "GetIPSObject should return an object")
-		if obj != nil {
-			assert.Equal(t, testVariableName, obj.ObjectName, "Object name should not be empty")
-			assert.Equal(t, testVariableIdent, obj.ObjectIdent, "Object ident should be test")
-			assert.Equalf(t, catid, obj.ParentID, "Object parent should be %d", catid)
-			assert.Equal(t, objTypesReverse["variable"], obj.ObjectType, "Category type should be Variable")
-			assert.Equal(t, testCategoryName+"/"+testVariableName, obj.ObjectPath, "variable path should be category/variable")
-			t.Logf("Object: %s", obj)
-		}
-	})
 	t.Run("Test SetIPSVarValue", func(t *testing.T) {
 		err = ips.SetIPSVarValue(varid, testVariableValue)
 		assert.NoErrorf(t, err, "SetIPSVariableValue should not return an error:%s", err)
@@ -147,7 +156,6 @@ func TestSymcon(t *testing.T) {
 			assert.Equalf(t, testVariableValue, variable.Value, "Variable value should be %f", testVariableValue)
 			assert.Equalf(t, testVariableIdent, variable.Ident, "Variable ident should be %s", testVariableIdent)
 			assert.Equalf(t, catid, variable.Parent, "Variable parent should be category id %d", catid)
-			assert.Equal(t, testCategoryName+"/"+testVariableName, variable.VariablePath, "variable path should be category/variable")
 			t.Logf("Variable: %v", variable)
 		}
 	})

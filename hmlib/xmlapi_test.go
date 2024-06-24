@@ -26,7 +26,7 @@ type mockStatus struct {
 func TestQueryAPI(t *testing.T) {
 	var err error
 	var result mockTest
-	test.Testinit(t)
+	test.InitTestDirs()
 
 	httpmock.ActivateNonDefault(httpClient.GetClient())
 	defer httpmock.DeactivateAndReset()

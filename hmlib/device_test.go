@@ -12,7 +12,7 @@ import (
 
 func TestDevice(t *testing.T) {
 	var err error
-	test.Testinit(t)
+	test.InitTestDirs()
 	httpmock.ActivateNonDefault(httpClient.GetClient())
 	defer httpmock.DeactivateAndReset()
 	hmURL = MockURL

@@ -28,7 +28,7 @@ func TestGPG(t *testing.T) {
 	var key string
 	var entityList openpgp.EntityList
 	var entity *openpgp.Entity
-	test.Testinit(t)
+	test.InitTestDirs()
 
 	secretGPGKeyFile := path.Join(test.TestData, "test.gpg.key")
 	publicGPGKeyFile := path.Join(test.TestData, "test.asc")
@@ -110,7 +110,7 @@ func TestGopassSecrets(t *testing.T) {
 	var gpgid string
 	var keyPass string
 
-	test.Testinit(t)
+	test.InitTestDirs()
 	secretGPGKeyFile := path.Join(test.TestDir, "gpg", "test.gpg.key")
 	// publicGPGKeyFile := path.Join(test.TestDir, "gpg", "test.asc")
 	gpgKeyPassFile := path.Join(test.TestDir, "gpg", "test.gpgpw")

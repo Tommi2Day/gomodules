@@ -12,7 +12,7 @@ import (
 )
 
 func TestValue(t *testing.T) {
-	test.Testinit(t)
+	test.InitTestDirs()
 	httpmock.ActivateNonDefault(httpClient.GetClient())
 	hmURL = MockURL
 	hmToken = MockToken
