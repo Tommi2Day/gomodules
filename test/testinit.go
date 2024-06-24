@@ -3,10 +3,11 @@ package test
 
 // https://intellij-support.jetbrains.com/hc/en-us/community/posts/360009685279-Go-test-working-directory-keeps-changing-to-dir-of-the-test-file-instead-of-value-in-template
 import (
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"runtime"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // TestDir working dir for test
