@@ -5,7 +5,11 @@
 - common: add RandomString function and tests
 - common: add WriteStringToFile function and tests
 ### Changed
+- symcon: change no profile output
 - update dependencies
+### Fixed
+- symcon: fix linter issues
+- symcon: fix test
 
 
 ## [v1.14.3 - 2024-06-24]
