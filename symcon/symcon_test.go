@@ -56,7 +56,7 @@ func TestSymcon(t *testing.T) {
 	ips.SetEmail(testUser)
 	ips.SetPassword(testPass)
 	ips.SetURL(testURL)
-	ips.SetDebug(true)
+	// ips.SetDebug(true)
 	ready := false
 	t.Run("Test IPS Ready", func(t *testing.T) {
 		kMap := common.ReverseMap(IPSKernelRunlevel)
@@ -212,7 +212,7 @@ func TestSymcon(t *testing.T) {
 		assert.Equalf(t, fmt.Sprintf("Unnamed Object (ID: %d)", varid), variable.Name, "Variable ident should not be %s", testVariableIdent)
 		s := variable.String()
 		t.Log(s)
-		assert.Contains(t, s, "Profile: None", "Variable profile should be printed as 'Profile: None'")
+		assert.Contains(t, s, "Profile: No profile", "Variable profile should be printed as 'Profile: No profile'")
 		assert.Contains(t, s, "Associations: None", "Variable associations should be printed as 'Associations: None'")
 	})
 }
