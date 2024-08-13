@@ -36,6 +36,11 @@ func ReadFileToString(filename string) (string, error) {
 	return b.String(), err
 }
 
+// WriteStringToFile saves a string to filename and assign rights 0600
+func WriteStringToFile(filename string, content string) error {
+	return os.WriteFile(filename, []byte(content), 0600)
+}
+
 // ReadFileByLine read a file and return array of lines
 func ReadFileByLine(filename string) ([]string, error) {
 	var lines []string

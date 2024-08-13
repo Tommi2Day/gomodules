@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -135,5 +136,65 @@ func TestFileHelper(t *testing.T) {
 		assert.False(t, IsFile(test.TestDir))
 		assert.False(t, IsFile("dummy.xxx"))
 		assert.True(t, IsFile(path.Join(test.TestDir, "testinit.go")))
+	})
+}
+func TestWriteStringToFile(t *testing.T) {
+	test.InitTestDirs()
+	t.Run("Write content to new file", func(t *testing.T) {
+		filename := test.TestData + "/writetest_new.txt"
+		content := "This is a test content"
+
+		// write content
+		err := WriteStringToFile(filename, content)
+		assert.NoError(t, err)
+
+		// content test
+		readContent, err := ReadFileToString(filename)
+		assert.NoError(t, err)
+		assert.Equal(t, content, readContent)
+
+		// mode test (not in windows
+		if runtime.GOOS != "windows" {
+			fileStat, err := os.Stat(filename)
+			expectedMode := os.FileMode.Perm(0600)
+			assert.NoError(t, err)
+			assert.Equalf(t, expectedMode, fileStat.Mode(), "File permissions '%s' not as expected '%s'", expectedMode, fileStat.Mode())
+		}
+	})
+
+	t.Run("Overwrite existing file", func(t *testing.T) {
+		filename := test.TestData + "/writetest_existing.txt"
+		initialContent := "Initial content"
+		newContent := "New content"
+
+		err := WriteStringToFile(filename, initialContent)
+		assert.NoError(t, err)
+
+		err = WriteStringToFile(filename, newContent)
+		assert.NoError(t, err)
+
+		readContent, err := ReadFileToString(filename)
+		assert.NoError(t, err)
+		assert.Equal(t, newContent, readContent)
+	})
+
+	t.Run("Write empty string", func(t *testing.T) {
+		filename := test.TestData + "/writetest_empty.txt"
+		content := ""
+
+		err := WriteStringToFile(filename, content)
+		assert.NoError(t, err)
+
+		readContent, err := ReadFileToString(filename)
+		assert.NoError(t, err)
+		assert.Empty(t, readContent)
+	})
+
+	t.Run("Write to file in non-existent directory", func(t *testing.T) {
+		filename := test.TestData + "/nonexistent/writetest.txt"
+		content := "Test content"
+
+		err := WriteStringToFile(filename, content)
+		assert.Error(t, err)
 	})
 }
