@@ -1,5 +1,13 @@
 # Go Library
 
+## [v1.14.4 - 2024-08-13]
+### New
+- common: add RandomString function and tests
+- common: add WriteStringToFile function and tests
+### Changed
+- update dependencies
+
+
 ## [v1.14.3 - 2024-06-24]
 ### New
 - symcon: add IsReady and IPSObject.String function
