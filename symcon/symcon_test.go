@@ -1,6 +1,7 @@
 package symcon
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -136,6 +137,7 @@ func TestSymcon(t *testing.T) {
 	if varid == 0 {
 		t.Fatalf("Variable not created")
 	}
+
 	t.Run("Test Variable Exists", func(t *testing.T) {
 		exists := false
 		exists, err = ips.IPSVariableExists(varid)
@@ -147,7 +149,8 @@ func TestSymcon(t *testing.T) {
 		assert.NoErrorf(t, err, "SetIPSVariableValue should not return an error:%s", err)
 	})
 	t.Run("Test GetVariable", func(t *testing.T) {
-		variable, err := ips.GetIPSVariableInfo(varid)
+		var variable *IPSVariable
+		variable, err = ips.GetIPSVariableInfo(varid)
 		assert.NoErrorf(t, err, "GetVariable should not return an error:%s", err)
 		if variable != nil {
 			assert.Equal(t, testVariableType, variable.VariableType, "Variable type should be float64")
@@ -156,7 +159,7 @@ func TestSymcon(t *testing.T) {
 			assert.Equalf(t, testVariableValue, variable.Value, "Variable value should be %f", testVariableValue)
 			assert.Equalf(t, testVariableIdent, variable.Ident, "Variable ident should be %s", testVariableIdent)
 			assert.Equalf(t, catid, variable.Parent, "Variable parent should be category id %d", catid)
-			t.Logf("Variable: %v", variable)
+			t.Logf("Variable: %s", variable.String())
 		}
 	})
 	t.Run("Test Object path", func(t *testing.T) {
@@ -166,5 +169,50 @@ func TestSymcon(t *testing.T) {
 		assert.NotEmpty(t, path, "Object path should not be empty")
 		assert.Equal(t, testCategoryName+"/"+testVariableName, path, "Object path should be category/variable")
 		t.Logf("Object path: %s", path)
+	})
+	t.Run("Test GetObject Not Exists", func(t *testing.T) {
+		var obj *IPSObject
+		obj, err = ips.GetIPSObject(94711)
+		assert.Error(t, err, "QueryAPI should return an error")
+		assert.Nil(t, obj, "Object should be Nil")
+	})
+	t.Run("Test GetVariableInfo Not Exists", func(t *testing.T) {
+		var variable *IPSVariable
+		variable, err = ips.GetIPSVariableInfo(4711)
+		assert.Error(t, err, "QueryAPI should return an error")
+		assert.Nil(t, variable, "Variable should be Nil")
+	})
+	t.Run("Test Variable Not Exists", func(t *testing.T) {
+		exists := false
+		exists, err = ips.IPSVariableExists(4711)
+		assert.NoErrorf(t, err, "IPSVariableExists should return an error:%s", err)
+		assert.False(t, exists, "Variable should not exist")
+	})
+
+	t.Run("Test Variable without Profile", func(t *testing.T) {
+		var variable *IPSVariable
+		resp, err = ips.QueryAPI("IPS_CreateVariable", testVariableType)
+		err = ips.CheckIPSCmdOK(resp, err)
+		assert.NoErrorf(t, err, "CreateObject should not return an error:%s", err)
+		assert.NotNil(t, resp, "QueryAPI should return a response")
+		if resp == nil {
+			t.Fatalf("CreateVariable should return a response")
+		}
+
+		i := int(resp.Result.(float64))
+		varid = i
+		assert.NotZero(t, varid, "CreateVariable should return an ID")
+
+		variable, err = ips.GetIPSVariableInfo(varid)
+		assert.NoErrorf(t, err, "GetVariable should not return an error:%s", err)
+		assert.NotNil(t, variable, "Variable should not be nil")
+		assert.Nil(t, variable.VariableProfile, "Variable profile should be nil")
+		assert.Nil(t, variable.VariableAssociations, "Variable associations should be nil")
+		assert.NotEqualf(t, testVariableName, variable.Name, "Variable name should not be %s", testVariableName)
+		assert.Equalf(t, fmt.Sprintf("Unnamed Object (ID: %d)", varid), variable.Name, "Variable ident should not be %s", testVariableIdent)
+		s := variable.String()
+		t.Log(s)
+		assert.Contains(t, s, "Profile: None", "Variable profile should be printed as 'Profile: None'")
+		assert.Contains(t, s, "Associations: None", "Variable associations should be printed as 'Associations: None'")
 	})
 }

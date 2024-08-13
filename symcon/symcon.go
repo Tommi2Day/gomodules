@@ -124,24 +124,27 @@ func (s *Symcon) QueryAPI(method string, arguments ...interface{}) (apiResponse 
 		Params: arguments,
 		ID:     "0",
 	}
-	log.Debugf("api request: %s", rpc)
 	j, err := json.Marshal(rpc)
 	if err != nil {
 		err = fmt.Errorf("cannot marshal request: %s", err)
 		return
 	}
 	req := httpClient.R().SetBody(j)
+
+	// do the request
 	resp, err = req.Post(endpoint)
 	if err != nil {
 		err = fmt.Errorf("cannot do api request: %s", err)
 		return
 	}
 
-	log.Debugf("api response : %s", resp)
+	// check response code
 	if resp.StatusCode() != 200 {
 		err = fmt.Errorf("invalid status code: %d", resp.StatusCode())
 		return
 	}
+
+	// check response body
 	data := resp.Body()
 	j = data
 	log.Debugf("response body: %s", j)
@@ -292,6 +295,7 @@ func (s *Symcon) IPSVariableExists(id int) (exists bool, err error) {
 		return false, err
 	}
 	exists = resp.Result.(bool)
+	log.Debugf("variable exists: %v", exists)
 	return exists, nil
 }
 
@@ -506,24 +510,47 @@ func (s *Symcon) IsReady() bool {
 }
 
 func (v *IPSVariable) String() string {
-	assoc := ""
-	if len(*v.VariableAssociations) > 0 {
-		for i, v := range *v.VariableAssociations {
-			assoc += fmt.Sprintf("\nAssociation %d: %s", i, v)
+	assoc := "None"
+	profile := ""
+	if v == nil {
+		return "No variable data"
+	}
+	if v.VariableProfile == nil {
+		profile = "No profile"
+	} else {
+		profile = v.VariableProfile.ProfileName
+	}
+	if v.VariableAssociations != nil {
+		a := *v.VariableAssociations
+		if len(a) > 0 {
+			assoc = ""
+			for i, v := range a {
+				assoc += fmt.Sprintf("\nAssociation %d: %s", i, v)
+			}
 		}
 	}
+
 	return fmt.Sprintf("ID: %d, Name: %s, Type: %s, Updated: %s, Value: %v, Profile: %s, Associations: %s",
-		v.VariableID, v.Name, IPSVarTypes[v.VariableType], time.Unix(v.VariableUpdated, 0).String(), v.Value, v.VariableProfileName, assoc)
+		v.VariableID, v.Name, IPSVarTypes[v.VariableType], time.Unix(v.VariableUpdated, 0).String(), v.Value, profile, assoc)
 }
 func (r *APIResponse) String() string {
+	if r == nil {
+		return "No response data"
+	}
 	return fmt.Sprintf("RPC: %s, ID: %s, Result: %v, Error: %v",
 		r.RPC, r.ID, r.Result, r.Error)
 }
 func (r *APIError) String() string {
+	if r == nil {
+		return "No error"
+	}
 	return fmt.Sprintf("Code: %d, Message: %s",
 		r.Code, r.Message)
 }
 func (r *APIRequest) String() string {
+	if r == nil {
+		return "No request data"
+	}
 	return fmt.Sprintf("RPC: %s, Method: %s, Params: %v, ID: %s",
 		r.RPC, r.Method, r.Params, r.ID)
 }
@@ -533,6 +560,9 @@ func (a IPSVariableAssociation) String() string {
 }
 
 func (o *IPSObject) String() string {
+	if o == nil {
+		return "No object data"
+	}
 	return fmt.Sprintf("ID: %d, Name: %s, Type: %s, Ident: %s, Parent: %d, Path: %s",
 		o.ObjectID, o.ObjectName, IPSObjectTypes[o.ObjectType], o.ObjectIdent, o.ParentID, o.ObjectPath)
 }
