@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -236,4 +237,58 @@ func TestReverseMap(t *testing.T) {
 	}
 	actual := ReverseMap(input)
 	assert.Equal(t, expected, actual, "Reverse Map not as expected")
+}
+
+func TestRandString(t *testing.T) {
+	t.Run("Test length of generated string", func(t *testing.T) {
+		lengths := []int{0, 1, 5, 10, 100}
+		for _, length := range lengths {
+			result := RandString(length)
+			assert.Equal(t, length, len(result), "Generated string length doesn't match expected length")
+		}
+	})
+
+	t.Run("Test uniqueness of generated strings", func(t *testing.T) {
+		length := 10
+		iterations := 1000
+		generatedStrings := make(map[string]bool)
+		for i := 0; i < iterations; i++ {
+			result := RandString(length)
+			assert.False(t, generatedStrings[result], "Generated string is not unique")
+			generatedStrings[result] = true
+		}
+	})
+
+	t.Run("Test character set of generated string", func(t *testing.T) {
+		length := 1000
+		result := RandString(length)
+		validChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890"
+		for _, char := range result {
+			assert.Contains(t, validChars, string(char), "Generated string contains invalid character")
+		}
+	})
+
+	t.Run("Test concurrent generation", func(t *testing.T) {
+		length := 10
+		iterations := 100
+		results := make(chan string, iterations)
+
+		var wg sync.WaitGroup
+		for i := 0; i < iterations; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				results <- RandString(length)
+			}()
+		}
+
+		wg.Wait()
+		close(results)
+
+		uniqueResults := make(map[string]bool)
+		for result := range results {
+			assert.False(t, uniqueResults[result], "Concurrent generation produced duplicate string")
+			uniqueResults[result] = true
+		}
+	})
 }

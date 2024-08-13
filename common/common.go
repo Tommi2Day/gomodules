@@ -3,7 +3,9 @@ package common
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
+	"math/big"
 	"os"
 	"os/exec"
 	"reflect"
@@ -169,4 +171,15 @@ func FormatUnixtsString(ts string, layout string) string {
 		return ts
 	}
 	return time.Unix(timestamp, 0).Format(layout)
+}
+
+// RandString generates a pseudo random string with letters and digits with desired length
+func RandString(n int) string {
+	const validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890"
+	ret := make([]byte, n)
+	for i := 0; i < n; i++ {
+		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(validChars))))
+		ret[i] = validChars[num.Int64()]
+	}
+	return string(ret)
 }
