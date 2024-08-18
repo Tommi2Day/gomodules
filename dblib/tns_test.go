@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tommi2day/gomodules/test"
@@ -86,15 +88,11 @@ func TestParseTns(t *testing.T) {
 	test.InitTestDirs()
 	err = os.Chdir(test.TestDir)
 	require.NoErrorf(t, err, "ChDir failed")
-
-	//nolint gosec
-	err = os.WriteFile(tnsAdmin+"/sqlnet.ora", []byte(sqlnetcontent), 0644)
+	err = common.WriteStringToFile(tnsAdmin+"/sqlnet.ora", sqlnetcontent)
 	require.NoErrorf(t, err, "Create test sqlnet.ora failed")
-	//nolint gosec
-	err = os.WriteFile(tnsAdmin+"/tnsnames.ora", []byte(tnsnamesora), 0644)
+	err = common.WriteStringToFile(tnsAdmin+"/tnsnames.ora", tnsnamesora)
 	require.NoErrorf(t, err, "Create test tnsnames.ora failed")
-	//nolint gosec
-	err = os.WriteFile(tnsAdmin+"/ifile.ora", []byte(ifileora), 0644)
+	err = common.WriteStringToFile(tnsAdmin+"/ifile.ora", ifileora)
 	require.NoErrorf(t, err, "Create test ifile.ora failed")
 	t.Run("Check TNS_ADMIN", func(t *testing.T) {
 		var actual string

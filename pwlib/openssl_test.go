@@ -184,8 +184,8 @@ func TestOpensslFile(t *testing.T) {
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := pc.PlainTextFile
 	_ = os.Remove(filename)
-	//nolint gosec
-	err = os.WriteFile(filename, []byte(plainfile), 0644)
+
+	err = common.WriteStringToFile(filename, plainfile)
 	require.NoErrorf(t, err, "Create testdata failed")
 
 	// prepare keys
@@ -225,8 +225,8 @@ func TestOpensslFile(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Encrypting Keyfile failed: %v", err)
 		}
-		//nolint gosec
-		err = os.WriteFile(pc.SessionPassFile, []byte(crypted), 0644)
+
+		err = common.WriteStringToFile(pc.SessionPassFile, crypted)
 		if err != nil {
 			t.Fatalf("Cannot write session Key file %s:%v", pc.SessionPassFile, err)
 		}
@@ -262,7 +262,7 @@ func TestOpensslFile(t *testing.T) {
 	})
 	t.Run("Encrypt_API-Decrypt_openssl", func(t *testing.T) {
 		// encrypt using api
-		err := PubEncryptFileSSL(pc.PlainTextFile, pc.CryptedFile, pc.PubKeyFile, pc.SessionPassFile)
+		err = PubEncryptFileSSL(pc.PlainTextFile, pc.CryptedFile, pc.PubKeyFile, pc.SessionPassFile)
 		assert.NoErrorf(t, err, "Cannot Encrypt using API:%s", err)
 		if err != nil {
 			t.Fatalf("Cannot Encrypt using API:%s", err)
@@ -270,12 +270,11 @@ func TestOpensslFile(t *testing.T) {
 
 		// verify witch openssl cmd
 		// read session pass file
-		//nolint gosec
-		data, err := os.ReadFile(pc.SessionPassFile)
+		cryptedKey := ""
+		cryptedKey, err = common.ReadFileToString(pc.SessionPassFile)
 		if err != nil {
 			t.Fatalf("Cannot Read SessionPassFile %s:%v", pc.SessionPassFile, err)
 		}
-		cryptedKey := string(data)
 		// revert base64 encoding
 		b64dec, err := base64.StdEncoding.DecodeString(cryptedKey)
 		if err != nil {

@@ -3,7 +3,8 @@ package pwlib
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"os"
+
+	"github.com/tommi2day/gomodules/common"
 
 	openssl "github.com/Luzifer/go-openssl/v4"
 	log "github.com/sirupsen/logrus"
@@ -13,31 +14,20 @@ import (
 func PrivateDecryptFileSSL(cryptedFile string, privateKeyFile string, keyPass string, sessionPassFile string) (content string, err error) {
 	log.Debugf("decrypt %s with private key %s in OpenSSL format", cryptedFile, privateKeyFile)
 	cryptedkey := ""
-	var data []byte
-	//nolint gosec
-	crypted, err := os.ReadFile(cryptedFile)
+
+	data, err := common.ReadFileToString(cryptedFile)
 	if err != nil {
 		log.Debugf("Cannot Read file '%s': %s", cryptedFile, err)
 		return
 	}
 	if len(sessionPassFile) > 0 {
-		//nolint gosec
-		data, err = os.ReadFile(sessionPassFile)
+		cryptedkey, err = common.ReadFileToString(sessionPassFile)
 		if err != nil {
 			log.Debugf("Cannot Read file '%s': %s", sessionPassFile, err)
 			return
 		}
-		cryptedkey = string(data)
 	}
-	/*
-		else {
-			// generate session key from crypted file
-		}
-	*/
-	if err != nil {
-		log.Debugf("Cannot Read file '%s': %s", sessionPassFile, err)
-		return
-	}
+	crypted := []byte(data)
 	sessionKey, err := PrivateDecryptString(cryptedkey, privateKeyFile, keyPass)
 	if err != nil {
 		log.Debugf("Cannot decrypt Session Key from '%s': %s", sessionPassFile, err)
@@ -58,9 +48,6 @@ func PrivateDecryptFileSSL(cryptedFile string, privateKeyFile string, keyPass st
 func PubEncryptFileSSL(plainFile string, targetFile string, publicKeyFile string, sessionPassFile string) (err error) {
 	const rb = 16
 	log.Debugf("Encrypt %s with public key %s in OpenSSL format", plainFile, publicKeyFile)
-	if err != nil {
-		return
-	}
 	random := make([]byte, rb)
 	_, err = rand.Read(random)
 	if err != nil {
@@ -74,15 +61,14 @@ func PubEncryptFileSSL(plainFile string, targetFile string, publicKeyFile string
 	}
 
 	if len(sessionPassFile) > 0 {
-		//nolint gosec
-		err = os.WriteFile(sessionPassFile, []byte(crypted), 0644)
+		err = common.WriteStringToFile(sessionPassFile, crypted)
 		if err != nil {
 			log.Errorf("Cannot write session Key file %s:%v", sessionPassFile, err)
 		}
 	}
 
 	//nolint gosec
-	plaindata, err := os.ReadFile(plainFile)
+	plainData, err := common.ReadFileToString(plainFile)
 	if err != nil {
 		log.Debugf("Cannot read plaintext file %s:%s", plainFile, err)
 		return
@@ -90,19 +76,14 @@ func PubEncryptFileSSL(plainFile string, targetFile string, publicKeyFile string
 
 	o := openssl.New()
 	// openssl enc -e -aes-256-cbc -md sha246 -base64 -in $SOURCE -out $TARGET -pass pass:$PASSPHRASE
-	encrypted, err := o.EncryptBytes(sessionKey, plaindata, SSLDigest)
+	encrypted, err := o.EncryptBytes(sessionKey, []byte(plainData), SSLDigest)
 	if err != nil {
 		log.Errorf("cannot encrypt plaintext file %s:%s", plainFile, err)
 		return
 	}
 
-	/*if len(sessionPassFile) == 0 {
-		// include session key in crypted file
-	}*/
-
 	// write crypted output file
-	//nolint gosec
-	err = os.WriteFile(targetFile, encrypted, 0644)
+	err = common.WriteStringToFile(targetFile, string(encrypted))
 	if err != nil {
 		log.Errorf("Cannot write: %s", err.Error())
 		return

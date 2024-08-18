@@ -26,8 +26,7 @@ func TestKMS(t *testing.T) {
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := pc.PlainTextFile
 	_ = os.Remove(filename)
-	//nolint gosec
-	err = os.WriteFile(filename, []byte(plainfile), 0644)
+	err = common.WriteStringToFile(filename, plainfile)
 	require.NoErrorf(t, err, "Create testdata failed")
 
 	var kmsClient *kms.Client

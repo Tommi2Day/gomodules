@@ -6,6 +6,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/tommi2day/gomodules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -50,10 +52,9 @@ func TestGenRsaKey(t *testing.T) {
 		assert.IsTypef(t, k, privkey, "Not a private key")
 		assert.FileExists(t, pubfilename)
 		assert.FileExists(t, privfilename)
-		//nolint gosec
-		content, err := os.ReadFile(privfilename)
+		content, err := common.ReadFileToString(privfilename)
 		assert.NoErrorf(t, err, "File Read Error %s", err)
-		assert.Contains(t, string(content), "Proc-Type: 4,ENCRYPTED")
+		assert.Contains(t, content, "Proc-Type: 4,ENCRYPTED")
 	})
 }
 

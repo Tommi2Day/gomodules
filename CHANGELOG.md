@@ -1,8 +1,9 @@
 # Go Library
 
-## [v1.14.6 - 2024-08-18]
+## [v1.14.7 - 2024-08-18]
 ### Changed
 - netlib,dblib: change docker network range
+- use common.WriteStringToFile/ReadFileToString instead of os.WriteFile and os.ReadFile
 - update dependencies
 ### Fixed
 - fix new linter issues

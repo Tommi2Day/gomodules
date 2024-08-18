@@ -104,7 +104,7 @@ func TestGit(t *testing.T) {
 	})
 	t.Run("TestNonGit ERROR", func(t *testing.T) {
 		filename := path.Join(test.TestData, "testgit.txt")
-		err := os.WriteFile(filename, []byte("test"), 0600)
+		err := WriteStringToFile(filename, "test")
 		require.NoErrorf(t, err, "WriteFile failed")
 		gitDir, err := GetGitRootDir(filename)
 		assert.NoErrorf(t, err, "GetGitRootDir should not fail: %s", err)

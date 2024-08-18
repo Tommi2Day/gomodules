@@ -15,8 +15,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
+
+	"github.com/tommi2day/gomodules/common"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -51,7 +52,7 @@ func GenRsaKey(pubfilename string, privfilename string, password string) (public
 		}
 		// save it
 		privatekeyPem := pem.EncodeToMemory(block)
-		err = os.WriteFile(privfilename, privatekeyPem, 0600)
+		err = common.WriteStringToFile(privfilename, string(privatekeyPem))
 		if err != nil {
 			log.Errorf("cannot write %s: %s", privfilename, err)
 			return
@@ -66,8 +67,7 @@ func GenRsaKey(pubfilename string, privfilename string, password string) (public
 			Bytes: pubbytes,
 		}
 		pubkeyPem := pem.EncodeToMemory(block)
-		//nolint gosec
-		err = os.WriteFile(pubfilename, pubkeyPem, 0644)
+		err = common.WriteStringToFile(pubfilename, string(pubkeyPem))
 		if err != nil {
 			log.Errorf("cannot write %s: %s", pubfilename, err)
 			return
@@ -84,13 +84,12 @@ func GetPrivateKeyFromFile(privfilename string, rsaPrivateKeyPassword string) (p
 	var privPemBytes []byte
 
 	log.Debugf("GetPrivateKeyFromFile entered for %s", privfilename)
-	//nolint gosec
-	priv, err := os.ReadFile(privfilename)
+	priv, err := common.ReadFileToString(privfilename)
 	if err != nil {
 		log.Debugf("cannot read %s: %s", privfilename, err)
 		return
 	}
-	privPem, _ := pem.Decode(priv)
+	privPem, _ := pem.Decode([]byte(priv))
 	if privPem == nil {
 		log.Debugf("cannot decode pem in %s", privfilename)
 		return
@@ -136,13 +135,12 @@ func GetPrivateKeyFromFile(privfilename string, rsaPrivateKeyPassword string) (p
 func GetPublicKeyFromFile(publicKeyFile string) (publicKey *rsa.PublicKey, err error) {
 	var parsedKey interface{}
 	log.Debugf("load public key from %s", publicKeyFile)
-	//nolint gosec
-	pub, err := os.ReadFile(publicKeyFile)
+	pub, err := common.ReadFileToString(publicKeyFile)
 	if err != nil {
 		log.Debugf("Cannot Read %s: %s", publicKeyFile, err)
 		return
 	}
-	pubPem, _ := pem.Decode(pub)
+	pubPem, _ := pem.Decode([]byte(pub))
 	if pubPem == nil {
 		log.Debugf("Cannot Decode %s", publicKeyFile)
 		return
@@ -170,7 +168,6 @@ func GetPublicKeyFromFile(publicKeyFile string) (publicKey *rsa.PublicKey, err e
 // PubEncryptFileGo encrypts a file with public key with GO API
 func PubEncryptFileGo(plainFile string, targetFile string, publicKeyFile string) (err error) {
 	const rb = 16
-	var plaindata []byte
 	log.Debugf("Encrypt %s with public key %s", plainFile, publicKeyFile)
 	publicKey, err := GetPublicKeyFromFile(publicKeyFile)
 	if err != nil {
@@ -182,8 +179,8 @@ func PubEncryptFileGo(plainFile string, targetFile string, publicKeyFile string)
 		log.Debugf("Cannot generate session key:%s", err)
 		return
 	}
-	//nolint gosec
-	plaindata, err = os.ReadFile(plainFile)
+	plainData := ""
+	plainData, err = common.ReadFileToString(plainFile)
 	if err != nil {
 		log.Debugf("Cannot read plaintext file %s:%s", plainFile, err)
 		return
@@ -220,15 +217,14 @@ func PubEncryptFileGo(plainFile string, targetFile string, publicKeyFile string)
 	}
 
 	// do encryption and seal
-	cipherdata := aesgcm.Seal(nil, nonce, plaindata, nil)
+	cipherdata := aesgcm.Seal(nil, nonce, []byte(plainData), nil)
 
 	// encode all parts in base64
 	bindata := bytes.Join([][]byte{encSessionKey, nonce, cipherdata}, []byte(""))
 	b64 := base64.StdEncoding.EncodeToString(bindata)
 
 	// write crypted output file
-	//nolint gosec
-	err = os.WriteFile(targetFile, []byte(b64), 0644)
+	err = common.WriteStringToFile(targetFile, b64)
 	if err != nil {
 		log.Debugf("Cannot write: %s", err.Error())
 		return
@@ -239,8 +235,7 @@ func PubEncryptFileGo(plainFile string, targetFile string, publicKeyFile string)
 // PrivateDecryptFileGo Decrypt a file with private key with GO API
 func PrivateDecryptFileGo(cryptedfile string, privatekeyfile string, keypass string) (content string, err error) {
 	log.Debugf("decrypt %s with private key %s", cryptedfile, privatekeyfile)
-	//nolint gosec
-	data, err := os.ReadFile(cryptedfile)
+	data, err := common.ReadFileToString(cryptedfile)
 	if err != nil {
 		log.Debugf("Cannot Read file '%s': %s", cryptedfile, err)
 		return
@@ -250,7 +245,7 @@ func PrivateDecryptFileGo(cryptedfile string, privatekeyfile string, keypass str
 		log.Debugf("Cannot read keys from '%s': %s", privatekeyfile, err)
 		return
 	}
-	bindata, err := base64.StdEncoding.DecodeString(string(data))
+	bindata, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		log.Debugf("decode base64 for %s failed: %s", cryptedfile, err)
 		return
@@ -341,9 +336,5 @@ func PublicEncryptString(plain string, publicKeyFile string) (crypted string, er
 		return
 	}
 	crypted = base64.StdEncoding.EncodeToString(data)
-	if err != nil {
-		log.Debugf("decode base64 failed: %s", err)
-		return
-	}
 	return
 }

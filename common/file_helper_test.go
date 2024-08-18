@@ -32,8 +32,8 @@ func TestFileHelper(t *testing.T) {
 		err := os.Chdir(test.TestDir)
 		require.NoErrorf(t, err, "ChDir failed")
 		_ = os.Remove(filename)
-		//nolint gosec
-		err = os.WriteFile(filename, []byte(data), 0644)
+
+		err = WriteStringToFile(filename, data)
 		require.NoErrorf(t, err, "Create testdata failed")
 
 		// run
@@ -67,8 +67,8 @@ func TestFileHelper(t *testing.T) {
 		err := os.Chdir(test.TestDir)
 		require.NoErrorf(t, err, "ChDir failed")
 		_ = os.Remove(filename)
-		//nolint gosec
-		err = os.WriteFile(filename, []byte(data), 0644)
+
+		err = WriteStringToFile(filename, data)
 		require.NoErrorf(t, err, "Create testdata failed")
 		lines := strings.Split(data, "\n")
 

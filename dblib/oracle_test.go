@@ -44,9 +44,7 @@ func TestWithOracle(t *testing.T) {
 	test.InitTestDirs()
 	tnsAdmin = test.TestData
 	filename := tnsAdmin + "/connect.ora"
-	//_ = os.Chdir(tnsAdmin)
-	//nolint gosec
-	_ = os.WriteFile(filename, []byte(connectora), 0644)
+	_ = common.WriteStringToFile(filename, connectora)
 
 	t.Logf("load from %s", filename)
 	domain, _ := ReadSqlnetOra(tnsAdmin)

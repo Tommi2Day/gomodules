@@ -245,8 +245,7 @@ func GPGEncryptFile(plainFile string, targetFile string, publicKeyFile string) (
 	if err != nil {
 		return
 	}
-	//nolint gosec
-	err = os.WriteFile(targetFile, encryptedBytes, 0644)
+	err = common.WriteStringToFile(targetFile, string(encryptedBytes))
 	return
 }
 

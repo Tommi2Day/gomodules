@@ -40,9 +40,7 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		data, err = DecodeFile(cryptedfile)
 		content = string(data)
 	case typePlain:
-		//nolint gosec
-		data, err = os.ReadFile(cryptedfile)
-		content = string(data)
+		content, err = common.ReadFileToString(cryptedfile)
 	case typeVault:
 		content, err = GetVaultSecret(cryptedfile, "", "")
 	case typeGPG:

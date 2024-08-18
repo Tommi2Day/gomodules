@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tommi2day/gomodules/common"
+
 	"github.com/tommi2day/gomodules/netlib"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +30,7 @@ func TestRACInfo(t *testing.T) {
 	require.NoErrorf(t, err, "ChDir failed")
 
 	//nolint gosec
-	err = os.WriteFile(tnsAdmin+"/racinfo.ini", []byte(racinfoini), 0644)
+	err = common.WriteStringToFile(tnsAdmin+"/racinfo.ini", racinfoini)
 	require.NoErrorf(t, err, "Create test racinfo.ini failed")
 
 	if os.Getenv("SKIP_DNS") != "" {

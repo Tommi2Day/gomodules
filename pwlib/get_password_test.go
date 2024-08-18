@@ -42,8 +42,7 @@ func TestCrypt(t *testing.T) {
 		pc := NewConfig(app, dataDir, keyDir, app, m)
 		filename := pc.PlainTextFile
 		_ = os.Remove(filename)
-		//nolint gosec
-		err = os.WriteFile(filename, []byte(plain), 0644)
+		err = common.WriteStringToFile(filename, plain)
 		require.NoErrorf(t, err, "Create testdata failed")
 
 		// genkey or use existing for GPG
@@ -93,8 +92,7 @@ func TestGetPassword(t *testing.T) {
 	require.NoErrorf(t, err, "ChDir failed")
 	filename := pc.PlainTextFile
 	_ = os.Remove(filename)
-	//nolint gosec
-	err = os.WriteFile(filename, []byte(plain), 0644)
+	err = common.WriteStringToFile(filename, plain)
 	require.NoErrorf(t, err, "Create testdata failed")
 	_, _, err = GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
 	require.NoErrorf(t, err, "Prepare Key failed:%s", err)

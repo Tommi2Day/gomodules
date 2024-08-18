@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/tommi2day/gomodules/common"
@@ -332,15 +331,13 @@ func KMSEncryptFile(plainFile string, targetFile string, keyID string, sessionPa
 	}
 
 	if len(sessionPassFile) > 0 {
-		//nolint gosec
-		err = os.WriteFile(sessionPassFile, []byte(crypted), 0644)
+		err = common.WriteStringToFile(sessionPassFile, crypted)
 		if err != nil {
 			log.Errorf("Cannot write session Key file %s:%v", sessionPassFile, err)
 		}
 	}
 
-	//nolint gosec
-	plaindata, err := os.ReadFile(plainFile)
+	plainData, err := common.ReadFileToString(plainFile)
 	if err != nil {
 		log.Debugf("Cannot read plaintext file %s:%s", plainFile, err)
 		return
@@ -348,14 +345,13 @@ func KMSEncryptFile(plainFile string, targetFile string, keyID string, sessionPa
 
 	o := openssl.New()
 	// openssl enc -e -aes-256-cbc -md sha246 -base64 -in $SOURCE -out $TARGET -pass pass:$PASSPHRASE
-	encrypted, err := o.EncryptBytes(sessionKey, plaindata, SSLDigest)
+	encrypted, err := o.EncryptBytes(sessionKey, []byte(plainData), SSLDigest)
 	if err != nil {
 		log.Errorf("cannot encrypt plaintext file %s:%s", plainFile, err)
 		return
 	}
 	// write crypted output file
-	//nolint gosec
-	err = os.WriteFile(targetFile, encrypted, 0644)
+	err = common.WriteStringToFile(targetFile, string(encrypted))
 	if err != nil {
 		log.Errorf("Cannot write: %s", err.Error())
 		return
@@ -377,28 +373,18 @@ func KMSDecryptFile(cryptedFile string, keyID string, sessionPassFile string) (c
 		log.Debug(err)
 		return
 	}
-	//nolint gosec
-	cryptedData, err := os.ReadFile(cryptedFile)
+
+	cryptedData, err := common.ReadFileToString(cryptedFile)
 	if err != nil {
 		log.Debugf("cannot Read file '%s': %s", cryptedFile, err)
 		return
 	}
 	encSessionKey := ""
-
-	var sp []byte
-	//nolint gosec
-	sp, err = os.ReadFile(sessionPassFile)
+	encSessionKey, err = common.ReadFileToString(sessionPassFile)
 	if err != nil {
 		log.Debugf("cannot Read file '%s': %s", sessionPassFile, err)
 		return
 	}
-	encSessionKey = string(sp)
-
-	if err != nil {
-		log.Debugf("Cannot Read file '%s': %s", sessionPassFile, err)
-		return
-	}
-
 	sessionKey, err := KMSDecryptString(svc, keyID, encSessionKey)
 	if err != nil {
 		log.Debugf("decode session key failed:%s", err)
@@ -409,7 +395,7 @@ func KMSDecryptFile(cryptedFile string, keyID string, sessionPassFile string) (c
 
 	// OPENSSL enc -d -aes-256-cbc -md sha256 -base64 -in $SOURCE -pass pass:$SESSIONKEY
 	o := openssl.New()
-	decoded, err := o.DecryptBytes(sessionKey, cryptedData, SSLDigest)
+	decoded, err := o.DecryptBytes(sessionKey, []byte(cryptedData), SSLDigest)
 	if err != nil {
 		log.Debugf("Cannot decrypt data from '%s': %s", cryptedFile, err)
 		return

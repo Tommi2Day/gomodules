@@ -89,8 +89,7 @@ func TestGPG(t *testing.T) {
 		}
 	})
 	plaintextfile := path.Join(test.TestData, "test.gpg.txt")
-	//nolint gosec
-	err = os.WriteFile(plaintextfile, []byte(plain), 0644)
+	err = common.WriteStringToFile(plaintextfile, plain)
 	require.NoErrorf(t, err, "Create testdata failed")
 	cryptedfile := path.Join(test.TestData, "test.gpg.crypt")
 	t.Run("Encrypt GPG File", func(t *testing.T) {

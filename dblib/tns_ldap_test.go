@@ -59,8 +59,7 @@ func TestOracleLdap(t *testing.T) {
 	ldapAdmin := test.TestData
 
 	t.Run("Parse wrong ldap.ora", func(t *testing.T) {
-		//nolint gosec
-		err = os.WriteFile(ldapAdmin+"/ldap.ora", []byte(ldaporaFail), 0644)
+		err = common.WriteStringToFile(ldapAdmin+"/ldap.ora", ldaporaFail)
 		require.NoErrorf(t, err, "Create test ldap.ora failed")
 		_, ldapservers := ReadLdapOra(ldapAdmin)
 		e := 1
@@ -73,8 +72,8 @@ func TestOracleLdap(t *testing.T) {
 			assert.Equal(t, expected, actual, "ldap entry 1 not match")
 		}
 	})
-	//nolint gosec
-	err = os.WriteFile(ldapAdmin+"/ldap.ora", []byte(ldaporaOK), 0644)
+
+	err = common.WriteStringToFile(ldapAdmin+"/ldap.ora", ldaporaOK)
 	require.NoErrorf(t, err, "Create test ldap.ora failed")
 	t.Run("Parse ldap.ora", func(t *testing.T) {
 		oraclecontext, ldapservers := ReadLdapOra(ldapAdmin)
