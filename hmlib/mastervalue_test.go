@@ -35,7 +35,7 @@ func TestValue(t *testing.T) {
 		v, err = GetMasterValues(devices, rn)
 		require.NoErrorf(t, err, "GetValueList should not return an error:%s", err)
 		l := len(v.MasterValueDevices)
-		assert.Equal(t, 2, l, "GetMasterValuies should return 2 devices")
+		assert.Equal(t, 2, l, "GetMasterValues should return 2 devices")
 		if l > 0 {
 			assert.Equal(t, 12, len(v.MasterValueDevices[0].MasterValue), "GetMasterValues should return 2 values")
 		}
