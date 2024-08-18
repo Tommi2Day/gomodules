@@ -20,6 +20,12 @@ import (
 const testGPGName = "Test User"
 const testGPGEmail = "test@example.com"
 const testGPGPass = "123456Pass!"
+const testGPGPFILE = "test.gpgpw"
+const gpgapp = "test"
+const testGPGpub = gpgapp + pubGPGExt
+const testGPGPriv = gpgapp + privGPGExt
+const gopassStore = "gopass-store"
+const gopassIDExt = ".gpg-id"
 
 func TestGPG(t *testing.T) {
 	var err error
@@ -30,8 +36,8 @@ func TestGPG(t *testing.T) {
 	var entity *openpgp.Entity
 	test.InitTestDirs()
 
-	secretGPGKeyFile := path.Join(test.TestData, "test.gpg.key")
-	publicGPGKeyFile := path.Join(test.TestData, "test.asc")
+	secretGPGKeyFile := path.Join(test.TestData, testGPGPriv)
+	publicGPGKeyFile := path.Join(test.TestData, testGPGpub)
 	_ = os.Remove(publicGPGKeyFile)
 	_ = os.Remove(secretGPGKeyFile)
 
@@ -110,11 +116,10 @@ func TestGopassSecrets(t *testing.T) {
 	var keyPass string
 
 	test.InitTestDirs()
-	secretGPGKeyFile := path.Join(test.TestDir, "gpg", "test.gpg.key")
-	// publicGPGKeyFile := path.Join(test.TestDir, "gpg", "test.asc")
-	gpgKeyPassFile := path.Join(test.TestDir, "gpg", "test.gpgpw")
-	storeRoot := path.Join(test.TestDir, "pwlib-store")
-	keyIDFile := path.Join(storeRoot, ".gpg-id")
+	secretGPGKeyFile := path.Join(test.TestDir, "gpg", testGPGPriv)
+	gpgKeyPassFile := path.Join(test.TestDir, "gpg", testGPGPFILE)
+	storeRoot := path.Join(test.TestDir, gopassStore)
+	keyIDFile := path.Join(storeRoot, gopassIDExt)
 	gpgid, err = common.ReadFileToString(keyIDFile)
 	require.NoErrorf(t, err, "GetKeyId should be no error, but got %v", err)
 	keyPass, err = common.ReadFileToString(gpgKeyPassFile)
@@ -133,7 +138,7 @@ func TestGopassSecrets(t *testing.T) {
 		// store name is not part of result
 		sr := filepath.ToSlash(filepath.Dir(storeRoot))
 		actual := findGPGFiles(storeRoot)
-		expected := []string{"pwlib-store/test/test1.gpg", "pwlib-store/test/test2.gpg", "pwlib-store/passphrase.gpg"}
+		expected := []string{gopassStore + "/test/test1.gpg", gopassStore + "/test/test2.gpg", gopassStore + "/passphrase.gpg"}
 		assert.Equal(t, len(expected), len(actual), "len should be %d", len(expected))
 		t.Log(actual)
 		for _, e := range expected {
@@ -151,7 +156,7 @@ func TestGopassSecrets(t *testing.T) {
 			t.Fatal(err)
 		}
 		lines := strings.Split(actual, "\n")
-		expected := []string{"pwlib-store:passphrase:", "pwlib-store/test:test1:123456", "pwlib-store/test:test2:"}
+		expected := []string{gopassStore + ":passphrase:", gopassStore + "/test:test1:123456", gopassStore + "/test:test2:"}
 		assert.Equal(t, len(expected), len(lines), "len should be %d", len(expected))
 		t.Log(lines)
 		for _, e := range expected {
@@ -177,7 +182,7 @@ func TestGopassSecrets(t *testing.T) {
 		pass := ""
 		pc := NewConfig(app, storeRoot, path.Dir(secretGPGKeyFile), keyPass, typeGopass)
 		pc.PrivateKeyFile = secretGPGKeyFile
-		pass, err = pc.GetPassword("pwlib-store/test", "test1")
+		pass, err = pc.GetPassword(gopassStore+"/test", "test1")
 		expected := "123456"
 		assert.NoErrorf(t, err, "Got unexpected error: %s", err)
 		assert.Equal(t, expected, pass, "Answer not expected. exp:%s,act:%s", expected, pass)

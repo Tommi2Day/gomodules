@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.14.8 - 2024-08-19]
+### Changed
+- pwlib: refactor gpg gopass test files
+
 ## [v1.14.7 - 2024-08-18]
 ### Changed
 - netlib,dblib: change docker network range

@@ -12,7 +12,7 @@ fi
 
 GPG_PRESET="$(ls /usr/lib/gnupg*/gpg-preset-passphrase*)"
 if [ -z "$GPG_PRESET" ]; then
-    GPG_PRESET=$(command -v gpg-preset-passphrase)    
+    GPG_PRESET=$(command -v gpg-preset-passphrase)
 fi
 if [ ! -x "$GPG_PRESET" ]; then
     echo "gpg-preset-passphrase not found"
@@ -38,15 +38,18 @@ if [ -d "$GNUPGHOME" ]; then
 fi
 
 
+STORE="gopass-store"
+STOREPATH="$TESTDIR/$STORE"
+
 PWFILE="$KEYDIR/$APP.gpgpw"
 IDFILE="$KEYDIR/$APP.gpgid"
-PRIVFILE="$KEYDIR/$APP.gpg.key"
-PUBFILE="$KEYDIR/$APP.asc"
+PRIVFILE="$KEYDIR/$APP.priv.gpg"
+PUBFILE="$KEYDIR/$APP.pub.gpg"
 
 # generate key
 $GPG --batch --gen-key "$APP.keygen"
 grep "^Passphrase:" $APP.keygen|sed -e 's/^Passphrase:\s*//g' |tr -d "\r\n">"$PWFILE"
-EMAIL=$(grep "^Name-Email:" $APP.keygen|sed -e 's/^Name-Email:\s*//g')
+EMAIL=$(grep "^Name-Email:" $APP.keygen|sed -e 's/^Name-Email:\s*//g'|tr -d "\r\n")
 
 # prepare agent
 echo "default-cache-ttl 46000
@@ -57,19 +60,18 @@ gpg-connect-agent reloadagent /bye
 
 $GPG --list-secret-keys
 
-GPG_PASSPHRASE=$(< $PWFILE )
+GPG_PASSPHRASE=$(< "$PWFILE" )
 KEYID="$(gpg --list-secret-keys |grep "$EMAIL" -B 1|grep '^ '|perl -pe 's/.*\s+(\w+)$/\1/g;')"
 KEYGRIP="$(gpg --list-secret-keys --with-keygrip|grep "$EMAIL" -B 1| grep -i 'Keygrip'|perl -pe 's/.*=\s+(\w+)$/\1/g;')"
 
-echo -n "$KEYID" >$IDFILE
+echo -n "$KEYID" >"$IDFILE"
 $GPG --export --armor "$KEYID" >"$PUBFILE"
 echo ""
 $GPG --pinentry-mode loopback --batch --export-secret-key --armor --passphrase "$GPG_PASSPHRASE" "$KEYID" >"$PRIVFILE"
-"$GPG_PRESET" --preset "$KEYGRIP" <<<"$GPG_PASSPHRASE"
+if [ -x "$GPG_PRESET" ]; then
+  "$GPG_PRESET" --preset "$KEYGRIP" <<<"$GPG_PASSPHRASE"
+fi
 
-
-STORE="pwlib-store"
-STOREPATH="$TESTDIR/$STORE"
 
 # cleanup
 if [ -d "$STOREPATH" ]; then
