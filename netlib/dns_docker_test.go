@@ -91,22 +91,6 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 			Name:         netlibDNSContainerName,
 			Networks:     []*dockertest.Network{netlibDNSNetwork},
 			ExposedPorts: []string{"53/tcp", "53/udp", "953/tcp"},
-
-			/*
-				// need fixed mapping here
-				PortBindings: map[docker.Port][]docker.PortBinding{
-					"53/tcp": {
-						{HostIP: "0.0.0.0", HostPort: netlibDNSPort},
-					},
-
-					"53/udp": {
-						{HostIP: "0.0.0.0", HostPort: netlibDNSPort},
-					},
-					"953/tcp": {
-						{HostIP: "127.0.0.1", HostPort: "953"},
-					},
-				},
-			*/
 		}, func(config *docker.HostConfig) {
 			// set AutoRemove to true so that stopped container goes away by itself
 			config.AutoRemove = true
@@ -119,7 +103,7 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 	}
 	// ip := container.Container.NetworkSettings.Networks[netlibNetworkName].IPAddress
 	ip := container.GetIPInNetwork(netlibDNSNetwork)
-	if ip != "172.25.0.2" {
+	if ip != netlibNetworkPrefix+".2" {
 		err = fmt.Errorf("internal ip not as expected: %s", ip)
 		return
 	}

@@ -1,8 +1,8 @@
 # Go Library
 
-## [v1.14.5 - 2024-08-18]
+## [v1.14.6 - 2024-08-18]
 ### Changed
-- netlib: change docker network range
+- netlib,dblib: change docker network range
 - update dependencies
 ### Fixed
 - fix new linter issues

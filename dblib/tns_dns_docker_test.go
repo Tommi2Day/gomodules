@@ -18,6 +18,7 @@ import (
 
 const dblibDNSContainerTimeout = 10
 const dblibNetworkName = "dblib-dns"
+const dblibNetworkPrefix = "172.24.0"
 
 var dblibDNSContainerName string
 var dblibDNSContainer *dockertest.Resource
@@ -49,8 +50,8 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 			options.IPAM = &docker.IPAMOptions{
 				Driver: "default",
 				Config: []docker.IPAMConfig{{
-					Subnet:  "172.24.0.0/16",
-					Gateway: "172.24.0.1",
+					Subnet:  dblibNetworkPrefix + ".0/24",
+					Gateway: dblibNetworkPrefix + ".1",
 				}},
 			}
 			options.EnableIPv6 = false
@@ -89,22 +90,6 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 			Name:         dblibDNSContainerName,
 			Networks:     []*dockertest.Network{dblibDNSNetwork},
 			ExposedPorts: []string{"53/tcp", "53/udp", "953/tcp"},
-
-			/*
-				// need fixed mapping here
-				PortBindings: map[docker.Port][]docker.PortBinding{
-					"53/tcp": {
-						{HostIP: "0.0.0.0", HostPort: dblibDNSPort},
-					},
-
-					"53/udp": {
-						{HostIP: "0.0.0.0", HostPort: dblibDNSPort},
-					},
-					"953/tcp": {
-						{HostIP: "127.0.0.1", HostPort: "953"},
-					},
-				},
-			*/
 		}, func(config *docker.HostConfig) {
 			// set AutoRemove to true so that stopped container goes away by itself
 			config.AutoRemove = true
@@ -117,7 +102,7 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 	}
 	// ip := container.Container.NetworkSettings.Networks[dblibNetworkName].IPAddress
 	ip := container.GetIPInNetwork(dblibDNSNetwork)
-	if ip != "172.24.0.2" {
+	if ip != dblibNetworkPrefix+".2" {
 		err = fmt.Errorf("internal ip not as expected: %s", ip)
 		return
 	}
