@@ -55,7 +55,7 @@ func TestState(t *testing.T) {
 			assert.Containsf(t, s.StateDevices[0].Name, "Bewegungsmelder Garage", "GetStateByDeviceID should return Bewegungsmelder Garage")
 			assert.Equal(t, 4, len(s.StateDevices[0].Channels), "GetStateByDeviceID should return 1 channel")
 		}
-		t.Logf(s.String())
+		t.Log(s.String())
 	})
 	t.Run("single channel state", func(t *testing.T) {
 		var s StateDeviceResponse
@@ -68,7 +68,7 @@ func TestState(t *testing.T) {
 			assert.Containsf(t, c[0].Name, "Bewegungsmelder Garage:0", "GetStateByChannelID should return Bewegungsmelder Garage:0")
 			assert.Equal(t, 10, len(c[0].Datapoints), "GetStateByChannelID should return 1 Datapoints")
 		}
-		t.Logf(s.String())
+		t.Log(s.String())
 	})
 	t.Run("single datapoint state", func(t *testing.T) {
 		var s StateDatapointResponse
@@ -86,7 +86,7 @@ func TestState(t *testing.T) {
 			assert.Equal(t, s.StateDatapoints[0].IseID, "4748", "GetStateByDatapointID should return ID 4748")
 			assert.Equal(t, s.StateDatapoints[0].Value, "false", "GetStateByDatapointID should return value false")
 		}
-		t.Logf(s.String())
+		t.Log(s.String())
 	})
 	t.Run("State Empty", func(t *testing.T) {
 		var s StateDatapointResponse
@@ -101,7 +101,7 @@ func TestState(t *testing.T) {
 		s, err = GetStateByDataPointID("9999")
 		require.NoErrorf(t, err, "GetStateBy should not return an error:%s", err)
 		assert.Equal(t, 0, len(s.StateDatapoints), "GetStateByDatapointID should return 0 datapoint")
-		t.Logf(s.String())
+		t.Log(s.String())
 	})
 	t.Run("state change", func(t *testing.T) {
 		var r StateChangeResponse

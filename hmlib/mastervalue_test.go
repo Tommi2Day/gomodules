@@ -39,7 +39,7 @@ func TestValue(t *testing.T) {
 		if l > 0 {
 			assert.Equal(t, 12, len(v.MasterValueDevices[0].MasterValue), "GetMasterValues should return 2 values")
 		}
-		t.Logf(v.String())
+		t.Log(v.String())
 	})
 	t.Run("mastervalue error", func(t *testing.T) {
 		var v MasterValues

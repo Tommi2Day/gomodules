@@ -19,7 +19,7 @@ func TestRoomlist(t *testing.T) {
 
 	t.Run("RoomListResponse", func(t *testing.T) {
 		actual, err := GetRoomList()
-		t.Logf(actual.String())
+		t.Log(actual.String())
 		assert.NoErrorf(t, err, "GetRoomList should not return an error:%s", err)
 		assert.Equal(t, 2, len(actual.Rooms), "GetRoomList should return 2 entries")
 		idl := map[string]string{}

@@ -47,7 +47,7 @@ func (mt *MailType) buildRecipients(m *mail.Msg) (c int, err error) {
 		if err = m.AddTo(r); err != nil {
 			errtxt = fmt.Sprintf("recipients: failed to set SetTo address %s:%v", r, err)
 			err = errors.New(errtxt)
-			log.Errorf(errtxt)
+			log.Error(errtxt)
 			return
 		}
 		c++
@@ -57,7 +57,7 @@ func (mt *MailType) buildRecipients(m *mail.Msg) (c int, err error) {
 			if err = m.AddCc(cc); err != nil {
 				errtxt = fmt.Sprintf("recipients: failed to set CC address%s:%v", cc, err)
 				err = errors.New(errtxt)
-				log.Errorf(errtxt)
+				log.Error(errtxt)
 				return
 			}
 		}
@@ -68,7 +68,7 @@ func (mt *MailType) buildRecipients(m *mail.Msg) (c int, err error) {
 			if err = m.AddBcc(bcc); err != nil {
 				errtxt = fmt.Sprintf("recipients: failed to set bcc address %s:%v", bcc, err)
 				err = errors.New(errtxt)
-				log.Errorf(errtxt)
+				log.Error(errtxt)
 				return
 			}
 		}
@@ -88,7 +88,7 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 	if addresses.To == nil {
 		errtxt = "sendmail: cannot send Mail without email address"
 		err = errors.New(errtxt)
-		log.Errorf(errtxt)
+		log.Error(errtxt)
 		return
 	}
 

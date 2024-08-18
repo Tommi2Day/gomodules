@@ -19,7 +19,7 @@ func TestRssi(t *testing.T) {
 
 	t.Run("Rssi func", func(t *testing.T) {
 		actual, err := GetRssiList()
-		t.Logf(actual.String())
+		t.Log(actual.String())
 		assert.NoErrorf(t, err, "GetRssiList should not return an error:%s", err)
 		assert.Equal(t, 4, len(actual.RssiDevices), "GetRssiList should return 4 entries")
 		_, ok := RssiDeviceMap["MEQ0481419"]

@@ -1,5 +1,12 @@
 # Go Library
 
+## [v1.14.5 - 2024-08-18]
+### Changed
+- netlib: change docker network range
+- update dependencies
+### Fixed
+- fix new linter issues
+
 ## [v1.14.4 - 2024-08-13]
 ### New
 - common: add RandomString function and tests
