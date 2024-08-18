@@ -50,7 +50,7 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 			options.IPAM = &docker.IPAMOptions{
 				Driver: "default",
 				Config: []docker.IPAMConfig{{
-					Subnet:  netlibNetworkPrefix + ".0/16",
+					Subnet:  netlibNetworkPrefix + ".0/24",
 					Gateway: netlibNetworkPrefix + ".1",
 				}},
 			}
