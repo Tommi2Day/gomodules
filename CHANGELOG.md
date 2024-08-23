@@ -5,6 +5,9 @@
 - common: add StructToMap and StructToString functions
 ### Changed
 - pwlib: refactor gpg gopass test files
+- update linter githib-action
+### Fixed
+- mail: type in setTimeout
 
 ## [v1.14.7 - 2024-08-18]
 ### Changed
