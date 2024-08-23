@@ -19,6 +19,7 @@ import (
 const dblibDNSContainerTimeout = 10
 const dblibNetworkName = "dblib-dns"
 const dblibNetworkPrefix = "172.24.0"
+const dblibRepoTag = "9.20"
 
 var dblibDNSContainerName string
 var dblibDNSContainer *dockertest.Resource
@@ -76,7 +77,7 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 		},
 		{
 			Name:  "BIND9_VERSION",
-			Value: "9.18",
+			Value: dblibRepoTag,
 		},
 	}
 	container, err = pool.BuildAndRunWithBuildOptions(

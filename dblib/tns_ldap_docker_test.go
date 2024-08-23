@@ -14,10 +14,8 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 )
 
-// const Ldaprepo = "docker.io/osixia/openldap"
-// const LdaprepoTag = "1.5.0"
 const Ldaprepo = "docker.io/bitnami/openldap"
-const LdaprepoTag = "2.6.7"
+const LdaprepoTag = "2.6.8"
 const LdapcontainerTimeout = 120
 
 var TnsLdapcontainerName string

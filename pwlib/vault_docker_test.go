@@ -15,7 +15,7 @@ import (
 )
 
 const repo = "docker.io/hashicorp/vault"
-const repoTag = "1.15.4"
+const repoTag = "1.17.3"
 const containerTimeout = 120
 const rootToken = "pwlib-test"
 

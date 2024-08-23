@@ -14,7 +14,7 @@ import (
 )
 
 const mailRepo = "docker.io/mailserver/docker-mailserver"
-const mailRepoTag = "13.2.0"
+const mailRepoTag = "13.3.1"
 const smtpPort = 31025
 const imapPort = 31143
 const sslPort = 31465
