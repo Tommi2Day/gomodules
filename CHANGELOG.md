@@ -5,9 +5,9 @@
 - common: add StructToMap and StructToString functions
 ### Changed
 - pwlib: refactor gpg gopass test files
-- update linter githib-action
-### Fixed
-- mail: type in setTimeout
+- update linter github-action
+- mail: setTimeout uses int64
+- update test docker image versions
 
 ## [v1.14.7 - 2024-08-18]
 ### Changed

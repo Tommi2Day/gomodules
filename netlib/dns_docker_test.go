@@ -76,7 +76,7 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 		},
 		{
 			Name:  "BIND9_VERSION",
-			Value: "9.18",
+			Value: "9.20",
 		},
 	}
 	dockerContextDir := test.TestDir + "/docker/dns"
