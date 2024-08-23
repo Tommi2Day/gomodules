@@ -4,12 +4,16 @@ package common
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
+	"fmt"
 	"io"
 	"math/big"
 	"os"
 	"os/exec"
 	"reflect"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 	"unicode"
 
@@ -159,6 +163,43 @@ func ReverseMap[M ~map[K]V, K comparable, V comparable](m M) map[V]K {
 		reversedMap[value] = key
 	}
 	return reversedMap
+}
+
+// StructToMap converts a struct to a map
+func StructToMap(obj interface{}) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	jsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(jsonBytes, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// StructToString converts a struct to sorted key string
+func StructToString(o interface{}, prefix string) (s string) {
+	m, err := StructToMap(o)
+	if err != nil {
+		return ""
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := m[k]
+		t := fmt.Sprintf("%v", reflect.TypeOf(v))
+		if strings.HasPrefix(t, "map") {
+			s += fmt.Sprintf("%s: \n%s\n", k, StructToString(v, "  "))
+		} else {
+			s += fmt.Sprintf("%s%s: %v\n", prefix, k, m[k])
+		}
+	}
+	return s
 }
 
 // FormatUnixtsString converts a unix timestamp string to a human readable

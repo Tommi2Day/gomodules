@@ -292,3 +292,188 @@ func TestRandString(t *testing.T) {
 		}
 	})
 }
+
+func TestStructToMap(t *testing.T) {
+	t.Run("Test simple struct", func(t *testing.T) {
+		type SimpleStruct struct {
+			Name string
+			Age  int
+		}
+		input := SimpleStruct{Name: "John", Age: 30}
+		expected := map[string]interface{}{"Name": "John", "Age": float64(30)}
+
+		result, err := StructToMap(input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Test nested struct", func(t *testing.T) {
+		type NestedStruct struct {
+			Name    string
+			Address struct {
+				Street string
+				City   string
+			}
+		}
+		input := NestedStruct{
+			Name: "Alice",
+			Address: struct {
+				Street string
+				City   string
+			}{
+				Street: "123 Main St",
+				City:   "Anytown",
+			},
+		}
+		expected := map[string]interface{}{
+			"Name": "Alice",
+			"Address": map[string]interface{}{
+				"Street": "123 Main St",
+				"City":   "Anytown",
+			},
+		}
+
+		result, err := StructToMap(input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Test struct with slice", func(t *testing.T) {
+		type SliceStruct struct {
+			Name    string
+			Numbers []int
+		}
+		input := SliceStruct{Name: "Bob", Numbers: []int{1, 2, 3}}
+		expected := map[string]interface{}{
+			"Name":    "Bob",
+			"Numbers": []interface{}{float64(1), float64(2), float64(3)},
+		}
+
+		result, err := StructToMap(input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Test struct with pointer", func(t *testing.T) {
+		type PointerStruct struct {
+			Name  string
+			Value *int
+		}
+		value := 42
+		input := PointerStruct{Name: "Charlie", Value: &value}
+		expected := map[string]interface{}{"Name": "Charlie", "Value": float64(42)}
+
+		result, err := StructToMap(input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Test empty struct", func(t *testing.T) {
+		type EmptyStruct struct{}
+		input := EmptyStruct{}
+		expected := map[string]interface{}{}
+
+		result, err := StructToMap(input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Test struct with unexported fields", func(t *testing.T) {
+		type UnexportedStruct struct {
+			Name string
+			age  int
+		}
+		input := UnexportedStruct{Name: "Dave", age: 25}
+		expected := map[string]interface{}{"Name": "Dave"}
+
+		result, err := StructToMap(input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Test non-struct input", func(t *testing.T) {
+		input := "not a struct"
+		_, err := StructToMap(input)
+		assert.Error(t, err)
+	})
+}
+func TestStructToString(t *testing.T) {
+	t.Run("Test struct with multiple fields", func(t *testing.T) {
+		type TestStruct struct {
+			Name  string
+			Age   int
+			Email string
+		}
+		testObj := TestStruct{
+			Name:  "John Doe",
+			Age:   30,
+			Email: "john@example.com",
+		}
+		result := StructToString(testObj, "")
+		expected := "Age: 30\nEmail: john@example.com\nName: John Doe\n"
+		assert.Equal(t, expected, result, "Unexpected string representation")
+	})
+
+	t.Run("Test empty struct", func(t *testing.T) {
+		type EmptyStruct struct{}
+		testObj := EmptyStruct{}
+		result := StructToString(testObj, "")
+		assert.Empty(t, result, "Expected empty string for empty struct")
+	})
+
+	t.Run("Test struct with unexported fields", func(t *testing.T) {
+		type TestStruct struct {
+			Name string
+			age  int
+		}
+		testObj := TestStruct{
+			Name: "Alice",
+			age:  25,
+		}
+		result := StructToString(testObj, "")
+		expected := "Name: Alice\n"
+		assert.Equal(t, expected, result, "Unexpected string representation")
+	})
+
+	t.Run("Test struct with pointer fields", func(t *testing.T) {
+		type TestStruct struct {
+			Name  string
+			Score *int
+		}
+		score := 100
+		testObj := TestStruct{
+			Name:  "Bob",
+			Score: &score,
+		}
+		result := StructToString(testObj, "")
+		expected := "Name: Bob\nScore: 100\n"
+		assert.Equal(t, expected, result, "Unexpected string representation")
+	})
+
+	t.Run("Test non-struct input", func(t *testing.T) {
+		testObj := "Not a struct"
+		result := StructToString(testObj, "")
+		assert.Empty(t, result, "Expected empty string for non-struct input")
+	})
+
+	t.Run("Test struct with nested struct", func(t *testing.T) {
+		type Address struct {
+			Street string
+			City   string
+		}
+		type Person struct {
+			Name    string
+			Address Address
+		}
+		testObj := Person{
+			Name: "Charlie",
+			Address: Address{
+				Street: "123 Main St",
+				City:   "Anytown",
+			},
+		}
+		result := StructToString(testObj, "")
+		expected := "Address: \n  City: Anytown\n  Street: 123 Main St\n\nName: Charlie\n"
+		assert.Equal(t, expected, result, "Unexpected string representation")
+	})
+}
