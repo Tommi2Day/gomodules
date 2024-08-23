@@ -1,10 +1,8 @@
 # Go Library
 
-## [v1.14.9 - 2024-08-23]
+## [v1.14.8 - 2024-08-23]
 ### New
 - common: add StructToMap and StructToString functions
-
-## [v1.14.8 - 2024-08-19]
 ### Changed
 - pwlib: refactor gpg gopass test files
 
