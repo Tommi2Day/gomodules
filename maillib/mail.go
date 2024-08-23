@@ -45,7 +45,7 @@ func NewConfig(server string, port int, username string, password string) *MailC
 }
 
 // SetTimeout configure max time to connect
-func (mailConfig *MailConfigType) SetTimeout(seconds uint) {
+func (mailConfig *MailConfigType) SetTimeout(seconds int64) {
 	timeout := time.Second * time.Duration(seconds)
 	mailConfig.Timeout = timeout
 	log.Debugf("mailconfig: Set send timout to %d s", seconds)
