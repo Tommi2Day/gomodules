@@ -31,6 +31,9 @@ func GetDockerPool() (*dockertest.Pool, error) {
 
 // GetContainerHostAndPort returns the mapped host and port of a docker container for a given portID
 func GetContainerHostAndPort(container *dockertest.Resource, portID string) (server string, port int) {
+	if container == nil {
+		return
+	}
 	dockerURL := os.Getenv("DOCKER_HOST")
 	containerAddress := container.GetHostPort(portID)
 	s, p, _ := GetHostPort(containerAddress)
@@ -46,6 +49,9 @@ func GetContainerHostAndPort(container *dockertest.Resource, portID string) (ser
 
 // DestroyDockerContainer destroys a docker container
 func DestroyDockerContainer(container *dockertest.Resource) {
+	if container == nil {
+		return
+	}
 	if err := dockerpool.Purge(container); err != nil {
 		fmt.Printf("Could not purge resource: %s\n", err)
 	}
@@ -54,6 +60,10 @@ func DestroyDockerContainer(container *dockertest.Resource) {
 // ExecDockerCmd  executes an OS cmd within container and print output
 func ExecDockerCmd(container *dockertest.Resource, cmd []string) (out string, code int, err error) {
 	var cmdout bytes.Buffer
+	if container == nil {
+		err = fmt.Errorf("container is nil")
+		return
+	}
 	cmdout.Reset()
 	code, err = container.Exec(cmd, dockertest.ExecOptions{StdOut: &cmdout})
 	out = cmdout.String()

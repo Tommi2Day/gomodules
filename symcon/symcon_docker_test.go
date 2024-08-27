@@ -35,7 +35,7 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 		ipsContainerName = "symconlib-ips"
 	}
 	pool, err := common.GetDockerPool()
-	if err != nil {
+	if err != nil || pool == nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}
@@ -65,7 +65,7 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 
-	if err != nil {
+	if err != nil || ipsContainer == nil {
 		err = fmt.Errorf("error starting docker ips Container: %v", err)
 		return
 	}

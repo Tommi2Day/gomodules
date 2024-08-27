@@ -34,7 +34,7 @@ func prepareKmsContainer() (kmsContainer *dockertest.Resource, err error) {
 		kmsContainerName = "pwlib-kms"
 	}
 	pool, err := common.GetDockerPool()
-	if err != nil {
+	if err != nil || pool == nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}

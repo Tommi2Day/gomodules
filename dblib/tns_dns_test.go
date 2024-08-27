@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/tommi2day/gomodules/common"
 
 	"github.com/tommi2day/gomodules/netlib"
@@ -23,6 +25,24 @@ vip2=vip2.rac.lan:1521
 vip3=vip3.rac.lan:1521
 `
 
+func TestMain(m *testing.M) {
+	var err error
+
+	test.InitTestDirs()
+	if os.Getenv("SKIP_DNS") != "" {
+		return
+	}
+	dblibDNSContainer, err = prepareDNSContainer()
+
+	if err != nil || dblibDNSContainer == nil {
+		_ = os.Setenv("SKIP_DNS", "true")
+		log.Errorf("prepareDNSContainer failed: %s", err)
+	}
+
+	code := m.Run()
+	destroyDNSContainer(dblibDNSContainer)
+	os.Exit(code)
+}
 func TestRACInfo(t *testing.T) {
 	var err error
 	test.InitTestDirs()
@@ -36,10 +56,6 @@ func TestRACInfo(t *testing.T) {
 	if os.Getenv("SKIP_DNS") != "" {
 		t.Skip("Skipping DNS testing in CI environment")
 	}
-	dblibDNSContainer, err = prepareDNSContainer()
-	require.NoErrorf(t, err, "DNS Server not available")
-	require.NotNil(t, dblibDNSContainer, "Prepare failed")
-	defer destroyDNSContainer(dblibDNSContainer)
 	// use DNS from Docker
 	DNSConfig = netlib.NewResolver(dblibDNSServer, dblibDNSPort, true)
 	t.Run("Test RacInfo.ini resolution", func(t *testing.T) {

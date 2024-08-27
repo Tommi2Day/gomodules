@@ -1,9 +1,10 @@
 package netlib
 
 import (
-	"log"
 	"os"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/tommi2day/gomodules/test"
 
@@ -24,9 +25,12 @@ func TestMain(m *testing.M) {
 		return
 	}
 	netlibDNSContainer, err = prepareNetlibDNSContainer()
-	if err != nil {
-		log.Fatalf("prepareNetlibDNSContainer failed: %s", err)
+
+	if err != nil || netlibDNSContainer == nil {
+		_ = os.Setenv("SKIP_DNS", "true")
+		log.Errorf("prepareNetlibDNSContainer failed: %s", err)
 	}
+
 	code := m.Run()
 	destroyDNSContainer(netlibDNSContainer)
 	os.Exit(code)
@@ -350,6 +354,9 @@ func TestLookupIP(t *testing.T) {
 }
 
 func TestLookupIPV4V6(t *testing.T) {
+	if os.Getenv("SKIP_DNS") != "" {
+		t.Skip("Skipping DNS testing in CI environment")
+	}
 	dns := NewResolver(netlibDNSServer, netlibDNSPort, true)
 	dns.IPv4Only = false
 	dns.IPv6Only = false

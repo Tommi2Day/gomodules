@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.14.9 - 2024-08-31]
+### Changed
+- dns test docker creation error handling
+### Fixed
+- panic in docker_helper
+
 ## [v1.14.8 - 2024-08-23]
 ### New
 - common: add StructToMap and StructToString functions

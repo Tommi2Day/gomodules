@@ -97,7 +97,7 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 		})
 
-	if err != nil {
+	if err != nil || container == nil {
 		err = fmt.Errorf("error starting oracle-dns docker container: %v", err)
 		return
 	}
@@ -109,6 +109,10 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 	}
 	pool.MaxWait = dblibDNSContainerTimeout * time.Second
 	dblibDNSServer, dblibDNSPort = common.GetContainerHostAndPort(container, "53/tcp")
+	if dblibDNSPort == 0 || dblibDNSServer == "" {
+		err = fmt.Errorf("could not get host/port of dns container")
+		return
+	}
 	fmt.Printf("Wait to successfully connect to DNS to %s:%d (max %ds)...\n", dblibDNSServer, dblibDNSPort, dblibDNSContainerTimeout)
 	start := time.Now()
 	var c net.Conn
@@ -119,23 +123,27 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 		}
 		return err
 	}); err != nil {
-		fmt.Printf("Could not connect to DNS Container: %d", err)
+		err = fmt.Errorf("could not connect to DNS Container: %d", err)
 		return
 	}
 	_ = c.Close()
 
-	// wait 5s to init container
-	time.Sleep(5 * time.Second)
+	// wait 10s to init container
+	time.Sleep(10 * time.Second)
 	elapsed := time.Since(start)
 	fmt.Printf("DNS Container is available after %s\n", elapsed.Round(time.Millisecond))
-	// test oracle-dns
+	if dblibDNSServer == "localhost" {
+		dblibDNSServer = "127.0.0.1"
+	}
+	// fmt.Printf("DNS Container is available after %s\n", elapsed.Round(time.Millisecond))
+	// test dns
 	dns := netlib.NewResolver(dblibDNSServer, dblibDNSPort, true)
 	ips, e := dns.Resolver.LookupHost(context.Background(), racaddr)
 	if e != nil || len(ips) == 0 {
-		fmt.Printf("Could not resolve DNS with %s: %v", racaddr, e)
+		err = fmt.Errorf("could not resolve DNS for %s on %s:%d: %v", racaddr, dblibDNSServer, dblibDNSPort, e)
 		return
 	}
-	fmt.Println("DNS Container is ready, host", racaddr, "resolved to", ips[0])
+	fmt.Println("DNS Container is ready after ", elapsed.Round(time.Millisecond), ", host ", racaddr, "resolved to", ips[0])
 	err = nil
 	return
 }

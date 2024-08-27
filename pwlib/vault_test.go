@@ -26,7 +26,9 @@ func TestVault(t *testing.T) {
 	require.NoErrorf(t, err, "Vault Server not available")
 	require.NotNil(t, vaultContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(vaultContainer)
-
+	if err != nil || vaultContainer == nil {
+		t.Fatal("Vault Server not available")
+	}
 	host, vaultPort := common.GetContainerHostAndPort(vaultContainer, "8200/tcp")
 	address := fmt.Sprintf("http://%s:%d", host, vaultPort)
 	_ = os.Unsetenv("VAULT_ADDR")

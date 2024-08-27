@@ -48,7 +48,9 @@ func TestBaseLdap(t *testing.T) {
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(ldapContainer)
-
+	if err != nil || ldapContainer == nil {
+		t.Fatal("Ldap Server not available")
+	}
 	ldapserver, ldapPort = common.GetContainerHostAndPort(ldapContainer, "1389/tcp")
 	base := LdapBaseDn
 

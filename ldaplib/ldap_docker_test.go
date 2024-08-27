@@ -34,7 +34,7 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 
 	var pool *dockertest.Pool
 	pool, err = common.GetDockerPool()
-	if err != nil {
+	if err != nil || pool == nil {
 		return
 	}
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")

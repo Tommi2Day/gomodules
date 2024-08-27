@@ -20,6 +20,9 @@ func TestGetDockerHelper(t *testing.T) {
 		assert.NoErrorf(t, err, "GetDockerPool() should not return error")
 		require.NotNil(t, pool, "GetDockerPool() should not return nil")
 	})
+	if pool == nil {
+		t.Fatal("docker pool not available")
+	}
 	t.Run("Test GetDockerContainer", func(t *testing.T) {
 		container, err = pool.Run("nginx", "latest", []string{})
 		assert.NoErrorf(t, err, "Container should start without error")

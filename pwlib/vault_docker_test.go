@@ -32,7 +32,7 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 		containerName = "pwlib-vault"
 	}
 	pool, err := common.GetDockerPool()
-	if err != nil {
+	if err != nil || pool == nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}
@@ -69,7 +69,7 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 
-	if err != nil {
+	if err != nil || container == nil {
 		err = fmt.Errorf("error starting vault docker container: %v", err)
 		return
 	}

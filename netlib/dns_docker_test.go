@@ -19,7 +19,8 @@ const netlibNetworkName = "netlib-dns"
 const netlibNetworkPrefix = "172.25.0"
 const netlibDomain = "netlib.lan"
 const netlibTestAddr = tDB
-const netlibRepoTag = "9.20"
+
+// const netlibRepoTag = "9.20"
 
 var netlibDNSContainerName string
 var netlibDNSContainer *dockertest.Resource
@@ -77,7 +78,7 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 		},
 		{
 			Name:  "BIND9_VERSION",
-			Value: netlibRepoTag,
+			Value: "9.20",
 		},
 	}
 	dockerContextDir := test.TestDir + "/docker/dns"
@@ -110,6 +111,10 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 	}
 	pool.MaxWait = netlibDNSContainerTimeout * time.Second
 	netlibDNSServer, netlibDNSPort = common.GetContainerHostAndPort(container, "53/tcp")
+	if netlibDNSPort == 0 || netlibDNSServer == "" {
+		err = fmt.Errorf("could not get host/port of dns container")
+		return
+	}
 	fmt.Printf("Wait to successfully connect to DNS to %s:%d (max %ds)...\n", netlibDNSServer, netlibDNSPort, netlibDNSContainerTimeout)
 	start := time.Now()
 	var c net.Conn
@@ -120,23 +125,26 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 		}
 		return err
 	}); err != nil {
-		fmt.Printf("Could not connect to DNS Container: %d", err)
+		err = fmt.Errorf("could not connect to DNS Container: %d", err)
 		return
 	}
 	_ = c.Close()
 
-	// wait 5s to init container
-	time.Sleep(5 * time.Second)
+	// wait 10s to init container
+	time.Sleep(10 * time.Second)
 	elapsed := time.Since(start)
-	fmt.Printf("DNS Container is available after %s\n", elapsed.Round(time.Millisecond))
+	if netlibDNSServer == "localhost" {
+		netlibDNSServer = "127.0.0.1"
+	}
+	// fmt.Printf("DNS Container is available after %s\n", elapsed.Round(time.Millisecond))
 	// test dns
 	dns := NewResolver(netlibDNSServer, netlibDNSPort, true)
 	ips, e := dns.Resolver.LookupHost(context.Background(), netlibTestAddr)
 	if e != nil || len(ips) == 0 {
-		fmt.Printf("Could not resolve DNS with %s: %v", netlibTestAddr, e)
+		err = fmt.Errorf("could not resolve DNS for %s on %s:%d: %v", netlibTestAddr, netlibDNSServer, netlibDNSPort, e)
 		return
 	}
-	fmt.Println("DNS Container is ready, host", netlibTestAddr, "resolved to", ips[0])
+	fmt.Println("DNS Container is ready after ", elapsed.Round(time.Millisecond), ", host ", netlibTestAddr, "resolved to", ips[0])
 	err = nil
 	return
 }

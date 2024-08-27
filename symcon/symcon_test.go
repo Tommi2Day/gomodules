@@ -39,6 +39,9 @@ func TestSymcon(t *testing.T) {
 	require.NoErrorf(t, err, "IPS Server not available")
 	require.NotNil(t, ipsContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(ipsContainer)
+	if err != nil || ipsContainer == nil {
+		t.Fatal("IPS Server not available")
+	}
 	t.Run("Test noPassword", func(t *testing.T) {
 		ips := New(testURL, "wronguser", "")
 		resp, err = ips.QueryAPI("GetVariable", 0)

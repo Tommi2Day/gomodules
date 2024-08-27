@@ -81,7 +81,9 @@ func TestMail(t *testing.T) {
 	require.NoErrorf(t, err, "Mailserver not available: %s", err)
 	require.NotNil(t, mailContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(mailContainer)
-
+	if err != nil || mailContainer == nil {
+		t.Fatal("Mailserver not available")
+	}
 	t.Run("Send Mail anonym", func(t *testing.T) {
 		s := NewSendMailConfig(mailServer, smtpPort, "", "")
 		l := NewMail(FROM, TO)

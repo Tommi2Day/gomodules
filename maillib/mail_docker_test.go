@@ -42,7 +42,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		mailContainerName = "mailserver"
 	}
 	pool, err := common.GetDockerPool()
-	if err != nil {
+	if err != nil || pool == nil {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}
