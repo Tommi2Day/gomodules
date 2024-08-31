@@ -19,8 +19,7 @@ const netlibNetworkName = "netlib-dns"
 const netlibNetworkPrefix = "172.25.0"
 const netlibDomain = "netlib.lan"
 const netlibTestAddr = tDB
-
-// const netlibRepoTag = "9.20"
+const netlibRepoTag = "9.20"
 
 var netlibDNSContainerName string
 var netlibDNSContainer *dockertest.Resource
@@ -78,7 +77,7 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 		},
 		{
 			Name:  "BIND9_VERSION",
-			Value: "9.20",
+			Value: netlibRepoTag,
 		},
 	}
 	dockerContextDir := test.TestDir + "/docker/dns"
