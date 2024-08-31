@@ -149,8 +149,11 @@ func prepareDNSContainer() (container *dockertest.Resource, err error) {
 }
 
 func destroyDNSContainer(container *dockertest.Resource) {
-	common.DestroyDockerContainer(container)
-	if dblibNetworkCreated {
+	if container != nil {
+		common.DestroyDockerContainer(container)
+	}
+
+	if dblibNetworkCreated && dblibDNSNetwork != nil {
 		_ = dblibDNSNetwork.Close()
 	}
 }

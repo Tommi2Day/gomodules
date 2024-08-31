@@ -49,7 +49,7 @@ func GetContainerHostAndPort(container *dockertest.Resource, portID string) (ser
 
 // DestroyDockerContainer destroys a docker container
 func DestroyDockerContainer(container *dockertest.Resource) {
-	if container == nil {
+	if container == nil || dockerpool == nil {
 		return
 	}
 	if err := dockerpool.Purge(container); err != nil {

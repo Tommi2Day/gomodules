@@ -149,8 +149,11 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 }
 
 func destroyDNSContainer(container *dockertest.Resource) {
-	common.DestroyDockerContainer(container)
-	if netlibDNSNetworkCreated {
+	if container != nil {
+		common.DestroyDockerContainer(container)
+	}
+
+	if netlibDNSNetworkCreated && netlibDNSNetwork != nil {
 		_ = netlibDNSNetwork.Close()
 	}
 }
