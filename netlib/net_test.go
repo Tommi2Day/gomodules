@@ -389,8 +389,8 @@ func TestLookupIPV4V6(t *testing.T) {
 	}
 }
 func TestLookupTXT(t *testing.T) {
-	if os.Getenv("SKIP_DNS") != "" {
-		t.Skip("Skipping DNS testing in CI environment")
+	if os.Getenv("SKIP_NET_DNS") != "" {
+		t.Skip("Skipping NET_DNS testing")
 	}
 
 	// use DNS from Docker
