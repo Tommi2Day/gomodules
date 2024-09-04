@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.14.10 - 2024-09-04]
+### Changed
+- update dns tests
+
 ## [v1.14.9 - 2024-08-31]
 ### Changed
 - dns test docker creation error handling

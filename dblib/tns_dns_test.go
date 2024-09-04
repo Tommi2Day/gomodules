@@ -1,14 +1,15 @@
 package dblib
 
 import (
+	"fmt"
 	"os"
 	"testing"
+
+	"github.com/tommi2day/gomodules/netlib"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/tommi2day/gomodules/common"
-
-	"github.com/tommi2day/gomodules/netlib"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,20 +30,24 @@ func TestMain(m *testing.M) {
 	var err error
 
 	test.InitTestDirs()
-	if os.Getenv("SKIP_DNS") != "" {
+	if os.Getenv("SKIP_DB_DNS") != "" {
+		fmt.Println("Skipping DB DNS Container in CI environment")
 		return
 	}
-	dblibDNSContainer, err = prepareDNSContainer()
+	dblibDNSServer = common.GetStringEnv("DNS_HOST", dblibDNSServer)
+	dblibDNSContainer, err = prepareDBlibDNSContainer()
 
 	if err != nil || dblibDNSContainer == nil {
-		_ = os.Setenv("SKIP_DNS", "true")
-		log.Errorf("prepareDNSContainer failed: %s", err)
+		_ = os.Setenv("SKIP_DB_DNS", "true")
+		log.Errorf("prepareNetlibDNSContainer failed: %s", err)
+		destroyDNSContainer(dblibDNSContainer)
 	}
 
 	code := m.Run()
 	destroyDNSContainer(dblibDNSContainer)
 	os.Exit(code)
 }
+
 func TestRACInfo(t *testing.T) {
 	var err error
 	test.InitTestDirs()
@@ -53,8 +58,8 @@ func TestRACInfo(t *testing.T) {
 	err = common.WriteStringToFile(tnsAdmin+"/racinfo.ini", racinfoini)
 	require.NoErrorf(t, err, "Create test racinfo.ini failed")
 
-	if os.Getenv("SKIP_DNS") != "" {
-		t.Skip("Skipping DNS testing in CI environment")
+	if os.Getenv("SKIP_DB_DNS") != "" {
+		t.Skip("Skipping DB DNS testing")
 	}
 	// use DNS from Docker
 	DNSConfig = netlib.NewResolver(dblibDNSServer, dblibDNSPort, true)

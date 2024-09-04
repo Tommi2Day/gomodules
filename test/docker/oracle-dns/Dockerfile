@@ -9,9 +9,7 @@ COPY named.conf.local /etc/bind/
 COPY rac.lan.zone /etc/bind/zones/
 
 # Expose Ports
-EXPOSE 53/tcp
-EXPOSE 53/udp
-EXPOSE 953/tcp
+EXPOSE 9054/tcp
 
 # Start the Name Service
 CMD ["/usr/sbin/named", "-g", "-c", "/etc/bind/named.conf", "-u", "bind"]

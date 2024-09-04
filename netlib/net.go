@@ -25,23 +25,33 @@ const defaultDNSTimeout = 5 * time.Second
 
 // NewResolver returns a DNSconfig object
 func NewResolver(nameserver string, port int, tcp bool) (dns *DNSconfig) {
+	// network type
+	nsIP := ""
+	n := "udp"
+	if tcp {
+		n = "tcp"
+	}
+	ips, err := net.LookupHost(nameserver)
+	if err != nil || len(ips) == 0 {
+		log.Debugf("DNS lookup of %s failed: %s", nameserver, err)
+	} else {
+		nsIP = ips[0]
+	}
 	dns = new(DNSconfig)
 	var resolver *net.Resolver
-	if nameserver != "" {
+	if nsIP != "" {
 		if port == 0 {
 			port = 53
 		}
-		// network type
-		n := "udp"
-		if tcp {
-			n = "tcp"
-		}
-		a := common.SetHostPort(nameserver, port)
+
+		a := common.SetHostPort(nsIP, port)
 		log.Debugf("Configured custom DNS resolver: %s", a)
 		resolver = &net.Resolver{
 			PreferGo: true,
 			Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				d := net.Dialer{}
+				d := net.Dialer{
+					Timeout: defaultDNSTimeout,
+				}
 				return d.DialContext(ctx, n, a)
 			},
 		}
@@ -51,7 +61,7 @@ func NewResolver(nameserver string, port int, tcp bool) (dns *DNSconfig) {
 	}
 	dns.TCP = tcp
 	dns.Port = port
-	dns.Nameserver = nameserver
+	dns.Nameserver = nsIP
 	dns.Resolver = resolver
 	dns.Timeout = defaultDNSTimeout
 	dns.IPv4Only = false
