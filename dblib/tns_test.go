@@ -78,6 +78,17 @@ XE.error = Error
 const sqlnetcontent = `
 NAMES.DEFAULT_DOMAIN=local
 NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT,LDAP)
+WALLET_LOCATION =
+    (SOURCE =
+      (METHOD = FILE)
+      (METHOD_DATA =
+        (DIRECTORY = "/etc/oracle/wallet")
+      )
+    )
+SSL_VERSION = 1.2
+SSL_SERVER_DN_MATCH = Yes
+SSL_CLIENT_AUTHENTICATION = True
+SSL_CIPHER_SUITES= (SSL_RSA_WITH_RC4_128_SHA)
 `
 const entryCount = 6
 
@@ -103,16 +114,23 @@ func TestParseTns(t *testing.T) {
 		assert.Equal(t, tnsAdmin, actual, "Value not the same")
 	})
 	t.Run("Parse SQLNet.Ora", func(t *testing.T) {
-		namesDomain, namesPath := ReadSqlnetOra(tnsAdmin)
+		namesDomain, namesPath, sslInfo := ReadSQLNetOra(tnsAdmin)
 		assert.NotEmpty(t, namesDomain, "Names domain should not empty")
 		expected := 3
 		actual := len(namesPath)
 		assert.Equal(t, expected, actual, "NamesPath should have %d entries", expected)
+		assert.Equal(t, "1.2", sslInfo.Version, "SSL_VERSION should be 1.2")
+		assert.Equal(t, "/etc/oracle/wallet", sslInfo.WalletLocation, "WalletLocation should be /etc/oracle/wallet")
+		assert.Equal(t, "SSL_RSA_WITH_RC4_128_SHA", sslInfo.Ciphers, "SSL_CIPHER_SUITES should be SSL_RSA_WITH_RC4_128_SHA")
+		assert.True(t, sslInfo.ClientAthentication, "SSL_CLIENT_AUTHENTICATION should be true")
+		assert.True(t, sslInfo.ServerDNMatch, "SSL_SERVER_DN_MATCH should be true")
 	})
-	domain, _ := ReadSqlnetOra(tnsAdmin)
+	domain, _, sslInfo := ReadSQLNetOra(tnsAdmin)
 	t.Logf("Default Domain: '%s'", domain)
 	filename := tnsAdmin + "/tnsnames.ora"
 	t.Logf("load from %s", filename)
+	walletDir := sslInfo.WalletLocation
+	t.Logf("Wallet_Location: %s", walletDir)
 	tnsEntries, domain, err := GetTnsnames(filename, true)
 	t.Run("Parse TNSNames.ora", func(t *testing.T) {
 		require.Error(t, err, "Parsing should have an error")

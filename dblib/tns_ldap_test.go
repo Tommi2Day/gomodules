@@ -101,9 +101,7 @@ func TestOracleLdap(t *testing.T) {
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, TnsLdapContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(TnsLdapContainer)
-	if err != nil || TnsLdapContainer == nil {
-		t.Fatal("Ldap Server not available")
-	}
+
 	base := LdapBaseDn
 	server, port = common.GetContainerHostAndPort(TnsLdapContainer, "1389/tcp")
 	lc = ldaplib.NewConfig(server, port, false, false, base, ldapTimeout)

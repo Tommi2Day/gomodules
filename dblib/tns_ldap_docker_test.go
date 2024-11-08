@@ -33,7 +33,7 @@ func prepareTnsLdapContainer() (container *dockertest.Resource, err error) {
 	}
 	var pool *dockertest.Pool
 	pool, err = common.GetDockerPool()
-	if err != nil || pool == nil {
+	if err != nil {
 		return
 	}
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
@@ -72,7 +72,7 @@ func prepareTnsLdapContainer() (container *dockertest.Resource, err error) {
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 
-	if err != nil || container == nil {
+	if err != nil {
 		err = fmt.Errorf("error starting ldap docker container: %v", err)
 		return
 	}
