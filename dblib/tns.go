@@ -98,6 +98,7 @@ func ReadSQLNetOra(filePath string) (domain string, namesPath []string, sslInfo 
 
 	// Regular expression to match key-value pairs
 	re := regexp.MustCompile(`(?m)^\s*(\w+(?:\.\w+)*)\s*=\s*(.+?)\s*$`)
+	re2 := regexp.MustCompile(`(?i)YES|ON|TRUE|1`)
 	matches := re.FindAllStringSubmatch(content, -1)
 	names := ""
 	for _, match := range matches {
@@ -114,7 +115,7 @@ func ReadSQLNetOra(filePath string) (domain string, namesPath []string, sslInfo 
 		case "ssl_version":
 			sslCfg.Version = value
 		case "ssl_server_dn_match":
-			sslCfg.ServerDNMatch, _ = regexp.MatchString(`(?i)YES|ON|TRUE|1`, value)
+			sslCfg.ServerDNMatch = re2.MatchString(value)
 		case "ssl_client_authentication":
 			sslCfg.ClientAthentication, _ = strconv.ParseBool(value)
 		}
