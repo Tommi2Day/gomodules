@@ -198,3 +198,136 @@ func TestWriteStringToFile(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestReadStdinByLine(t *testing.T) {
+	t.Run("Read multiple lines from stdin", func(t *testing.T) {
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		input := "line1\nline2\nline3\n"
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+		os.Stdin = r
+		go func() {
+			_, _ = w.Write([]byte(input))
+			_ = w.Close()
+		}()
+
+		lines, err := ReadStdinByLine()
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(lines))
+		assert.Equal(t, "line1\n", lines[0])
+		assert.Equal(t, "line2\n", lines[1])
+		assert.Equal(t, "line3\n", lines[2])
+	})
+	t.Run("Read empty input", func(t *testing.T) {
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+
+		os.Stdin = r
+		go func() {
+			_ = w.Close()
+		}()
+
+		lines, err := ReadStdinByLine()
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(lines))
+	})
+
+	t.Run("Read input without final newline", func(t *testing.T) {
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		input := "line1\nline2\nline3"
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+
+		os.Stdin = r
+		go func() {
+			_, _ = w.Write([]byte(input))
+			_ = w.Close()
+		}()
+
+		lines, err := ReadStdinByLine()
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(lines))
+		assert.Equal(t, "line1\n", lines[0])
+		assert.Equal(t, "line2\n", lines[1])
+		assert.Equal(t, "line3", lines[2])
+	})
+}
+func TestReadStdinToString(t *testing.T) {
+	t.Run("Read valid input from stdin", func(t *testing.T) {
+		// Save original stdin
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		expected := "test input\nwith multiple lines\n"
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+
+		os.Stdin = r
+		go func() {
+			_, _ = w.Write([]byte(expected))
+			_ = w.Close()
+		}()
+
+		result, err := ReadStdinToString()
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Read empty input from stdin", func(t *testing.T) {
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+
+		os.Stdin = r
+		go func() {
+			_ = w.Close()
+		}()
+
+		result, err := ReadStdinToString()
+		assert.NoError(t, err)
+		assert.Empty(t, result)
+	})
+
+	t.Run("Handle large input from stdin", func(t *testing.T) {
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		expected := strings.Repeat("a", 1024*1024) // 1MB of data
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+
+		os.Stdin = r
+		go func() {
+			_, _ = w.Write([]byte(expected))
+			_ = w.Close()
+		}()
+
+		result, err := ReadStdinToString()
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Handle closed stdin", func(t *testing.T) {
+		oldStdin := os.Stdin
+		defer func() { os.Stdin = oldStdin }()
+
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+		_ = w.Close()
+		_ = r.Close()
+		os.Stdin = r
+
+		result, err := ReadStdinToString()
+		assert.Error(t, err)
+		assert.Empty(t, result)
+	})
+}

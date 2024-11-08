@@ -1,5 +1,8 @@
 # Go Library
 
+## [v1.14.11 - 2024-11-08]
+### New
+- common: add ReadStdinToString and ReadStdinByLine functions and tests
 ## [v1.14.10 - 2024-09-04]
 ### Changed
 - update dns tests

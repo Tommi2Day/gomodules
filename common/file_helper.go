@@ -36,6 +36,15 @@ func ReadFileToString(filename string) (string, error) {
 	return b.String(), err
 }
 
+// ReadStdinToString reads stdin and returns a string
+func ReadStdinToString() (string, error) {
+	stdin, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return "", err
+	}
+	return string(stdin), nil
+}
+
 // WriteStringToFile saves a string to filename and assign rights 0600
 func WriteStringToFile(filename string, content string) error {
 	return os.WriteFile(filename, []byte(content), 0600)
@@ -67,6 +76,28 @@ func ReadFileByLine(filename string) ([]string, error) {
 		}
 	}
 
+	if err == io.EOF {
+		err = nil
+	}
+	return lines, err
+}
+
+// ReadStdinByLine reads stdin and returns array of lines
+func ReadStdinByLine() ([]string, error) {
+	var lines []string
+	var err error
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		line := ""
+		line, err = reader.ReadString('\n')
+		if err != nil {
+			if line != "" {
+				lines = append(lines, line)
+			}
+			break
+		}
+		lines = append(lines, line)
+	}
 	if err == io.EOF {
 		err = nil
 	}
