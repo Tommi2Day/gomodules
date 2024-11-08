@@ -7,9 +7,8 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
-
-	"gopkg.in/ini.v1"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/tommi2day/gomodules/common"
@@ -32,30 +31,38 @@ type TNSEntry struct {
 
 // TNSEntries Map of tns entries
 type TNSEntries map[string]TNSEntry
+type TNSSSL struct {
+	WalletLocation      string
+	ClientAthentication bool
+	ServerDNMatch       bool
+	Ciphers             string
+	Version             string
+}
 
 const ldapora = "ldap.ora"
 const sqlnetora = "sqlnet.ora"
 
 // ModifyJDBCTransportConnectTimeout if true, TRANSPORT_CONNECT_TIMEOUT is modified to be *1000
 var ModifyJDBCTransportConnectTimeout = true
+var TNSSSLconfig TNSSSL
 
 // CheckTNSadmin verify TNS-Admin Settings
-func CheckTNSadmin(tnsadmin string) (dn string, err error) {
-	dn, err = filepath.Abs(tnsadmin)
+func CheckTNSadmin(tnsadmin string) (tnsnames string, err error) {
+	tnsnames, err = filepath.Abs(tnsadmin)
 	if err != nil {
 		log.Errorf("Cannot get absolute name of '%s'", tnsadmin)
 		return
 	}
-	_, err = os.Stat(dn)
+	_, err = os.Stat(tnsnames)
 	if os.IsNotExist(err) {
-		log.Errorf("TNSAdmin directory '%s' not found", dn)
+		log.Errorf("TNSAdmin directory '%s' not found", tnsnames)
 		return
 	}
-	log.Debugf("TNS_ADMIN absolute path: %s", dn)
-	sq := filepath.Join(dn, "sqlnet.ora")
-	_, err = os.Stat(sq)
+	log.Debugf("TNS_ADMIN absolute path: %s", tnsnames)
+	sqlnet := filepath.Join(tnsnames, "sqlnet.ora")
+	_, err = os.Stat(sqlnet)
 	if os.IsNotExist(err) {
-		log.Warnf("no sqlnet.ora in TNSAdmin directory '%s' found", dn)
+		log.Warnf("no sqlnet.ora in TNSAdmin directory '%s' found", tnsnames)
 	}
 	return
 }
@@ -74,22 +81,53 @@ func BuildTnsEntry(location string, desc string, tnsAlias string) TNSEntry {
 	return entry
 }
 
-// ReadSqlnetOra reads a sqlnet.ora and returns default domain and names path
-func ReadSqlnetOra(filePath string) (domain string, namesPath []string) {
+// ReadSQLNetOra reads a sqlnet.ora and returns default domain and names path
+func ReadSQLNetOra(filePath string) (domain string, namesPath []string, sslInfo TNSSSL) {
 	filename := path.Join(filePath, sqlnetora)
 	domain = ""
-	cfg, err := ini.InsensitiveLoad(filename)
+	sslCfg := TNSSSL{WalletLocation: "", ClientAthentication: false, ServerDNMatch: false, Ciphers: "", Version: ""}
+
+	content, err := common.ReadFileToString(filename)
 	if err != nil {
-		log.Debugf("cannot Read %s", filename)
+		log.Debugf("Cannot read sqlnet.ora as %s: %v", filename, err)
 		return
 	}
+	// ^"(.+?)(?<!\\)"\s*=\s*"([\s\S]*?)(?<!\\)";
 	// all keys are lowwer case
-	domain = cfg.Section("").Key(strings.ToLower("NAMES.DEFAULT_DOMAIN")).String()
-	names := cfg.Section("").Key(strings.ToLower("NAMES.DIRECTORY_PATH")).String()
-	replacer := strings.NewReplacer("(", "", ")", "", " ", "")
-	names = replacer.Replace(names)
-	namesPath = strings.Split(names, ",")
-	log.Debugf("parsed %s, domain=%s, names filePath=%s", filename, domain, names)
+	// ini cannt parse multiline entries, so we use string matching
+
+	// Regular expression to match key-value pairs
+	re := regexp.MustCompile(`(?m)^\s*(\w+(?:\.\w+)*)\s*=\s*(.+?)\s*$`)
+	matches := re.FindAllStringSubmatch(content, -1)
+	names := ""
+	for _, match := range matches {
+		key := strings.ToLower(match[1])
+		value := strings.Trim(match[2], `"()`)
+		value = strings.ReplaceAll(value, " ", "")
+		switch key {
+		case "names.default_domain":
+			domain = value
+		case "names.directory_path":
+			namesPath = strings.Split(value, ",")
+		case "ssl_cipher_suites":
+			sslCfg.Ciphers = value
+		case "ssl_version":
+			sslCfg.Version = value
+		case "ssl_server_dn_match":
+			sslCfg.ServerDNMatch, _ = regexp.MatchString(`(?i)YES|ON|TRUE|1`, value)
+		case "ssl_client_authentication":
+			sslCfg.ClientAthentication, _ = strconv.ParseBool(value)
+		}
+	}
+
+	// Handle WALLET_LOCATION separately as it's multi-line
+	reWallet := regexp.MustCompile(`WALLET_LOCATION\s*=\s*\(\s*SOURCE\s*=\s*\(\s*METHOD\s*=\s*FILE\s*\)\s*\(\s*METHOD_DATA\s*=\s*\(\s*DIRECTORY\s*=\s*"([^"]*)"`)
+	if walletMatch := reWallet.FindStringSubmatch(content); len(walletMatch) > 1 {
+		sslCfg.WalletLocation = walletMatch[1]
+	}
+	// all keys are lowwer case
+	log.Debugf("parsed %s, domain=%s, names filePath=%s, Wallet=%s", filename, domain, names, sslCfg.WalletLocation)
+	sslInfo = sslCfg
 	return
 }
 
@@ -121,7 +159,7 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 
 	// try to find sqlnet ora and read domain
 	tnsDir := filepath.Dir(filename)
-	domain, _ := ReadSqlnetOra(tnsDir)
+	domain, _, _ := ReadSQLNetOra(tnsDir)
 
 	// change to current tns file
 	wd, _ := os.Getwd()
@@ -195,32 +233,37 @@ func GetTnsnames(filename string, recursiv bool) (TNSEntries, string, error) {
 func GetJDBCUrl(desc string) (out string, err error) {
 	var pattern *regexp.Regexp
 	repl := strings.NewReplacer("\r", "", "\n", "", "\t", "", " ", "")
-	desc = repl.Replace(desc)
+	url := repl.Replace(desc)
 
 	// handle transport connect timeout to be *1000
 	if ModifyJDBCTransportConnectTimeout {
 		pattern = regexp.MustCompile("(?i)TRANSPORT_CONNECT_TIMEOUT=([0-9]+)")
-		subStr := pattern.FindStringSubmatch(desc)
+		subStr := pattern.FindStringSubmatch(url)
 		if len(subStr) > 1 {
 			tcval := 0
+			old := subStr[0]
 			tc := subStr[1]
 			tcval, err = common.GetIntVal(tc)
 			if err == nil {
 				if tcval > 0 && tcval < 1000 {
 					tcval *= 1000
 					tc = fmt.Sprintf("TRANSPORT_CONNECT_TIMEOUT=%d", tcval)
-					desc = strings.ReplaceAll(desc, subStr[0], tc)
+					url = strings.ReplaceAll(url, old, tc)
 					log.Debugf("set TRANSPORT_CONNECT_TIMEOUT to %d", tcval)
 				}
 			}
 		}
 	}
 
+	if TNSSSLconfig.WalletLocation != "" {
+		url = fmt.Sprintf("%s?WALLET_LOCATION=%s", url, TNSSSLconfig.WalletLocation)
+	}
 	err = nil
-	out = fmt.Sprintf("jdbc:oracle:thin:@%s", desc)
+	out = fmt.Sprintf("jdbc:oracle:thin:@%s", url)
 	return
 }
 
+// tnsSanity sanity check tns entries
 func tnsSanity(entries TNSEntries) (tnsEntries TNSEntries, deletes int) {
 	// sanity check
 	d := 0
