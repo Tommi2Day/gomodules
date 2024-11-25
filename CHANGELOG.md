@@ -1,5 +1,11 @@
 # Go Library
 
+# [v1.15.0 - 2024-11-25]
+### New
+- common: add ReadFileToStruct function and tests
+### Changed
+- update dependencies
+
 ## [v1.14.11 - 2024-11-08]
 ### New
 - common: add ReadStdinToString and ReadStdinByLine functions and tests

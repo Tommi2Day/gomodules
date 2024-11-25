@@ -2,6 +2,9 @@ package common
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +12,8 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/html/charset"
+	"gopkg.in/yaml.v3"
 )
 
 // ReadFileToString read a file and return a string
@@ -102,6 +107,36 @@ func ReadStdinByLine() ([]string, error) {
 		err = nil
 	}
 	return lines, err
+}
+
+// ReadFileToStruct reads a file or from stdin and fills a given struct
+func ReadFileToStruct(filename string, data any) (err error) {
+	content := ""
+	if filename == "-" {
+		content, err = ReadStdinToString()
+	} else {
+		content, err = ReadFileToString(filename)
+	}
+	if err != nil {
+		err = fmt.Errorf("error reading input: %v", err)
+		return
+	}
+	content = strings.TrimLeft(content, "\n\t ")
+	c := []byte(content)
+	switch {
+	case strings.HasPrefix(content, "{"):
+		err = json.Unmarshal(c, data)
+	case strings.HasPrefix(content, "<"):
+		decoder := xml.NewDecoder(bytes.NewReader(c))
+		decoder.CharsetReader = charset.NewReaderLabel
+		err = decoder.Decode(data)
+	default:
+		err = yaml.Unmarshal(c, data)
+	}
+	if err != nil {
+		err = fmt.Errorf("error parsing input: %v", err)
+	}
+	return
 }
 
 // ChdirToFile change working directory to the filename

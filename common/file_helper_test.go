@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/xml"
 	"os"
 	"path"
 	"path/filepath"
@@ -330,4 +331,204 @@ func TestReadStdinToString(t *testing.T) {
 		assert.Error(t, err)
 		assert.Empty(t, result)
 	})
+}
+func TestReadFileToStruct(t *testing.T) {
+	test.InitTestDirs()
+	type TestStruct struct {
+		XMLName xml.Name `xml:"test"`
+		Name    string   `json:"name" yaml:"name" xml:"name"`
+		Value   int      `json:"value" yaml:"value" xml:"value"`
+		Enabled bool     `json:"enabled" yaml:"enabled" xml:"enabled,attr"`
+	}
+	tests := []struct {
+		name     string
+		content  string
+		filename string
+		wantErr  bool
+		data     interface{}
+	}{
+		{
+			name:     "Valid JSON file",
+			filename: test.TestData + "/valid.json",
+			content:  `{"name": "test", "value": 10, "enabled": true}`,
+			data:     &TestStruct{},
+			wantErr:  false,
+		},
+		{
+			name:     "Valid YAML file",
+			filename: test.TestData + "/valid.yaml",
+			content:  "name: test\nvalue: 10\nenabled: true",
+			data:     &TestStruct{},
+			wantErr:  false,
+		},
+		{
+			name:     "Valid XML file",
+			filename: test.TestData + "/valid.xml",
+			content:  `<test enabled="true">\n<name>test</name>\n<value>10</value>\n</test>`,
+			data:     &TestStruct{},
+			wantErr:  false,
+		},
+
+		{
+			name:     "invalid json",
+			filename: test.TestData + "/invalid.json",
+			content:  `{"name": "test", "value": invalid, "enabled": true}`,
+			data:     &TestStruct{},
+			wantErr:  true,
+		},
+		{
+			name:     "invalid yaml",
+			filename: test.TestData + "/invalid.yaml",
+			content:  "name: test\nvalue: 'invalid': true",
+			data:     &TestStruct{},
+			wantErr:  true,
+		},
+		{
+			name:     "invalid xml",
+			filename: test.TestData + "/invalid.xml",
+			content:  `<test><name>test</name><value>invalid</invalid></test>`,
+			data:     &TestStruct{},
+			wantErr:  true,
+		},
+		{
+			name:     "nil pointer",
+			filename: test.TestData + "/invalid.xml",
+			content:  `<test><name>test</name><value>10</invalid></test>`,
+			data:     nil,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_ = os.Remove(tt.filename)
+			err := WriteStringToFile(tt.filename, tt.content)
+			if err != nil {
+				t.Errorf("error writing file: %v", err)
+				return
+			}
+			val := tt.data
+			err = ReadFileToStruct(tt.filename, val)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadFileToStruct() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				assert.NotNil(t, val)
+				d, ok := val.(*TestStruct)
+				assert.True(t, ok)
+				if ok {
+					assert.Equal(t, "test", d.Name)
+					assert.Equal(t, 10, d.Value)
+					assert.Equal(t, true, d.Enabled)
+				}
+			}
+		})
+	}
+}
+
+func TestReadFileToStructComplex(t *testing.T) {
+	test.InitTestDirs()
+	type Address struct {
+		Street     string `json:"street,omitempty" yaml:"street,omitempty" xml:"street,omitempty"`
+		City       string `json:"city" yaml:"city" xml:"city"`
+		PostalCode string `json:"postal_code,omitempty" yaml:"postal_code,omitempty" xml:"postal_code,omitempty"`
+	}
+
+	type Person struct {
+		FirstName string  `json:"first_name,omitempty" yaml:"first_name,omitempty" xml:"first_name,omitempty"`
+		LastName  string  `json:"last_name" yaml:"last_name" xml:"last_name"`
+		Age       int     `json:"age,omitempty" yaml:"age,omitempty" xml:"age,omitempty"`
+		Address   Address `json:"address" yaml:"address" xml:"address"`
+	}
+	expected := &Person{
+		FirstName: "John",
+		LastName:  "Doe",
+		Age:       30,
+		Address: Address{
+			Street:     "123 Main St",
+			City:       "Anytown",
+			PostalCode: "12345",
+		},
+	}
+	tests := []struct {
+		name     string
+		content  string
+		filename string
+		wantErr  bool
+		data     interface{}
+		expected *Person
+	}{
+		{
+			name:     "Valid JSON file",
+			filename: test.TestData + "/valid2.json",
+			content: `{
+			"first_name": "John",
+			"last_name": "Doe",
+			"age": 30,
+			"address": {
+				"street": "123 Main St",
+				"city": "Anytown",
+				"postal_code": "12345"
+				}
+		    }`,
+			data:     &Person{},
+			wantErr:  false,
+			expected: expected,
+		},
+		{
+			name:     "Valid YAML file",
+			filename: test.TestData + "/valid2.yaml",
+			content: `---
+first_name: John
+last_name: Doe
+age: 30
+address:
+    street: "123 Main St"
+    city: "Anytown"
+    postal_code: "12345"
+`,
+			data:     &Person{},
+			wantErr:  false,
+			expected: expected,
+		},
+		{
+			name:     "Valid XML file",
+			filename: test.TestData + "/valid2.xml",
+			content: `<?xml version="1.0" encoding="UTF-8"?>
+		<person>
+		<first_name>John</first_name>
+		<last_name>Doe</last_name>
+		<age>30</age>
+		<address>
+		<street>123 Main St</street>
+		<city>Anytown</city>
+		<postal_code>12345</postal_code>
+		</address>
+		</person>`,
+			data:     &Person{},
+			wantErr:  false,
+			expected: expected,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_ = os.Remove(tt.filename)
+			err := WriteStringToFile(tt.filename, tt.content)
+			if err != nil {
+				t.Errorf("error writing file: %v", err)
+				return
+			}
+			val := tt.data
+			err = ReadFileToStruct(tt.filename, val)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadFileToStruct() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				assert.NotNil(t, val)
+				assert.Equal(t, tt.expected, val)
+			}
+		})
+	}
 }
