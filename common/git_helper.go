@@ -149,3 +149,18 @@ func IsGitFile(filename string) (rootDir string, gitFileName string, err error) 
 	err = fmt.Errorf("%s not found in %s", gitName, rootDir)
 	return
 }
+
+func GetGitlabJobURL() string {
+	job := GetEnv("CI_JOB_URL", "")
+	if job != "" {
+		log.Infof("Git Job URL: %s", job)
+	}
+	return job
+}
+func GetGitlabPipelineURL() string {
+	pipeline := GetEnv("CI_PIPELINE_URL", "")
+	if pipeline != "" {
+		log.Infof("Start manual Pipeline Drop Job in %s to execute ", pipeline)
+	}
+	return pipeline
+}

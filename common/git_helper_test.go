@@ -113,4 +113,61 @@ func TestGit(t *testing.T) {
 		assert.Errorf(t, err, "GetLastCommit should fail")
 		assert.Nilf(t, c, "GetLastCommit returned not nil")
 	})
+	t.Run("TestGetJobURL", func(t *testing.T) {
+		t.Run("With CI Job URL", func(t *testing.T) {
+			expectedURL := "https://ci.example.com/jobs/123"
+			_ = os.Setenv("CI_JOB_URL", expectedURL)
+			result := GetGitlabJobURL()
+			assert.Equal(t, expectedURL, result)
+		})
+
+		t.Run("Without CI Job URL", func(t *testing.T) {
+			_ = os.Unsetenv("CI_JOB_URL")
+			result := GetGitlabJobURL()
+			assert.Empty(t, result)
+		})
+
+		t.Run("With Empty CI Job URL", func(t *testing.T) {
+			_ = os.Setenv("CI_JOB_URL", "")
+			result := GetGitlabJobURL()
+			assert.Empty(t, result)
+		})
+
+		t.Run("With Special Characters in URL", func(t *testing.T) {
+			specialURL := "https://ci.example.com/jobs/123?branch=feature/test¶m=value#fragment"
+			_ = os.Setenv("CI_JOB_URL", specialURL)
+			result := GetGitlabJobURL()
+			assert.Equal(t, specialURL, result)
+		})
+		_ = os.Unsetenv("CI_JOB_URL")
+	})
+
+	t.Run("TestGetPipelineURL", func(t *testing.T) {
+		t.Run("With Pipeline URL", func(t *testing.T) {
+			expected := "https://gitlab.example.com/pipeline/123"
+			_ = os.Setenv("CI_PIPELINE_URL", expected)
+			result := GetGitlabPipelineURL()
+			assert.Equal(t, expected, result)
+		})
+
+		t.Run("Without Pipeline URL", func(t *testing.T) {
+			_ = os.Unsetenv("CI_PIPELINE_URL")
+			result := GetGitlabPipelineURL()
+			assert.Empty(t, result)
+		})
+
+		t.Run("With Empty Pipeline URL", func(t *testing.T) {
+			_ = os.Setenv("CI_PIPELINE_URL", "")
+			result := GetGitlabPipelineURL()
+			assert.Empty(t, result)
+		})
+
+		t.Run("With Special Characters", func(t *testing.T) {
+			expected := "https://gitlab.example.com/pipeline/123?branch=feature/test&commit=abc123"
+			_ = os.Setenv("CI_PIPELINE_URL", expected)
+			result := GetGitlabPipelineURL()
+			assert.Equal(t, expected, result)
+		})
+		_ = os.Unsetenv("CI_PIPELINE_URL")
+	})
 }

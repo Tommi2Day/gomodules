@@ -1,5 +1,12 @@
 # Go Library
 
+## [v1.16.0 - 2025-02-21]
+### New
+- common: add GetGitlabJobURL and GetGitlabPipelineURL functions
+### Changed
+- require Go1.23
+- update dependencies
+
 # [v1.15.0 - 2024-11-25]
 ### New
 - common: add ReadFileToStruct function and tests
