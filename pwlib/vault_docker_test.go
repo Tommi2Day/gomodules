@@ -15,7 +15,7 @@ import (
 )
 
 const repo = "docker.io/hashicorp/vault"
-const repoTag = "1.17.3"
+const repoTag = "1.18.4"
 const containerTimeout = 120
 const rootToken = "pwlib-test"
 
@@ -52,14 +52,6 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 		Name:     containerName,
 		CapAdd:   []string{"IPC_LOCK"},
 		Cmd:      []string{},
-		// ExposedPorts: []string{"8200"},
-		/*
-			PortBindings: map[docker.Port][]docker.PortBinding{
-				"8200": {
-					{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", port)},
-				},
-			},
-		*/
 		Mounts: []string{
 			test.TestDir + "/docker/vault_provision:/vault_provision/",
 		},
