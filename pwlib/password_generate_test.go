@@ -2,9 +2,12 @@ package pwlib
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGenPassword(t *testing.T) {
+func TestGenPasswordProfile(t *testing.T) {
 	tests := []struct {
 		name     string
 		genValid bool
@@ -21,12 +24,12 @@ func TestGenPassword(t *testing.T) {
 			"Default Techuser",
 			true,
 			true,
-			TechProfile.Length,
-			TechProfile.Upper,
-			TechProfile.Lower,
-			TechProfile.Digits,
-			TechProfile.Special,
-			TechProfile.Firstchar,
+			TestTechProfile.Length,
+			TestTechProfile.Upper,
+			TestTechProfile.Lower,
+			TestTechProfile.Digits,
+			TestTechProfile.Special,
+			TestTechProfile.FirstIsChar,
 			AllChars,
 		},
 		{
@@ -45,12 +48,12 @@ func TestGenPassword(t *testing.T) {
 			"Personal User",
 			true,
 			true,
-			UserProfile.Length,
-			UserProfile.Upper,
-			UserProfile.Lower,
-			UserProfile.Digits,
-			UserProfile.Special,
-			UserProfile.Firstchar,
+			TestUserProfile.Length,
+			TestUserProfile.Upper,
+			TestUserProfile.Lower,
+			TestUserProfile.Digits,
+			TestUserProfile.Special,
+			TestUserProfile.FirstIsChar,
 			AllChars,
 		},
 		{
@@ -90,14 +93,19 @@ func TestGenPassword(t *testing.T) {
 			UpperChar + Digits,
 		},
 	}
-	SetSpecialChars(SpecialChar)
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
-			newPassword, err := GenPassword(c.length, c.uc, c.lc, c.num, c.sp, c.first)
+			np := NewPasswordProfile(c.length, c.uc, c.lc, c.num, c.sp, c.first)
+			pps := PasswordProfileSet{
+				Profile:      np,
+				SpecialChars: "",
+			}
+			pp, cs := pps.Load()
+			newPassword, err := GenPasswordProfile(pps)
 			t.Logf("generated Password: '%s'\n", newPassword)
 			if err == nil {
-				ok := DoPasswordCheck(newPassword, c.length, c.uc, c.lc, c.num, c.sp, c.first, c.chars)
-				if ok != c.valid {
+				status := DoPasswordCheck(newPassword, pp, cs)
+				if status != c.valid {
 					t.Fatalf("invalid password '%s'", newPassword)
 				}
 			} else
@@ -107,4 +115,59 @@ func TestGenPassword(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGenPassword(t *testing.T) {
+	// Returns valid password when called with empty profile string using DefaultPasswordProfile
+	t.Run("TestGenPasswordWithEmptyProfile", func(t *testing.T) {
+		password, err := GenPassword("")
+		pps := PasswordProfileSet{Profile: DefaultPasswordProfile}
+		pp, cs := pps.Load()
+		require.NoError(t, err)
+		require.NotEmpty(t, password)
+		require.Len(t, password, pp.Length)
+
+		// Verify password matches default profile requirements
+		status := DoPasswordCheck(password, pp, cs)
+		require.True(t, status)
+	})
+
+	// Handles invalid profile string format with appropriate error
+	t.Run("TestGenPasswordWithInvalidProfile", func(t *testing.T) {
+		invalidProfile := "invalid format"
+		password, err := GenPassword(invalidProfile)
+		require.Error(t, err)
+		require.Empty(t, password)
+		require.Contains(t, err.Error(), "profile string should have 6 space separated numbers")
+	})
+
+	// bGenerated password matches specified profile requirements for length and character types
+	t.Run("TestGenPasswordWithValidProfile", func(t *testing.T) {
+		profile := "16 1 1 1 1 1"
+		password, err := GenPassword(profile)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, password)
+		assert.Equal(t, 16, len(password))
+		pp, err := GetPasswordProfileFromString(profile)
+		assert.NoError(t, err)
+		cs := GetPasswordCharSet(DefaultSpecialChars)
+		if err == nil {
+			assert.True(t, DoPasswordCheck(password, pp, cs))
+		}
+
+		t.Logf("generated Password: '%s'\n", password)
+	})
+
+	// Correctly uses DefaultPasswordProfile when no profile is provided
+	t.Run("TestGenPasswordWithDefaultProfile", func(t *testing.T) {
+		password, err := GenPassword("")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, password)
+		cs := GetPasswordCharSet(DefaultSpecialChars)
+		if err == nil {
+			assert.True(t, DoPasswordCheck(password, DefaultPasswordProfile, cs))
+		}
+		assert.Equal(t, DefaultPasswordProfile.Length, len(password))
+		assert.True(t, DoPasswordCheck(password, DefaultPasswordProfile, cs))
+	})
 }

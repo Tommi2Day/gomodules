@@ -10,14 +10,8 @@ import (
 // SilentCheck skip log messages while checking
 var SilentCheck = false
 
-// SetSpecialChars change default charset for checks
-func SetSpecialChars(specialChars string) {
-	all := UpperChar + LowerChar + Digits + specialChars
-	charset = PasswordCharset{UpperChar, LowerChar, Digits, specialChars, all}
-}
-
 // DoPasswordCheck Checks a password to given criteria
-func DoPasswordCheck(password string, length int, upper int, lower int, numeric int, special int, firstCharCheck bool, allowedChars string) bool {
+func DoPasswordCheck(password string, profile PasswordProfile, cs PasswordCharset) bool {
 	// var ls = true
 	var ucs = true
 	var lcs = true
@@ -28,39 +22,36 @@ func DoPasswordCheck(password string, length int, upper int, lower int, numeric 
 	var err error
 
 	// allowed chars
-	possible := allowedChars
-	if allowedChars == "" {
-		possible = charset.AllChars
-	}
+	possible := cs.AllChars
 
 	// do checks
-	ls, err := checkLength(password, length)
+	ls, err := checkLength(password, profile.Length)
 	logError("length", err)
-	if upper > 0 {
-		ucs, err = checkClass(password, upper, charset.UpperChar)
+	if profile.Upper > 0 {
+		ucs, err = checkClass(password, profile.Upper, cs.UpperChar)
 		logError("uppercase", err)
 	}
-	if lower > 0 {
-		lcs, err = checkClass(password, lower, charset.LowerChar)
+	if profile.Lower > 0 {
+		lcs, err = checkClass(password, profile.Lower, cs.LowerChar)
 		logError("lowercase", err)
 	}
-	if numeric > 0 {
-		ncs, err = checkClass(password, numeric, charset.Digits)
+	if profile.Digits > 0 {
+		ncs, err = checkClass(password, profile.Digits, cs.Digits)
 		logError("numeric", err)
 	}
-	if special > 0 {
-		sps, err = checkClass(password, special, charset.SpecialChar)
+	if profile.Special > 0 {
+		sps, err = checkClass(password, profile.Special, cs.SpecialChar)
 		logError("special", err)
 	}
-	cs, err := checkChars(password, possible)
+	ccs, err := checkChars(password, possible)
 	logError("allowed chars", err)
-	if firstCharCheck {
-		fcs, err = checkFirstChar(password, charset.UpperChar+charset.LowerChar)
+	if profile.FirstIsChar {
+		fcs, err = checkFirstChar(password, cs.UpperChar+cs.LowerChar)
 		logError("first character", err)
 	}
 
 	// final state
-	return ls && ucs && lcs && ncs && sps && cs && fcs
+	return ls && ucs && lcs && ncs && sps && ccs && fcs
 }
 
 func logError(name string, err error) {

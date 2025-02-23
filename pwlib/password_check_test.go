@@ -4,24 +4,24 @@ import (
 	"testing"
 )
 
-// TechProfile profile settings for technical users
-var TechProfile = PasswordProfile{
-	Length:    12,
-	Upper:     1,
-	Lower:     1,
-	Digits:    1,
-	Special:   1,
-	Firstchar: true,
+// TestTechProfile profile settings for technical users
+var TestTechProfile = PasswordProfile{
+	Length:      12,
+	Upper:       1,
+	Lower:       1,
+	Digits:      1,
+	Special:     1,
+	FirstIsChar: true,
 }
 
-// UserProfile profile settings for personal users
-var UserProfile = PasswordProfile{
-	Length:    10,
-	Upper:     1,
-	Lower:     1,
-	Digits:    1,
-	Special:   0,
-	Firstchar: true,
+// TestUserProfile profile settings for personal users
+var TestUserProfile = PasswordProfile{
+	Length:      10,
+	Upper:       1,
+	Lower:       1,
+	Digits:      1,
+	Special:     0,
+	FirstIsChar: true,
 }
 
 func TestDoPasswordCheck(t *testing.T) {
@@ -36,70 +36,70 @@ func TestDoPasswordCheck(t *testing.T) {
 			"NoCharacterAtAll",
 			"",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"JustEmptyStringAndWhitespace",
 			" \n\t\r\v\f xxxx",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"MixtureOfEmptyStringAndWhitespace",
 			"U u\n1\t?\r1\v2\f34",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"MissingUpperCaseString",
 			"uu1?1234aaaa",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"MissingLowerCaseString",
 			"UU1?1234AAAA",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"MissingNumber",
 			"Uua?aaaaxxxx",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"MissingSymbol",
 			"Uu101234aaaa",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"LessThanRequiredMinimumLength",
 			"Uu1?123",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"ValidPassword",
 			"Uu1?1234aaaa",
 			true,
-			TechProfile,
+			TestTechProfile,
 			"",
 		},
 		{
 			"InvalidSpecial",
 			"Uu1?1234aaaa",
 			false,
-			TechProfile,
+			TestTechProfile,
 			"x!=@",
 		},
 	}
@@ -108,10 +108,12 @@ func TestDoPasswordCheck(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			profile := c.profile
 			special := c.special
-			if special != "" {
-				SetSpecialChars(special)
+			pps := PasswordProfileSet{
+				Profile:      profile,
+				SpecialChars: special,
 			}
-			if c.valid != DoPasswordCheck(c.pass, profile.Length, profile.Upper, profile.Lower, profile.Digits, profile.Special, profile.Firstchar, charset.AllChars) {
+			pp, cs := pps.Load()
+			if c.valid != DoPasswordCheck(c.pass, pp, cs) {
 				t.Fatal("invalid password")
 			}
 		})
