@@ -224,3 +224,41 @@ func RandString(n int) string {
 	}
 	return string(ret)
 }
+
+// MergeMapsAny merges two maps of any types, inserting all key-value pairs from the second map into the first map, and returns the updated map.
+// Note: Both input maps must be of the same type.
+func MergeMaps(m1, m2 interface{}) (interface{}, error) {
+	if m1 == nil {
+		return m2, nil
+	}
+	if m2 == nil {
+		return m1, nil
+	}
+
+	map1Value := reflect.ValueOf(m1)
+	map2Value := reflect.ValueOf(m2)
+
+	// Ensure both inputs are maps
+	if map1Value.Kind() != reflect.Map || map2Value.Kind() != reflect.Map {
+		return nil, fmt.Errorf("both inputs must be maps")
+	}
+
+	// Ensure maps have the same key and value types
+	if map1Value.Type() != map2Value.Type() {
+		return nil, fmt.Errorf("maps must be of the same type")
+	}
+
+	mergedMap := reflect.MakeMap(map1Value.Type())
+
+	// Copy elements from map1 to mergedMap
+	for _, key := range map1Value.MapKeys() {
+		mergedMap.SetMapIndex(key, map1Value.MapIndex(key))
+	}
+
+	// Copy elements from map2 to mergedMap
+	for _, key := range map2Value.MapKeys() {
+		mergedMap.SetMapIndex(key, map2Value.MapIndex(key))
+	}
+
+	return mergedMap.Interface(), nil
+}

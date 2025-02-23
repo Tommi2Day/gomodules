@@ -187,3 +187,25 @@ func IsFile(name string) bool {
 	}
 	return !fi.IsDir()
 }
+
+// FindFileInPath searches for a file with the given name in the provided directories.
+// It returns the absolute path of the found file, or an empty string if not found.
+func FindFileInPath(filename string, dirs []string) string {
+	fn, _ := filepath.Abs(filename)
+	// direct match
+	if FileExists(fn) {
+		return fn
+	}
+	// walk trough path list
+	for _, dir := range dirs {
+		a, _ := filepath.Abs(dir)
+		if IsFile(a) {
+			a = filepath.Dir(a)
+		}
+		f := filepath.Join(a, filename)
+		if FileExists(f) {
+			return f
+		}
+	}
+	return ""
+}

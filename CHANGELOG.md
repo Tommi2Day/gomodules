@@ -1,5 +1,12 @@
 # Go Library
 
+## [v1.17.0 - 2025-02-23]
+### New
+- common: add MergeMap and FindFileInPath functions and tests
+- pwlib: add password profileset functions
+### Changed
+- vault: uodate vault test image
+
 ## [v1.16.0 - 2025-02-21]
 ### New
 - common: add GetGitlabJobURL and GetGitlabPipelineURL functions

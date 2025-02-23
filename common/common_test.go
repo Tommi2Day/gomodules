@@ -13,7 +13,7 @@ import (
 
 func TestGetEnv(t *testing.T) {
 	const fallback = "NotFound"
-	t.Run("Test Strin Env", func(t *testing.T) {
+	t.Run("Test String Env", func(t *testing.T) {
 		key := "TESTKEY"
 
 		expected := "Test"
@@ -140,7 +140,7 @@ func TestCommandExists(t *testing.T) {
 		actual := CommandExists(c)
 		assert.Truef(t, actual, "Command %s not found", c)
 
-		// Test with non existing command
+		// Test with non-existing command
 		actual = CommandExists("nonexistingcommand")
 		assert.False(t, actual, "nonexisting Command found")
 	})
@@ -475,5 +475,134 @@ func TestStructToString(t *testing.T) {
 		result := StructToString(testObj, "")
 		expected := "Address: \n  City: Anytown\n  Street: 123 Main St\n\nName: Charlie\n"
 		assert.Equal(t, expected, result, "Unexpected string representation")
+	})
+}
+
+// Merge two non-empty maps with non-overlapping keys
+func TestMergeMaps(t *testing.T) {
+	t.Run("TestMergeMapsWithNonOverlappingKeys", func(t *testing.T) {
+		m1 := map[string]interface{}{
+			"key1": "value1",
+			"key2": 42,
+		}
+
+		m2 := map[string]interface{}{
+			"key3": true,
+			"key4": []string{"a", "b"},
+		}
+
+		expected := map[string]interface{}{
+			"key1": "value1",
+			"key2": 42,
+			"key3": true,
+			"key4": []string{"a", "b"},
+		}
+
+		result, err := MergeMaps(m1, m2)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+		/*
+			if !reflect.DeepEqual(result, expected) {
+				t.Errorf("Expected %v but got %v", expected, result)
+			}
+		*/
+	})
+
+	// Merge nil map with non-nil map
+	t.Run("TestMergeMapsWithNilMap", func(t *testing.T) {
+		var m1 map[string]interface{}
+
+		m2 := map[string]interface{}{
+			"key1": "value1",
+			"key2": 42,
+		}
+
+		expected := map[string]interface{}{
+			"key1": "value1",
+			"key2": 42,
+		}
+
+		result, err := MergeMaps(m1, m2)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	// Merge two non-empty maps with overlapping keys
+	t.Run("TestMergeMapsWithOverlappingKeys", func(t *testing.T) {
+		m1 := map[string]interface{}{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		m2 := map[string]interface{}{
+			"key2": "newValue2",
+			"key3": "value3",
+		}
+		expected := map[string]interface{}{
+			"key1": "value1",
+			"key2": "newValue2",
+			"key3": "value3",
+		}
+		result, err := MergeMaps(m1, m2)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	// Merge empty map with non-empty map
+	t.Run("TestMergeEmptyMapWithNonEmptyMap", func(t *testing.T) {
+		m1 := map[string]interface{}{}
+		m2 := map[string]interface{}{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		expected := map[string]interface{}{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		result, err := MergeMaps(m1, m2)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	// Merge maps with nested interface{} values
+	t.Run("TestMergeMapsWithNestedValues", func(t *testing.T) {
+		m1 := map[string]interface{}{
+			"key1": map[string]interface{}{
+				"nestedKey1": "nestedValue1",
+			},
+		}
+		m2 := map[string]interface{}{
+			"key2": map[string]interface{}{
+				"nestedKey2": "nestedValue2",
+			},
+		}
+		expected := map[string]interface{}{
+			"key1": map[string]interface{}{
+				"nestedKey1": "nestedValue1",
+			},
+			"key2": map[string]interface{}{
+				"nestedKey2": "nestedValue2",
+			},
+		}
+		result, err := MergeMaps(m1, m2)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+	t.Run("TestMergeMapWithCustomType", func(t *testing.T) {
+		type mytype map[string]string
+		m1 := mytype{
+			"key1": "value1",
+			"key2": "value1",
+		}
+		m2 := mytype{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		expected := mytype{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		result, err := MergeMaps(m1, m2)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, result)
 	})
 }

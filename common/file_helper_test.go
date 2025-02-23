@@ -532,3 +532,68 @@ address:
 		})
 	}
 }
+
+func TestFindFile(t *testing.T) {
+	t.Run("TestFindFileFileExists", func(t *testing.T) {
+		// Create temp test directory
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Create test file
+		testFile := filepath.Join(tmpDir, "test.txt")
+		if err = os.WriteFile(testFile, []byte("test"), 0600); err != nil {
+			t.Fatal(err)
+		}
+
+		dirs := []string{tmpDir}
+		result := FindFileInPath("test.txt", dirs)
+
+		expected, _ := filepath.Abs(testFile)
+		assert.NotEmpty(t, result)
+		assert.Equalf(t, expected, result, "Expected %s, got %s", expected, result)
+		_ = os.RemoveAll(tmpDir)
+	})
+
+	t.Run("TestFindFileFromRef", func(t *testing.T) {
+		// Create temp test directory
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Create test file
+		testFile := filepath.Join(tmpDir, "test.txt")
+		if err = os.WriteFile(testFile, []byte("test"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		// Create reference file
+		refFile := filepath.Join(tmpDir, "ref.txt")
+		if err = os.WriteFile(refFile, []byte("ref"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		dirs := []string{refFile}
+		result := FindFileInPath("test.txt", dirs)
+
+		expected, _ := filepath.Abs(testFile)
+		assert.NotEmpty(t, result)
+		assert.Equalf(t, expected, result, "Expected %s, got %s", expected, result)
+
+		_ = os.RemoveAll(tmpDir)
+	})
+	// Return empty string when file is not found in any directory
+	t.Run("TestFindFileFileNotFound", func(t *testing.T) {
+		// Create temp test directory
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		dirs := []string{tmpDir}
+		result := FindFileInPath("nonexistent.txt", dirs)
+
+		assert.Empty(t, result)
+		_ = os.RemoveAll(tmpDir)
+	})
+}
