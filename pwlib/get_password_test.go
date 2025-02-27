@@ -138,6 +138,13 @@ func TestGetPassword(t *testing.T) {
 			answer:   "xxx:yyy",
 			hasError: false,
 		},
+		{
+			name:     "query with upper case",
+			account:  "TestUser",
+			system:   "Testdp",
+			answer:   "xxx:yyy",
+			hasError: false,
+		},
 	} {
 		t.Run(testConfig.name, func(t *testing.T) {
 			pass, err := pc.GetPassword(testConfig.system, testConfig.account)
@@ -149,4 +156,10 @@ func TestGetPassword(t *testing.T) {
 			}
 		})
 	}
+	t.Run("match casesensitive", func(t *testing.T) {
+		pc.CaseSensitive = true
+		pass, e := pc.GetPassword("TestUser", "testdp")
+		assert.Errorf(t, e, "Should return error")
+		assert.Empty(t, pass)
+	})
 }

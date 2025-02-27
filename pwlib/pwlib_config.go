@@ -46,6 +46,7 @@ type PassConfig struct {
 	KeySize         int
 	SSLDigest       openssl.CredsGenerator
 	KMSKeyID        string
+	CaseSensitive   bool
 }
 
 var label = []byte("")
@@ -122,5 +123,6 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 	config.KeySize = defaultRsaKeySize
 	config.SSLDigest = SSLDigest
 	config.KMSKeyID = ""
+	config.CaseSensitive = false
 	return &config
 }

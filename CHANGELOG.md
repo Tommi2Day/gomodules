@@ -1,9 +1,10 @@
 # Go Library
 
-## [v1.17.0 - 2025-02-23]
+## [v1.17.1 - 2025-02-27]
 ### New
 - common: add MergeMap and FindFileInPath functions and tests
 - pwlib: add password profileset functions
+- pwlib: case-insensitive match in get_password
 ### Changed
 - vault: uodate vault test image
 

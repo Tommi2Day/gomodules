@@ -131,8 +131,12 @@ func (pc *PassConfig) GetPassword(system string, account string) (password strin
 	if pc.Method == typeVault {
 		// in vault mode we need to replace ":" in system = vault path to match
 		system = strings.ReplaceAll(system, ":", "_")
+		pc.CaseSensitive = true
 	}
 
+	if pc.Method == typeGopass {
+		pc.CaseSensitive = true
+	}
 	// match strings in function to make linter happy
 	password, found, direct = pc.match(lines, system, account)
 	// not found
@@ -154,37 +158,46 @@ func (pc *PassConfig) match(lines []string, system string, account string) (pass
 	password = ""
 	found = false
 	direct = false
+
 	for _, line := range lines {
 		if common.CheckSkip(line) {
 			continue
 		}
+
 		fields := strings.SplitN(line, ":", 3)
 		if len(fields) != 3 {
 			log.Debugf("Skip incomplete record %s", line)
 			continue
 		}
-		if system == fields[0] && account == fields[1] {
+
+		if pc.isDirectMatch(fields, system, account) {
 			log.Debug("Found direct match")
-			if found {
-				log.Debug("Overwrite previous default candidate")
-			}
-			found = true
-			direct = true
-			password = fields[2]
+			password, found, direct = fields[2], true, true
 			break
 		}
-		if pc.Method == typeVault || pc.Method == typeGopass {
-			// vault method has no default entries
-			continue
-		}
-		if fields[0] == "!default" && account == fields[1] {
-			password = fields[2]
-			log.Debug("found new default match candidate")
-			if found {
-				log.Debug("Overwrite previous default candidate")
-			}
-			found = true
+
+		if pc.isDefaultMatch(fields, account) {
+			log.Debug("Found new default match candidate")
+			password, found = fields[2], true
 		}
 	}
 	return
+}
+
+func (pc *PassConfig) isDirectMatch(fields []string, system string, account string) bool {
+	if pc.CaseSensitive {
+		return system == fields[0] && account == fields[1]
+	}
+	return strings.EqualFold(system, fields[0]) && strings.EqualFold(account, fields[1])
+}
+
+func (pc *PassConfig) isDefaultMatch(fields []string, account string) bool {
+	const defaultSystem = "!default"
+	if pc.Method == typeVault || pc.Method == typeGopass {
+		return false
+	}
+	if pc.CaseSensitive {
+		return strings.ToLower(fields[0]) == defaultSystem && account == fields[1]
+	}
+	return strings.EqualFold(fields[0], defaultSystem) && strings.EqualFold(account, fields[1])
 }
