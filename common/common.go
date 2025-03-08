@@ -262,3 +262,12 @@ func MergeMaps(m1, m2 interface{}) (interface{}, error) {
 
 	return mergedMap.Interface(), nil
 }
+
+func StructToJSON(m interface{}) (string, error) {
+	b, err := json.MarshalIndent(m, "", " ")
+	if err != nil {
+		return "", err
+	}
+	c := string(b)
+	return c, nil
+}

@@ -606,3 +606,92 @@ func TestMergeMaps(t *testing.T) {
 		assert.Equal(t, expected, result)
 	})
 }
+func TestMapToJson(t *testing.T) {
+	// Convert a simple map to JSON string
+	t.Run("TestMapToJsonWithSimpleMap", func(t *testing.T) {
+		// Create a simple map
+		testMap := map[string]interface{}{
+			"name": "John",
+			"age":  30,
+			"city": "New York",
+		}
+
+		// Call the function
+		result, err := StructToJSON(testMap)
+
+		// Assert no error
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		// Expected JSON string
+		expected := `{
+ "age": 30,
+ "city": "New York",
+ "name": "John"
+}`
+
+		// Compare result with expected
+		if result != expected {
+			t.Errorf("Expected %s, got %s", expected, result)
+		}
+	})
+
+	// Handle nil input
+	t.Run("TestMapToJsonWithNilInput", func(t *testing.T) {
+		// Call the function with nil input
+		result, err := StructToJSON(nil)
+
+		// Assert no error
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		// Expected JSON string for nil
+		expected := "null"
+
+		// Compare result with expected
+		if result != expected {
+			t.Errorf("Expected %s, got %s", expected, result)
+		}
+	})
+
+	// Convert a struct to JSON string
+	t.Run("TestConvertStructToJsonString", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		person := Person{Name: "Alice", Age: 30}
+		expected := "{\n \"Name\": \"Alice\",\n \"Age\": 30\n}"
+
+		jsonStr, err := StructToJSON(person)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, jsonStr)
+	})
+
+	// Convert a nested map to JSON string
+	t.Run("TestConvertNestedMapToJsonString", func(t *testing.T) {
+		nestedMap := map[string]interface{}{
+			"name": "Bob",
+			"details": map[string]interface{}{
+				"age":  25,
+				"city": "New York",
+			},
+		}
+		expected := "{\n \"details\": {\n  \"age\": 25,\n  \"city\": \"New York\"\n },\n \"name\": \"Bob\"\n}"
+
+		jsonStr, err := StructToJSON(nestedMap)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, jsonStr)
+	})
+
+	// Convert an array/slice to JSON string
+	t.Run("TestConvertSliceToJsonString", func(t *testing.T) {
+		slice := []string{"apple", "banana", "cherry"}
+		expected := "[\n \"apple\",\n \"banana\",\n \"cherry\"\n]"
+		jsonStr, err := StructToJSON(slice)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, jsonStr)
+	})
+}
