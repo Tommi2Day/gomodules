@@ -15,7 +15,7 @@ import (
 )
 
 const Ldaprepo = "docker.io/bitnami/openldap"
-const LdaprepoTag = "2.6.8"
+const LdaprepoTag = "2.6.9"
 const LdapcontainerTimeout = 120
 
 var ldapcontainerName string

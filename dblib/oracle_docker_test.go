@@ -15,7 +15,7 @@ import (
 // DBPort is the port of the Oracle DB to access
 const DBPort = "21522"
 const repo = "docker.io/gvenzl/oracle-free"
-const repoTag = "23.5"
+const repoTag = "23.5-slim"
 const containerTimeout = 600
 
 // SYSTEMUSER is the name of the default DBA user

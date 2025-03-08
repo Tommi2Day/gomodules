@@ -1,5 +1,13 @@
 # Go Library
 
+## [v1.18.0 - 2025-03-08]
+### New
+- common: add StructToJSON function
+### Changed
+- pwlib: use $HOME/.pwcli as default dir
+- update dependencies
+- update test docker images
+
 ## [v1.17.1 - 2025-02-27]
 ### New
 - common: add MergeMap and FindFileInPath functions and tests
