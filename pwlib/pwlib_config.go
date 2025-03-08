@@ -2,10 +2,11 @@ package pwlib
 
 import (
 	"os"
-
-	openssl "github.com/Luzifer/go-openssl/v4"
+	"path"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Luzifer/go-openssl/v4"
 )
 
 const (
@@ -53,7 +54,7 @@ var label = []byte("")
 var pubExt = pubPemExt
 var privExt = privPemExt
 
-// SSLDigest variable helds common digist algor
+// SSLDigest specifies the digest algorithm used by OpenSSL for deriving encryption keys, set to SHA-256.
 var SSLDigest = openssl.BytesToKeySHA256
 
 // NewConfig set encryption configuration
@@ -63,8 +64,15 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 	log.Debug("NewConfig entered")
 	log.Debugf("A:%s, P:%s, D:%s, K:%s, M:%s", appname, keypass, datadir, keydir, method)
 	// default names
-	wd, _ := os.Getwd()
-	etc := wd + "/etc"
+	defaultDir := path.Dir(keydir)
+	if defaultDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			home, _ = os.Getwd()
+		}
+		defaultDir = path.Join(home, ".pwcli")
+	}
+
 	if method == "" {
 		method = defaultMethod
 	}
@@ -94,10 +102,10 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 		ext = extGo
 	}
 	if datadir == "" {
-		datadir = etc
+		datadir = defaultDir
 	}
 	if keydir == "" {
-		keydir = etc
+		keydir = defaultDir
 	}
 	if keypass == "" {
 		keypass = appname
