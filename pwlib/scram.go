@@ -28,7 +28,10 @@ func hashWithKF(username string, password string, kf scram.KeyFactors) (string, 
 		return "", err
 	}
 
-	credentials := client.GetStoredCredentials(kf)
+	credentials, err := client.GetStoredCredentialsWithError(kf)
+	if err != nil {
+		return "", err
+	}
 
 	// SCRAM-SHA-256$<iter>:<salt>$<StoredKey>:<ServerKey>
 	hashed := fmt.Sprintf("SCRAM-SHA-256$%d:%s$%s:%s",

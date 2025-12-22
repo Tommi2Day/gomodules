@@ -2,13 +2,13 @@
 package netlib
 
 import (
+	"context"
 	"net"
 	"time"
 
 	"github.com/tommi2day/gomodules/common"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 type DNSconfig struct {
