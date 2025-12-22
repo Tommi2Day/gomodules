@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.18.1 - 2025-12-22]
+### Changed
+- update dependencies
+- use go 1.25
+- update mail and oracle test docker image
+
 ## [v1.18.0 - 2025-03-08]
 ### New
 - common: add StructToJSON function
