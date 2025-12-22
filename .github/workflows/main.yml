@@ -2,9 +2,9 @@ name: CI
 
 on: [push]
 
-# env:
+env:
 #  SKIP_DNS: true
-#  SKIP_LDAP: true
+  SKIP_LDAP: true
 #  SKIP_MAIL: true
 #  SKIP_ORACLE: true
 #  SKIP_COMMIT: true
