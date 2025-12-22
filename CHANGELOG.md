@@ -5,8 +5,10 @@
 - update dependencies
 - use go 1.25
 - update mail and oracle test docker image
+- disable ldap check as bitnami image isnt available any more
 - update workflow actions
-- replace deprecated functions
+- netlib,pwlib: replace deprecated functions
+- symcon: change TestWithoutProfile Test
 
 ## [v1.18.0 - 2025-03-08]
 ### New
@@ -22,7 +24,7 @@
 - pwlib: add password profileset functions
 - pwlib: case-insensitive match in get_password
 ### Changed
-- vault: uodate vault test image
+- vault: update vault test image
 
 ## [v1.16.0 - 2025-02-21]
 ### New
