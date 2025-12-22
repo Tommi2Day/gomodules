@@ -82,7 +82,7 @@ func prepareKmsContainer() (kmsContainer *dockertest.Resource, err error) {
 	start := time.Now()
 	var c net.Conn
 	if err = pool.Retry(func() error {
-		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", kmsHost, kmsPort))
+		c, err = net.Dial("tcp", net.JoinHostPort(kmsHost, fmt.Sprintf("%d", kmsPort)))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
 		}

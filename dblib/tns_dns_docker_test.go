@@ -151,7 +151,7 @@ func waitForDNSServer(pool *dockertest.Pool) error {
 	pool.MaxWait = dblibDNSContainerTimeout * time.Second
 	start := time.Now()
 	err := pool.Retry(func() error {
-		c, err := net.Dial("udp", fmt.Sprintf("%s:%d", dblibDNSServer, dblibDNSPort))
+		c, err := net.Dial("udp", net.JoinHostPort(dblibDNSContainerName, fmt.Sprintf("%d", dblibDNSPort)))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
 			return err

@@ -111,7 +111,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	start := time.Now()
 	var c net.Conn
 	if err = pool.Retry(func() error {
-		c, err = net.Dial("tcp", fmt.Sprintf("%s:%d", mailServer, tlsPort))
+		c, err = net.Dial("udp", net.JoinHostPort(mailServer, fmt.Sprintf("%d", tlsPort)))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
 		}

@@ -7,8 +7,10 @@
 - update mail and oracle test docker image
 - disable ldap check as bitnami image isnt available any more
 - update workflow actions
-- netlib,pwlib: replace deprecated functions
+- update golangci config for v2
+### Fixed
 - symcon: change TestWithoutProfile Test
+- linter issues
 
 ## [v1.18.0 - 2025-03-08]
 ### New
