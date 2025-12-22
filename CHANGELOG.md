@@ -5,6 +5,7 @@
 - update dependencies
 - use go 1.25
 - update mail and oracle test docker image
+- update workflow actions
 
 ## [v1.18.0 - 2025-03-08]
 ### New
