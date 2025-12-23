@@ -1,7 +1,7 @@
 #!/bin/bash
 export MSYS_NO_PATHCONV=1
 WD=$(dirname $0)
-CONTAINER=${CONTAINER:-ldaplib}
+CONTAINER=${CONTAINER:-"dblib-ldap"}
 URL="ldap://localhost"
 LDAP_USER="cn=config"
 LDAP_PASSWORD=${LDAP_CONFIG_PASSWORD:-"config"}

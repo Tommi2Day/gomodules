@@ -1,11 +1,16 @@
 # Go Library
 
+## [v1.18.2 - 2025-12-24]
+### Changed
+- ldaplib, dblib: use clearstart/openldap as ldap test container
+- reenable ldap test
+
 ## [v1.18.1 - 2025-12-22]
 ### Changed
 - update dependencies
 - use go 1.25
 - update mail and oracle test docker image
-- disable ldap check as bitnami image isnt available any more
+- disable ldap test as bitnami images are not available any more
 - update workflow actions
 - update golangci config for v2
 ### Fixed

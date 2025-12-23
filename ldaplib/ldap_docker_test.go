@@ -3,7 +3,6 @@ package ldaplib
 import (
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	"github.com/tommi2day/gomodules/test"
@@ -14,8 +13,8 @@ import (
 	"github.com/tommi2day/gomodules/common"
 )
 
-const Ldaprepo = "docker.io/bitnami/openldap"
-const LdaprepoTag = "2.6.9"
+const Ldaprepo = "docker.io/cleanstart/openldap"
+const LdaprepoTag = "2.6.10"
 const LdapcontainerTimeout = 120
 
 var ldapcontainerName string
@@ -41,39 +40,15 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 	repoString := vendorImagePrefix + Ldaprepo
 
 	fmt.Printf("Try to start docker container for %s:%s\n", repoString, LdaprepoTag)
-	fmt.Println(path.Join(test.TestDir, "docker", "ldap", "certs") + ":/opt/bitnami/openldap/certs:ro")
 	container, err = pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: repoString,
 		Tag:        LdaprepoTag,
-		Env: []string{
-
-			"LDAP_PORT_NUMBER=1389",
-			"LDAP_LDAPS_PORT_NUMBER=1636",
-			"BITNAMI_DEBUG=true",
-			"LDAP_ROOT=" + LdapBaseDn,
-			"LDAP_ADMIN_USERNAME=admin",
-			"LDAP_ADMIN_PASSWORD=" + LdapAdminPassword,
-			"LDAP_CONFIG_ADMIN_ENABLED=yes",
-			"LDAP_CONFIG_ADMIN_USERNAME=config",
-			"LDAP_CONFIG_ADMIN_PASSWORD=" + LdapConfigPassword,
-			// "LDAP_SKIP_DEFAULT_TREE=yes",
-			// "LDAP_CUSTOM_LDIF_DIR=/bootstrap/ldif",
-			"LDAP_CUSTOM_SCHEMA_DIR=/bootstrap/schema",
-			"LDAP_ADD_SCHEMAS=yes",
-			"LDAP_EXTRA_SCHEMAS=cosine,inetorgperson,nis",
-			"LDAP_ALLOW_ANON_BINDING=yes",
-			"LDAP_ENABLE_TLS=yes",
-			"LDAP_TLS_CERT_FILE=/opt/bitnami/openldap/certs/ldap.example.local-full.crt",
-			"LDAP_TLS_KEY_FILE=/opt/bitnami/openldap/certs/ldap.example.local.key",
-			"LDAP_TLS_CA_FILE=/opt/bitnami/openldap/certs/ca.crt",
-			"LDAP_TLS_VERIFY_CLIENTS=never",
-		},
 
 		Mounts: []string{
-			test.TestDir + "/docker/ldap/ldif:/bootstrap/ldif:ro",
-			test.TestDir + "/docker/ldap/schema:/bootstrap/schema:ro",
-			test.TestDir + "/docker/ldap/entrypoint:/docker-entrypoint-initdb.d",
-			test.TestDir + "/docker/ldap/certs:/opt/bitnami/openldap/certs:ro",
+			test.TestDir + "/docker/ldap/certs:/certs:ro",
+			// test.TestDir + "/docker/ldap/schema:/schema:ro",
+			test.TestDir + "/docker/ldap/ldif:/ldif:ro",
+			test.TestDir + "/docker/ldap/etc/slapd.conf:/etc/openldap/slapd.conf:ro",
 		},
 
 		Hostname: ldapcontainerName,
@@ -90,7 +65,7 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 	}
 
 	pool.MaxWait = LdapcontainerTimeout * time.Second
-	myhost, myport := common.GetContainerHostAndPort(container, "1389/tcp")
+	myhost, myport := common.GetContainerHostAndPort(container, "389/tcp")
 	dialURL := fmt.Sprintf("ldap://%s:%d", myhost, myport)
 	fmt.Printf("Wait to successfully connect to Ldap with %s (max %ds)...\n", dialURL, LdapcontainerTimeout)
 	start := time.Now()

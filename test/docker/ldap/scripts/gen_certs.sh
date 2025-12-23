@@ -7,7 +7,7 @@ WD=$(dirname $0)
 if [ -r $WD/ldap.env ]; then
   . $WD/ldap.env
 fi
-SERVER=${CONTAINER:-ldap}
+SERVER=ldap
 DOMAIN=${LDAP_DOMAIN:-example.local}
 DIR=$WD/../certs
 mkdir -p $DIR

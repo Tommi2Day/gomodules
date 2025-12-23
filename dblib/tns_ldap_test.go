@@ -17,6 +17,7 @@ import (
 const LdapBaseDn = "dc=oracle,dc=local"
 const LdapAdminUser = "cn=admin," + LdapBaseDn
 const LdapAdminPassword = "admin"
+const LdapConfigUser = "cn=config"
 const LdapConfigPassword = "config"
 
 const ldaptns = `
@@ -103,7 +104,7 @@ func TestOracleLdap(t *testing.T) {
 	defer common.DestroyDockerContainer(TnsLdapContainer)
 
 	base := LdapBaseDn
-	server, port = common.GetContainerHostAndPort(TnsLdapContainer, "1389/tcp")
+	server, port = common.GetContainerHostAndPort(TnsLdapContainer, "389/tcp")
 	lc = ldaplib.NewConfig(server, port, false, false, base, ldapTimeout)
 	context := ""
 
