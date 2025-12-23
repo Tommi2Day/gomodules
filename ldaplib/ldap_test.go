@@ -17,7 +17,21 @@ const LdapDomain = "example.local"
 const LdapBaseDn = "dc=example,dc=local"
 const LdapAdminUser = "cn=admin," + LdapBaseDn
 const LdapAdminPassword = "admin"
+const LdapConfigUser = "cn=config"
 const LdapConfigPassword = "config"
+
+// const LdapOrganisation = "Example Org"
+
+const testLdif = `
+dn: ou=Test,dc=example,dc=local
+ou: Groups
+objectClass: top
+objectClass: organizationalUnit
+`
+const errorLdif = `
+dn: ou=Error,dc=example,dc=local
+ou: Groups
+`
 
 var ldapPort int
 var sslport int
@@ -34,6 +48,7 @@ func TestLdapConfig(t *testing.T) {
 	})
 }
 
+// nolint gocognit
 func TestBaseLdap(t *testing.T) {
 	var l *ldap.Conn
 	var err error
@@ -43,17 +58,16 @@ func TestBaseLdap(t *testing.T) {
 	if os.Getenv("SKIP_LDAP") != "" {
 		t.Skip("Skipping LDAP testing in CI environment")
 	}
+	// configLdif = strings.ReplaceAll(configLdif, "%BASE%", LdapBaseDn)
 	test.InitTestDirs()
 	ldapContainer, err = prepareLdapContainer()
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")
 	defer common.DestroyDockerContainer(ldapContainer)
-	if err != nil || ldapContainer == nil {
-		t.Fatal("Ldap Server not available")
-	}
-	ldapserver, ldapPort = common.GetContainerHostAndPort(ldapContainer, "1389/tcp")
-	base := LdapBaseDn
 
+	ldapserver, ldapPort = common.GetContainerHostAndPort(ldapContainer, "389/tcp")
+	base := LdapBaseDn
+	ldifDir := test.TestDir + "/docker/ldap/ldif"
 	lc = NewConfig(ldapserver, ldapPort, false, false, LdapBaseDn, timeout)
 	t.Run("Anonymous Connect", func(t *testing.T) {
 		t.Logf("Connect anonymous plain on ldapPort %d", ldapPort)
@@ -64,8 +78,35 @@ func TestBaseLdap(t *testing.T) {
 		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
 		_ = l.Close()
 	})
-	// test container should not be validaed
-	ldapserver, sslport = common.GetContainerHostAndPort(ldapContainer, "1636/tcp")
+
+	t.Run("Apply LDIF Config from Directory", func(t *testing.T) {
+		err = lc.Connect(LdapConfigUser, LdapConfigPassword)
+		require.NoErrorf(t, err, "Config Connect failed: %v", err)
+
+		// Path inside the project for testing
+		pattern := "*.schema"
+		// Apply all files matching *.config
+		// Using 'ignore=true' because some might already be applied during container init
+
+		err = lc.ApplyLDIFDir(ldifDir, pattern, false)
+		assert.NoErrorf(t, err, "Apply schemas %s/%s failed: %v", ldifDir, pattern, err)
+
+		// Verify by searching for one of the applied schemas/configs if needed
+		// For example, checking if a specific schema DN exists
+		schemaBase := "cn=schema,cn=config"
+		entries, err = lc.Search(schemaBase, "(cn=*ldapPublicKey)", []string{"dn"}, ldap.ScopeWholeSubtree, ldap.DerefInSearching)
+		assert.NoErrorf(t, err, "Search for schema ldapPublicKey failed: %v", err)
+		assert.NotNil(t, entries, "Search returned nil")
+		assert.Greaterf(t, len(entries), 0, "no entries found")
+		if err == nil && len(entries) > 0 {
+			t.Logf("Schema Verified: %s exists", entries[0].DN)
+		}
+		pattern = "*.config"
+		err = lc.ApplyLDIFDir(ldifDir, pattern, false)
+		require.NoErrorf(t, err, "Apply configs %s/%s failed: %v", ldifDir, pattern, err)
+	})
+	// test ssl connection
+	ldapserver, sslport = common.GetContainerHostAndPort(ldapContainer, "636/tcp")
 	lc = NewConfig(ldapserver, sslport, true, true, LdapBaseDn, timeout)
 	t.Run("Admin SSL Connect", func(t *testing.T) {
 		t.Logf("Connect Admin '%s' using SSL on ldapPort %d", LdapAdminUser, sslport)
@@ -75,6 +116,15 @@ func TestBaseLdap(t *testing.T) {
 		assert.NotNilf(t, l, "Ldap Connect is nil")
 		assert.IsType(t, &ldap.Conn{}, l, "returned object ist not ldap connection")
 	})
+	if lc.Conn == nil {
+		t.Fatal("Ldap Connection is nil")
+	}
+	t.Run("Add Base Entries", func(t *testing.T) {
+		pattern := "*.ldif"
+		err = lc.ApplyLDIFDir(ldifDir, pattern, false)
+		require.NoErrorf(t, err, "Add Base Entries failed: %v", err)
+	})
+
 	t.Run("BaseDN Search", func(t *testing.T) {
 		entry, err = lc.RetrieveEntry(base, "", "DN")
 		require.NoErrorf(t, err, "Search returned error:%v", err)
@@ -88,6 +138,35 @@ func TestBaseLdap(t *testing.T) {
 	userDN := "cn=testuser," + LdapBaseDn
 	userPass := "testPass"
 
+	t.Run("Ldif Apply from String", func(t *testing.T) {
+		dn := "ou=Test,dc=example,dc=local"
+		err = lc.ApplyLDIF(testLdif, false)
+		require.NoErrorf(t, err, "Apply returned error:%v", err)
+		entry, err = lc.RetrieveEntry(dn, "", "DN")
+		require.NoErrorf(t, err, "Search returned error:%v", err)
+		require.NotNil(t, entry, "Should return valid entry")
+		if entry != nil {
+			actual := entry.DN
+			t.Logf("Test DN: %s", dn)
+			assert.Equal(t, dn, actual, "DN not equal to base")
+		}
+	})
+	t.Run("Ldif Apply Error", func(t *testing.T) {
+		dn := "ou=Error,dc=example,dc=local"
+		err = lc.ApplyLDIF(errorLdif, false)
+		require.Error(t, err, "Apply should return an error", err)
+		if err != nil {
+			t.Logf("Error: %v", err)
+		}
+		entry, err = lc.RetrieveEntry(dn, "", "DN")
+		require.Nil(t, entry, "Should not return valid entry")
+		if entry != nil {
+			actual := entry.DN
+			t.Logf("Error DN: %s", dn)
+			assert.Equal(t, dn, actual, "DN not equal to base")
+		}
+	})
+
 	t.Run("Add Entry", func(t *testing.T) {
 		var attributes []ldap.Attribute
 		attributes = append(attributes, ldap.Attribute{Type: "objectClass", Vals: []string{"top", "iNetOrgPerson"}})
@@ -100,6 +179,19 @@ func TestBaseLdap(t *testing.T) {
 		assert.NoErrorf(t, err, "Add User failed")
 		_, err = lc.SetPassword(userDN, "", userPass)
 		require.NoErrorf(t, err, "Test Bind fix Pass returned error %v", err)
+	})
+	t.Run("Export Entry", func(t *testing.T) {
+		entries = []*ldap.Entry{}
+		entry, err = lc.RetrieveEntry(userDN, "", "*")
+		require.NoErrorf(t, err, "search for %s returned error %v", userDN, err)
+		assert.NotNilf(t, entry, "Should return vald entry")
+		if entry != nil {
+			entries = append(entries, entry)
+			ldifData, err := ExportLDIF(entries)
+			require.NoErrorf(t, err, "Export failed")
+			assert.Containsf(t, ldifData, userDN, "Exported DN not equal to searched DN")
+			t.Logf("LDIF Export Data: %s", ldifData)
+		}
 	})
 	t.Run("Test HasObjectclass", func(t *testing.T) {
 		entry, err = lc.RetrieveEntry(userDN, "", "DN,objectclass")

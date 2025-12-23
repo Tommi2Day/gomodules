@@ -14,6 +14,7 @@ require (
 	github.com/glebarez/go-sqlite v1.22.0
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/go-ldap/ldap/v3 v3.4.12
+	github.com/go-ldap/ldif v0.0.0-20250910174327-aa3bc3095c92
 	github.com/go-resty/resty/v2 v2.17.1
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/jarcoal/httpmock v1.4.1
