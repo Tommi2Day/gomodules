@@ -1,9 +1,15 @@
 #! /bin/sh
-# https://smallstep.com/docs/step-cli/installation/
-
-SERVER=ldap
-DOMAIN=example.local
-DIR=certs
+if  ! command -v step ; then
+  echo "step binary not found, pls install from https://smallstep.com/docs/step-cli/installation/"
+  exit 1
+fi
+WD=$(dirname $0)
+if [ -r $WD/ldap.env ]; then
+  . $WD/ldap.env
+fi
+SERVER=${CONTAINER:-ldap}
+DOMAIN=${LDAP_DOMAIN:-example.local}
+DIR=$WD/../certs
 mkdir -p $DIR
 cd $DIR||exit
 if [ ! -r cakey.pem ]; then
@@ -23,9 +29,11 @@ step certificate create "${SERVER}.${DOMAIN}" "${SERVER}.${DOMAIN}.crt" "${SERVE
   --ca-key "ca.key" \
   --not-before "2021-01-01T00:00:00+00:00" \
   --not-after "2031-01-01T00:00:00+00:00" \
-  --san "$DOMAIN" \
-  --san "${SERVER}.${DOMAIN}" \
-  --kty RSA --size 2048
+  --san="${SERVER}.${DOMAIN}" \
+  --san="${SERVER}" \
+  --san="localhost" \
+  --kty=RSA --size 2048
 
 # join crt and ca
 cat "${SERVER}.${DOMAIN}.crt" ca.crt >>"${SERVER}.${DOMAIN}-full.crt"
+openssl x509 -in "${SERVER}.${DOMAIN}-full.crt" -noout -text
