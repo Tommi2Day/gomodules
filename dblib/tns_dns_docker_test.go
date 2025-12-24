@@ -61,7 +61,7 @@ func prepareDBlibDNSContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 
-	err = waitForDNSServer(pool, ip)
+	err = waitForDNSServer(pool)
 	if err != nil {
 		return
 	}
@@ -146,20 +146,42 @@ func validateContainerIP(container *dockertest.Resource) string {
 	return ip
 }
 
-// func waitForDNSServer(pool *dockertest.Pool, container *dockertest.Resource) error {
-func waitForDNSServer(pool *dockertest.Pool, ip string) error {
+func waitForDNSServer(pool *dockertest.Pool) error {
+	dh := common.GetDockerHost(pool)
+	if dh != "" {
+		fmt.Printf("Docker Host: %s\n", dh)
+	}
+	ns := os.Getenv("DB_HOST")
+	if ns != "" {
+		fmt.Printf("DB_HOST variable was set to %s\n", ns)
+	} else if dh != "" {
+		ns = dh
+	}
+	if ns == "" {
+		ns = dblibDNSServer
+	}
+
+	// use default resolver and port
+	r := netlib.NewResolver("", 0, true)
+	r.IPv4Only = true
+	lips, err := r.LookupIP(ns)
+	if err != nil || len(lips) == 0 {
+		return fmt.Errorf("could not resolve DNS server IP for %s: %v", ns, err)
+	}
+	ip := lips[0]
+	dblibDNSServer = ns
+	fmt.Printf("DNS Host %s  IP resolved as %s\n", dblibDNSServer, ip)
 	pool.MaxWait = dblibDNSContainerTimeout * time.Second
 	start := time.Now()
-	err := pool.Retry(func() error {
-		c, err := net.Dial("udp", net.JoinHostPort(ip, fmt.Sprintf("%d", dblibDNSPort)))
-		if err != nil {
-			fmt.Printf("Err:%s\n", err)
-			return err
+	err = pool.Retry(func() error {
+		c, e := net.Dial("tcp", net.JoinHostPort(dblibDNSServer, fmt.Sprintf("%d", dblibDNSPort)))
+		if e != nil {
+			fmt.Printf("Err:%s\n", e)
+			return e
 		}
 		_ = c.Close()
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("could not connect to DB DNS Container: %v", err)
 	}
@@ -169,7 +191,6 @@ func waitForDNSServer(pool *dockertest.Pool, ip string) error {
 	fmt.Println("DB DNS Container is ready after ", elapsed.Round(time.Millisecond))
 	return nil
 }
-
 func testDNSResolution() error {
 	dns := netlib.NewResolver(dblibDNSServer, dblibDNSPort, true)
 	dns.IPv4Only = true
@@ -188,7 +209,7 @@ func testDNSResolution() error {
 
 func destroyDNSContainer(container *dockertest.Resource) {
 	if container != nil {
-		common.DestroyDockerContainer(container)
+		_ = container.Close()
 	}
 
 	if dblibDNSNetworkCreated && dblibDNSNetwork != nil {

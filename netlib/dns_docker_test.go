@@ -60,11 +60,10 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 
-	err = waitForDNSServer(pool, ip)
+	err = waitForDNSServer(pool)
 	if err != nil {
 		return
 	}
-
 	err = testDNSResolution()
 	return
 }
@@ -148,51 +147,73 @@ func validateContainerIP(container *dockertest.Resource) string {
 	return ip
 }
 
-// func waitForDNSServer(pool *dockertest.Pool, container *dockertest.Resource) error {
-func waitForDNSServer(pool *dockertest.Pool, ip string) error {
+func waitForDNSServer(pool *dockertest.Pool) error {
+	dh := common.GetDockerHost(pool)
+	if dh != "" {
+		fmt.Printf("Docker Host: %s\n", dh)
+	}
+	ns := os.Getenv("DNS_HOST")
+	if ns != "" {
+		fmt.Printf("DNS_HOST variable was set to %s\n", ns)
+	} else if dh != "" {
+		ns = dh
+	}
+	if ns == "" {
+		ns = netlibDNSServer
+	}
+
+	// use default resolver and port
+	r := NewResolver("", 0, true)
+	r.IPv4Only = true
+	lips, err := r.LookupIP(ns)
+	if err != nil || len(lips) == 0 {
+		return fmt.Errorf("could not resolve DNS server IP for %s: %v", ns, err)
+	}
+	ip := lips[0]
+	netlibDNSServer = ns
+	fmt.Printf("DNS Host %s  IP resolved as %s\n", netlibDNSServer, ip)
 	pool.MaxWait = netlibDNSContainerTimeout * time.Second
 	start := time.Now()
-	err := pool.Retry(func() error {
-		c, err := net.Dial("udp", net.JoinHostPort(ip, fmt.Sprintf("%d", netlibDNSPort)))
-		if err != nil {
-			fmt.Printf("Err:%s\n", err)
-			return err
+	err = pool.Retry(func() error {
+		c, e := net.Dial("tcp", net.JoinHostPort(netlibDNSServer, fmt.Sprintf("%d", netlibDNSPort)))
+		if e != nil {
+			fmt.Printf("Err:%s\n", e)
+			return e
 		}
 		_ = c.Close()
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("could not connect to Net DNS Container: %v", err)
 	}
 
 	time.Sleep(10 * time.Second)
+
 	elapsed := time.Since(start)
 	fmt.Println("Net DNS Container is ready after ", elapsed.Round(time.Millisecond))
-
-	// netlibDNSServer = server
 	return nil
 }
 
 func testDNSResolution() error {
+	time.Sleep(10 * time.Second)
 	dns := NewResolver(netlibDNSServer, netlibDNSPort, true)
 	dns.IPv4Only = true
 	s := "/udp"
 	if dns.TCP {
 		s = "/tcp"
 	}
-	fmt.Printf("resolve on %s:%d%s\n", dns.Nameserver, dns.Port, s)
+	fmt.Printf("resolver set to %s:%d%s\n", dns.Nameserver, dns.Port, s)
 	ips, err := dns.LookupIP(netlibTestAddr)
 	if err != nil || len(ips) == 0 {
 		return fmt.Errorf("could not resolve DNS for %s: %v", netlibTestAddr, err)
 	}
-	fmt.Printf("Host %s resolved to %s\n", netlibTestAddr, ips[0])
+	fmt.Printf("Test host %s resolved to %s\n", netlibTestAddr, ips[0])
 	return nil
 }
 
 func destroyDNSContainer(container *dockertest.Resource) {
 	if container != nil {
-		common.DestroyDockerContainer(container)
+		_ = container.Close()
 	}
 
 	if netlibDNSNetworkCreated && netlibDNSNetwork != nil {
