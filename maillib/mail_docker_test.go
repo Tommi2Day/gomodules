@@ -32,11 +32,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		err = fmt.Errorf("skipping Mail Container in CI environment")
 		return
 	}
-	// align hostname in CI
-	host := os.Getenv("MAIL_HOST")
-	if host != "" {
-		mailServer = host
-	}
+
 	mailContainerName = os.Getenv("MAIL_CONTAINER_NAME")
 	if mailContainerName == "" {
 		mailContainerName = "mailserver"
@@ -46,7 +42,18 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		err = fmt.Errorf("cannot attach to docker: %v", err)
 		return
 	}
-
+	// align hostname in CI
+	dh := common.GetDockerHost(pool)
+	if dh != "" {
+		mailServer = dh
+		fmt.Printf("Docker Host: %s\n", mailServer)
+	}
+	host := os.Getenv("MAIL_HOST")
+	if host != "" {
+		mailServer = host
+		fmt.Printf("MAIL_HOST variable is set: %s\n", host)
+	}
+	fmt.Printf("use mailserver: %s\n", mailServer)
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + mailRepo
 	fmt.Printf("Try to start docker container for %s:%s\n", repoString, mailRepoTag)
@@ -121,9 +128,6 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 	_ = c.Close()
-
-	// show env
-	// cmdout, _, err=execCmd(container, []string{"bash", "-c", "env|sort"})
 
 	// wait 20s to init container
 	time.Sleep(20 * time.Second)
