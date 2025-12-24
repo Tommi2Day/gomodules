@@ -5,9 +5,6 @@ import (
 	"os"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
-
-	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -27,15 +24,13 @@ func TestMain(m *testing.M) {
 		fmt.Println("Skipping Net DNS Container in CI environment")
 		return
 	}
-	netlibDNSServer = common.GetStringEnv("DNS_HOST", netlibDNSServer)
+
 	netlibDNSContainer, err = prepareNetlibDNSContainer()
-
 	if err != nil || netlibDNSContainer == nil {
+		// run even non docker test if prepare failed
 		_ = os.Setenv("SKIP_NET_DNS", "true")
-		log.Errorf("prepareNetlibDNSContainer failed: %s", err)
-		destroyDNSContainer(netlibDNSContainer)
+		fmt.Printf("prepareNetlibDNSContainer failed: %s", err)
 	}
-
 	code := m.Run()
 	destroyDNSContainer(netlibDNSContainer)
 	os.Exit(code)
@@ -249,7 +244,6 @@ func TestLookupSrv(t *testing.T) {
 	if os.Getenv("SKIP_NET_DNS") != "" {
 		t.Skip("Skipping Net DNS testing")
 	}
-
 	// use DNS from Docker
 	dns := NewResolver(netlibDNSServer, netlibDNSPort, true)
 	actual, e := dns.LookupSrv("ldap", netlibDomain)
