@@ -15,10 +15,33 @@ func TestGetDockerHelper(t *testing.T) {
 	var container *dockertest.Resource
 	var server string
 	var port int
+	var dockerVersion string
 	t.Run("Test GetDockerPool", func(t *testing.T) {
 		pool, err = GetDockerPool()
 		assert.NoErrorf(t, err, "GetDockerPool() should not return error")
 		require.NotNil(t, pool, "GetDockerPool() should not return nil")
+	})
+	if pool == nil {
+		t.Fatal("docker pool not available")
+	}
+	t.Run("Test GetDockerAPIversion", func(t *testing.T) {
+		dockerVersion = GetDockerAPIVersion(pool.Client)
+		assert.NotEmpty(t, dockerVersion, "GetDockerMinimalVersion() should return a version")
+		t.Logf("Docker API version: %s", dockerVersion)
+	})
+	t.Run("Test GetVersionedDockerPool", func(t *testing.T) {
+		endpoint := pool.Client.Endpoint()
+		t.Logf("Docker Endpoint: %s", endpoint)
+		pool, err = GetVersionedDockerPool(dockerVersion)
+		assert.NoErrorf(t, err, "GetVersionedDockerPool() should not return error")
+		require.NotNil(t, pool, "GetVersionedDockerPool() should not return nil")
+		if pool != nil {
+			assert.Equal(t, endpoint, pool.Client.Endpoint(), "GetVersionedDockerPool() should return the same endpoint")
+			v, e := pool.Client.Version()
+			if e == nil {
+				t.Logf("running docker version: %v", v)
+			}
+		}
 	})
 	if pool == nil {
 		t.Fatal("docker pool not available")
