@@ -38,7 +38,8 @@ func prepareDBlibDNSContainer() (container *dockertest.Resource, err error) {
 	}
 
 	dblibDNSContainerName = getContainerName()
-	pool, err := common.GetDockerPool()
+	// use versioned docker pool because of api error client version to old
+	pool, err := common.GetVersionedDockerPool("")
 	if err != nil {
 		return nil, err
 	}
@@ -55,12 +56,12 @@ func prepareDBlibDNSContainer() (container *dockertest.Resource, err error) {
 
 	time.Sleep(10 * time.Second)
 
-	err = validateContainerIP(container)
-	if err != nil {
+	ip := validateContainerIP(container)
+	if ip == "" {
 		return
 	}
 
-	err = waitForDNSServer(pool)
+	err = waitForDNSServer(pool, ip)
 	if err != nil {
 		return
 	}
@@ -139,19 +140,18 @@ func buildAndRunContainer(pool *dockertest.Pool) (*dockertest.Resource, error) {
 		})
 }
 
-func validateContainerIP(container *dockertest.Resource) error {
+func validateContainerIP(container *dockertest.Resource) string {
 	ip := container.GetIPInNetwork(dblibDNSNetwork)
-
 	fmt.Printf("DB DNS Container IP: %s\n", ip)
-	return nil
+	return ip
 }
 
 // func waitForDNSServer(pool *dockertest.Pool, container *dockertest.Resource) error {
-func waitForDNSServer(pool *dockertest.Pool) error {
+func waitForDNSServer(pool *dockertest.Pool, ip string) error {
 	pool.MaxWait = dblibDNSContainerTimeout * time.Second
 	start := time.Now()
 	err := pool.Retry(func() error {
-		c, err := net.Dial("udp", net.JoinHostPort(dblibDNSContainerName, fmt.Sprintf("%d", dblibDNSPort)))
+		c, err := net.Dial("udp", net.JoinHostPort(ip, fmt.Sprintf("%d", dblibDNSPort)))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
 			return err

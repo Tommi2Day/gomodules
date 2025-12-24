@@ -21,7 +21,6 @@ const (
 	netlibTestAddr            = tDB
 	netlibRepoTag             = "9.20"
 	netlibDNSPort             = 9053
-	// netlibDNSSecPort          = 953
 )
 
 var (
@@ -37,13 +36,13 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 	if os.Getenv("SKIP_NET_DNS") != "" {
 		return nil, fmt.Errorf("skipping Net DNS Container in CI environment")
 	}
-
 	netlibDNSContainerName = getContainerName()
-	pool, err := common.GetDockerPool()
+	// use versioned docker pool because of api error client version to old
+	pool, err := common.GetVersionedDockerPool("")
 	if err != nil {
 		return nil, err
 	}
-
+	// setup network
 	err = setupNetwork(pool)
 	if err != nil {
 		return nil, err
@@ -56,12 +55,12 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 
 	time.Sleep(10 * time.Second)
 
-	err = validateContainerIP(container)
-	if err != nil {
+	ip := validateContainerIP(container)
+	if ip == "" {
 		return
 	}
 
-	err = waitForDNSServer(pool)
+	err = waitForDNSServer(pool, ip)
 	if err != nil {
 		return
 	}
@@ -143,19 +142,18 @@ func buildAndRunContainer(pool *dockertest.Pool) (*dockertest.Resource, error) {
 		})
 }
 
-func validateContainerIP(container *dockertest.Resource) error {
+func validateContainerIP(container *dockertest.Resource) string {
 	ip := container.GetIPInNetwork(netlibDNSNetwork)
 	fmt.Printf("NetDNS Container IP: %s\n", ip)
-	// netlibDNSServer = ip
-	return nil
+	return ip
 }
 
 // func waitForDNSServer(pool *dockertest.Pool, container *dockertest.Resource) error {
-func waitForDNSServer(pool *dockertest.Pool) error {
+func waitForDNSServer(pool *dockertest.Pool, ip string) error {
 	pool.MaxWait = netlibDNSContainerTimeout * time.Second
 	start := time.Now()
 	err := pool.Retry(func() error {
-		c, err := net.Dial("udp", net.JoinHostPort(netlibDNSServer, fmt.Sprintf("%d", netlibDNSPort)))
+		c, err := net.Dial("udp", net.JoinHostPort(ip, fmt.Sprintf("%d", netlibDNSPort)))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
 			return err

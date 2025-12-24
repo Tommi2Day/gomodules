@@ -1,9 +1,14 @@
 # Go Library
 
-## [v1.18.2 - 2025-12-24]
+## [v1.19.0 - 2025-12-24]
+### New
+- ldaplib: add ldif functions
+- common: add GetVersionedDockerPool and GetDockerAPIVersion functions
 ### Changed
 - ldaplib, dblib: use clearstart/openldap as ldap test container
 - reenable ldap test
+### Fixed
+- netlib: api version error when building docker image
 
 ## [v1.18.1 - 2025-12-22]
 ### Changed
