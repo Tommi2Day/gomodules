@@ -140,61 +140,6 @@ func TestFileHelper(t *testing.T) {
 	})
 }
 
-func TestCommadAvailable(t *testing.T) {
-	cmdName := "ls"
-	if runtime.GOOS == osWin {
-		cmdName = "cmd"
-	}
-	fullCmd := FindCommand(cmdName)
-	tests := []struct {
-		name     string
-		command  string
-		expected bool
-	}{
-		{
-			name:     "Valid system command",
-			command:  cmdName,
-			expected: true,
-		},
-		{
-			name:     "Non-existent command",
-			command:  "nonexistentcommand12345",
-			expected: false,
-		},
-		{
-			name:     "Empty command string",
-			command:  "",
-			expected: false,
-		},
-		{
-			name:     "Command with spaces",
-			command:  "    ",
-			expected: false,
-		},
-		{
-			name:     "System command with full path",
-			command:  fullCmd,
-			expected: true,
-		},
-		{
-			name:     "Partial invalid path to command",
-			command:  "/some/invalid/path/go",
-			expected: false,
-		},
-		{
-			name:     "Special characters as command",
-			command:  "!@#$%^&*",
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual := IsCommandAvailable(tt.command)
-			assert.Equalf(t, tt.expected, actual, "Expected '%v' for command '%s', got '%v'", tt.expected, tt.command, actual)
-		})
-	}
-}
 func TestWriteStringToFile(t *testing.T) {
 	test.InitTestDirs()
 	t.Run("Write content to new file", func(t *testing.T) {
@@ -651,29 +596,5 @@ func TestFindFile(t *testing.T) {
 
 		assert.Empty(t, result)
 		_ = os.RemoveAll(tmpDir)
-	})
-}
-
-func TestFindCommand(t *testing.T) {
-	t.Run("existing command", func(t *testing.T) {
-		// Wir wählen ein Kommando, das auf fast jedem System existiert
-		cmdName := "ls"
-		if runtime.GOOS == "windows" {
-			cmdName = "cmd"
-		}
-
-		p := FindCommand(cmdName)
-		assert.NotEmpty(t, p, "Kommando %s sollte gefunden werden", cmdName)
-
-		// Verifizieren, ob der Pfad tatsächlich existiert
-		_, err := os.Stat(p)
-		assert.NoError(t, err, "Der gefundene Pfad sollte existieren")
-	})
-
-	t.Run("non-existing command", func(t *testing.T) {
-		// Ein sehr unwahrscheinlicher Name für ein Kommando
-		cmdName := "this-command-does-not-exist-12345"
-		p := FindCommand(cmdName)
-		assert.Empty(t, p, "Ein nicht existierendes Kommando sollte einen leeren String zurückgeben")
 	})
 }

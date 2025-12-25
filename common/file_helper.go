@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -209,19 +208,4 @@ func FindFileInPath(filename string, dirs []string) string {
 		}
 	}
 	return ""
-}
-
-// IsCommandAvailable checks if a command is available in the PATH environment variable
-func IsCommandAvailable(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}
-
-// FindCommand searches for a command in the PATH environment variable
-func FindCommand(name string) string {
-	path, err := exec.LookPath(name)
-	if err != nil {
-		return ""
-	}
-	return path
 }

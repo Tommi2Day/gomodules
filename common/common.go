@@ -118,6 +118,15 @@ func CommandExists(command string) bool {
 	return true
 }
 
+// FindCommand searches for a command in the PATH environment variable
+func FindCommand(name string) string {
+	path, err := exec.LookPath(name)
+	if err != nil {
+		return ""
+	}
+	return path
+}
+
 // ExecuteOsCommand runs an OS command and returns output
 func ExecuteOsCommand(cmdArgs []string, stdIn io.Reader) (stdOut string, stdErr string, err error) {
 	var cmdOut bytes.Buffer

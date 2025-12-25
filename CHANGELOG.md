@@ -1,10 +1,10 @@
 # Go Library
 
-## [v1.19.0 - 2025-12-24]
+## [v1.19.1 - 2025-12-25]
 ### New
 - ldaplib: add ldif functions
 - common: add GetDockerHost, GetVersionedDockerPool and GetDockerAPIVersion functions and tests
-- common: add FindCommand and IsCommandAvailable functions and tests
+- common: add FindCommand function and test
 - pwlib: add age function
 
 ### Changed

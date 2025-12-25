@@ -145,6 +145,31 @@ func TestCommandExists(t *testing.T) {
 		assert.False(t, actual, "nonexisting Command found")
 	})
 }
+
+func TestFindCommand(t *testing.T) {
+	t.Run("existing command", func(t *testing.T) {
+		// Wir wählen ein Kommando, das auf fast jedem System existiert
+		cmdName := "ls"
+		if runtime.GOOS == "windows" {
+			cmdName = "cmd"
+		}
+
+		p := FindCommand(cmdName)
+		assert.NotEmpty(t, p, "Kommando %s sollte gefunden werden", cmdName)
+
+		// Verifizieren, ob der Pfad tatsächlich existiert
+		_, err := os.Stat(p)
+		assert.NoError(t, err, "Der gefundene Pfad sollte existieren")
+	})
+
+	t.Run("non-existing command", func(t *testing.T) {
+		// Ein sehr unwahrscheinlicher Name für ein Kommando
+		cmdName := "this-command-does-not-exist-12345"
+		p := FindCommand(cmdName)
+		assert.Empty(t, p, "Ein nicht existierendes Kommando sollte einen leeren String zurückgeben")
+	})
+}
+
 func TestInArray(t *testing.T) {
 	type testTableType struct {
 		name     string
