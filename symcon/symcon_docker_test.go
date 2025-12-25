@@ -40,8 +40,14 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 		return
 	}
 
+	// always load image as is the stable tag
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + ipsImage
+	err = pool.Client.PullImage(docker.PullImageOptions{Repository: repoString, Tag: ipsImageTag}, docker.AuthConfiguration{})
+	if err != nil {
+		err = fmt.Errorf("cannot pull docker image %s:%s (%v)", repoString, ipsImageTag, err)
+		return
+	}
 
 	fmt.Printf("Try to start docker ips Container for %s:%s\n", ipsImage, ipsImageTag)
 	ipsContainer, err = pool.RunWithOptions(&dockertest.RunOptions{

@@ -3,12 +3,18 @@
 ## [v1.19.0 - 2025-12-24]
 ### New
 - ldaplib: add ldif functions
-- common: add GetVersionedDockerPool and GetDockerAPIVersion functions
+- common: add GetDockerHost, GetVersionedDockerPool and GetDockerAPIVersion functions and tests
+- common: add FindCommand and IsCommandAvailable functions and tests
+- pwlib: add age function
+
 ### Changed
 - ldaplib, dblib: use clearstart/openldap as ldap test container
 - reenable ldap test
+- maillib: use dockerhost as mail test container
+- symcon: always load stable container
+
 ### Fixed
-- netlib: api version error when building docker image
+- netlib,dblib: api version error when building docker image
 
 ## [v1.18.1 - 2025-12-22]
 ### Changed
