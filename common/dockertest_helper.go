@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	log "github.com/sirupsen/logrus"
 )
 
 // DockerPool is a docker pool resource
@@ -137,4 +139,25 @@ func ExecDockerCmd(container *dockertest.Resource, cmd []string) (out string, co
 	code, err = container.Exec(cmd, dockertest.ExecOptions{StdOut: &cmdout})
 	out = cmdout.String()
 	return
+}
+
+// GetDockerHost returns the docker host from a pool
+func GetDockerHost(pool *dockertest.Pool) string {
+	ep := pool.Client.Endpoint()
+	log.Debugf("Docker Endpoint: %s\n", ep)
+	re := regexp.MustCompile("tcp://(.*):")
+	re2 := regexp.MustCompile("npipe://.*")
+	match := re.FindStringSubmatch(ep)
+	host := ""
+	switch {
+	case len(match) > 1:
+		host = match[1]
+		log.Debugf("Docker Host: %s", host)
+	case re2.MatchString(ep):
+		log.Debugf("Docker Host for pipe URL: %s", host)
+		host = "127.0.0.1"
+	default:
+		log.Debugf("Could not extract Docker Host from Endpoint: %s", ep)
+	}
+	return host
 }

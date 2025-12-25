@@ -78,3 +78,54 @@ func TestGetDockerHelper(t *testing.T) {
 		assert.False(t, ok, "Container should not be found in pool after DestroyDockerContainer()")
 	})
 }
+
+func TestGetDockerHost(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		wantErr  bool
+		expected string
+	}{
+		{
+			name:     "Valid TCP IP endpoint",
+			endpoint: "tcp://192.168.99.100:2375",
+			wantErr:  false,
+			expected: "192.168.99.100",
+		},
+		{
+			name:     "Valid TCP Host endpoint",
+			endpoint: "tcp://docker:2375",
+			wantErr:  false,
+			expected: "docker",
+		},
+		{
+			name:     "Invalid endpoint",
+			endpoint: "tcp://localhost",
+			wantErr:  true,
+			expected: "",
+		},
+		{
+			name:     "Valid Pipe endpoint",
+			endpoint: "npipe://./pipe/docker_engine",
+			wantErr:  false,
+			expected: "127.0.0.1",
+		},
+		{
+			name:     "Empty endpoint",
+			endpoint: "",
+			wantErr:  true,
+			expected: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := dockertest.NewPool(tt.endpoint)
+			require.NoError(t, err)
+			val := GetDockerHost(p)
+			if !tt.wantErr {
+				assert.NotEmpty(t, val)
+				assert.Equal(t, tt.expected, val)
+			}
+		})
+	}
+}
