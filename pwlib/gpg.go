@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"path"
-	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/tommi2day/gomodules/common"
@@ -90,81 +86,6 @@ func GPGReadAmoredKeyRing(amoredKeyRing string) (entityList openpgp.EntityList, 
 		}
 		return
 	}
-	return
-}
-
-func findGPGFiles(root string) []string {
-	var a []string
-	err := filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		sl := filepath.ToSlash(s)
-		f := d.Name()
-		ext := filepath.Ext(f)
-		if ext == ".gpg" {
-			a = append(a, sl)
-		}
-		return nil
-	})
-	if err != nil {
-		log.Warnf("cannot walk from %s: %s", root, err)
-		a = []string{}
-	}
-	return a
-}
-
-// GetGopassSecrets get secrets from gopass store
-func GetGopassSecrets(storeRootPath string, secretKeyFile string, keypass string) (secrets string, err error) {
-	var gpgid string
-	var pass string
-
-	gpgid, err = checkStoreRoot(storeRootPath)
-	if err != nil {
-		return
-	}
-	gpgFiles := findGPGFiles(storeRootPath)
-	storeName := filepath.Base(storeRootPath)
-	if slices.Contains([]string{".password-store", "root"}, storeName) {
-		// strip base dir from name if is storePath store
-		storeName = ""
-	}
-	for _, f := range gpgFiles {
-		sn := strings.TrimSuffix(f, ".gpg")
-		key := filepath.Base(sn)
-		sn = strings.TrimPrefix(sn, storeRootPath+"/")
-		secretPath := filepath.Dir(sn)
-		secretPath = strings.ReplaceAll(secretPath, ":", "_")
-		if secretPath == "." {
-			secretPath = ""
-		}
-		if storeName != "" {
-			secretPath = path.Join(storeName, secretPath)
-		}
-		pass, err = GPGDecryptFile(f, secretKeyFile, keypass, gpgid)
-		if err == nil {
-			pass = strings.TrimRight(pass, "\r\n")
-			secrets += fmt.Sprintf("%s:%s:%s\n", secretPath, key, pass)
-		} else {
-			err = fmt.Errorf("cannot decrypt %s: %s", f, err)
-			secrets = ""
-			return
-		}
-	}
-	secrets = strings.TrimRight(secrets, "\n")
-	return
-}
-
-func checkStoreRoot(storeRootPath string) (gpgid string, err error) {
-	if !common.IsDir(storeRootPath) {
-		err = fmt.Errorf("root %s is not a directory", storeRootPath)
-		return
-	}
-	if !common.FileExists(path.Join(storeRootPath, ".gpg-id")) {
-		err = fmt.Errorf("root %s is not a gopass store", storeRootPath)
-		return
-	}
-	gpgid, err = common.ReadFileToString(path.Join(storeRootPath, ".gpg-id"))
 	return
 }
 

@@ -19,7 +19,6 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 	cryptedfile := pc.CryptedFile
 	privatekeyfile := pc.PrivateKeyFile
 	keypass := pc.KeyPass
-	datadir := pc.DataDir
 	sessionpassfile := pc.SessionPassFile
 	passflag := "open"
 	content := ""
@@ -45,8 +44,12 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		content, err = GetVaultSecret(cryptedfile, "", "")
 	case typeGPG:
 		content, err = GPGDecryptFile(cryptedfile, privatekeyfile, keypass, "")
-	case typeGopass:
-		content, err = GetGopassSecrets(datadir, privatekeyfile, keypass)
+	case typeAge:
+		content, err = AgeDecryptFile(cryptedfile, privatekeyfile)
+	/*
+		case typeGopass:
+			content, err = GetGopassSecrets(privatekeyfile, keypass)
+	*/
 	case typeKMS:
 		content, err = KMSDecryptFile(cryptedfile, keyID, sessionpassfile)
 	default:
@@ -85,6 +88,8 @@ func (pc *PassConfig) EncryptFile() (err error) {
 		err = nil
 	case typeGPG:
 		err = GPGEncryptFile(plaintextfile, cryptedFile, pubKeyFile)
+	case typeAge:
+		err = AgeEncryptFile(plaintextfile, cryptedFile, pubKeyFile)
 	case typeKMS:
 		err = KMSEncryptFile(plaintextfile, cryptedFile, keyID, sessionpassfile)
 	case typeVault, typeGopass:
@@ -118,10 +123,13 @@ func (pc *PassConfig) ListPasswords() (lines []string, err error) {
 func (pc *PassConfig) GetPassword(system string, account string) (password string, err error) {
 	var lines []string
 	log.Debugf("GetPassword for '%s'@'%s' entered", account, system)
-	if pc.Method == typeVault {
-		// in vault mode we use cryptedfile to handover vault path
+	switch pc.Method {
+	case typeVault:
 		pc.CryptedFile = system
+	case typeAge:
+		pc.CryptedFile = pc.DataDir + "/" + system + "/" + account + "." + extAge
 	}
+
 	lines, err = pc.DecryptFile()
 	if err != nil {
 		return

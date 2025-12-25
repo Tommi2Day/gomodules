@@ -5,9 +5,23 @@ import (
 	"path"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tommi2day/gomodules/common"
 
 	"github.com/Luzifer/go-openssl/v4"
 )
+
+// PCmethods is a list of supported encryption methods
+var PCmethods = []string{
+	"go",
+	"openssl",
+	"plain",
+	"b64",
+	"vault",
+	"gpg",
+	"gopass",
+	"kms",
+	"age",
+}
 
 const (
 	defaultRsaKeySize = 2048
@@ -27,9 +41,13 @@ const (
 	privPemExt        = ".pem"
 	pubPemExt         = ".pub"
 	extGPG            = "gpg"
-	extKMS            = "kms"
 	pubGPGExt         = ".pub.gpg"
 	privGPGExt        = ".priv.gpg"
+	pubAgeExt         = ".pub.age"
+	privAgeExt        = ".priv.age"
+	typeAge           = "age"
+	extAge            = "age"
+	// ... other types ...
 )
 
 // PassConfig Type for encryption configuration
@@ -50,20 +68,52 @@ type PassConfig struct {
 	CaseSensitive   bool
 }
 
-var label = []byte("")
-var pubExt = pubPemExt
-var privExt = privPemExt
+var (
+	label   = []byte("")
+	pubExt  = pubPemExt
+	privExt = privPemExt
+	ext     = extOpenssl
+)
 
 // SSLDigest specifies the digest algorithm used by OpenSSL for deriving encryption keys, set to SHA-256.
 var SSLDigest = openssl.BytesToKeySHA256
 
 // NewConfig set encryption configuration
-func NewConfig(appname string, datadir string, keydir string, keypass string, method string) (passConfig *PassConfig) {
-	var ext string
-	config := PassConfig{}
+// NewConfig erstellt eine neue Verschlüsselungskonfiguration
+func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 	log.Debug("NewConfig entered")
 	log.Debugf("A:%s, P:%s, D:%s, K:%s, M:%s", appname, keypass, datadir, keydir, method)
-	// default names
+
+	method = getValidMethod(method)
+	defaultDir := getDefaultDir(keydir)
+
+	ext, privExt, pubExt = getExtensionsForMethod(method)
+	keypass = getKeypass(keypass, appname, method)
+
+	datadir = getOrDefault(datadir, defaultDir)
+	keydir = getOrDefault(keydir, defaultDir)
+
+	config := &PassConfig{
+		AppName:         appname,
+		DataDir:         datadir,
+		KeyDir:          keydir,
+		KeyPass:         keypass,
+		CryptedFile:     path.Join(datadir, appname+"."+ext),
+		PrivateKeyFile:  path.Join(keydir, appname+privExt),
+		PubKeyFile:      path.Join(keydir, appname+pubExt),
+		PlainTextFile:   path.Join(datadir, appname+".plain"),
+		SessionPassFile: path.Join(keydir, appname+".dat"),
+		Method:          method,
+		KeySize:         defaultRsaKeySize,
+		SSLDigest:       SSLDigest,
+		KMSKeyID:        "",
+		CaseSensitive:   false,
+	}
+
+	return config
+}
+
+func getDefaultDir(keydir string) string {
 	defaultDir := path.Dir(keydir)
 	if defaultDir == "" {
 		home, err := os.UserHomeDir()
@@ -72,65 +122,58 @@ func NewConfig(appname string, datadir string, keydir string, keypass string, me
 		}
 		defaultDir = path.Join(home, ".pwcli")
 	}
+	return defaultDir
+}
 
-	if method == "" {
-		method = defaultMethod
+func getValidMethod(method string) string {
+	if ok, _ := common.InArray(method, PCmethods); ok {
+		return method
 	}
+	log.Warnf("invalid method %s, use method %s", method, defaultMethod)
+	return defaultMethod
+}
+
+func getExtensionsForMethod(method string) (ext, privExt, pubExt string) {
 	switch method {
 	case typeOpenssl:
-		ext = extOpenssl
+		return extOpenssl, privPemExt, pubPemExt
 	case typeGO:
-		ext = extGo
+		return extGo, privPemExt, pubPemExt
 	case typePlain:
-		ext = extPlain
+		return extPlain, privPemExt, pubPemExt
 	case typeEnc:
-		ext = extB64
-	case typeVault:
-		ext = extPlain
-	case typeKMS:
-		ext = extKMS
-	case typeGPG, typeGopass:
-		ext = extGPG
-		privExt = privGPGExt
-		pubExt = pubGPGExt
-		if keypass == "" {
-			keypass = os.Getenv("GPG_PASSPHRASE")
-		}
+		return extB64, privPemExt, pubPemExt
+	case typeAge:
+		return extAge, privAgeExt, pubAgeExt
+	case typeGPG:
+		return extGPG, privGPGExt, pubGPGExt
+	case typeGopass, typeKMS, typeVault:
+		return "", "", ""
 	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)
-		method = defaultMethod
-		ext = extGo
+		return extGo, privPemExt, pubPemExt
 	}
-	if datadir == "" {
-		datadir = defaultDir
-	}
-	if keydir == "" {
-		keydir = defaultDir
-	}
-	if keypass == "" {
-		keypass = appname
-	}
+}
 
-	cryptedfile := datadir + "/" + appname + "." + ext
-	privatekeyfile := keydir + "/" + appname + privExt
-	pubkeyfile := keydir + "/" + appname + pubExt
-	plainfile := datadir + "/" + appname + ".plain"
-	sessionpassfile := keydir + "/" + appname + ".dat"
+func getKeypass(keypass, appname, method string) string {
+	if keypass != "" {
+		return keypass
+	}
+	pass := ""
+	switch method {
+	case typeGPG:
+		pass = os.Getenv("GPG_PASSPHRASE")
+		return pass
+	case typeAge:
+		pass = os.Getenv("AGE_PASSPHRASE")
+		return pass
+	}
+	return appname
+}
 
-	// set global configuration defaults, any part can be overwritten
-	config.AppName = appname
-	config.DataDir = datadir
-	config.KeyDir = keydir
-	config.KeyPass = keypass
-	config.CryptedFile = cryptedfile
-	config.PrivateKeyFile = privatekeyfile
-	config.PubKeyFile = pubkeyfile
-	config.PlainTextFile = plainfile
-	config.SessionPassFile = sessionpassfile
-	config.Method = method
-	config.KeySize = defaultRsaKeySize
-	config.SSLDigest = SSLDigest
-	config.KMSKeyID = ""
-	config.CaseSensitive = false
-	return &config
+func getOrDefault(value, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }

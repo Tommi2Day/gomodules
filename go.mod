@@ -3,6 +3,7 @@ module github.com/tommi2day/gomodules
 go 1.25
 
 require (
+	filippo.io/age v1.2.1
 	github.com/Luzifer/go-openssl/v4 v4.2.4
 	github.com/ProtonMail/go-crypto v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.41.0
