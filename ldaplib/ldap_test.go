@@ -61,9 +61,12 @@ func TestBaseLdap(t *testing.T) {
 	// configLdif = strings.ReplaceAll(configLdif, "%BASE%", LdapBaseDn)
 	test.InitTestDirs()
 	ldapContainer, err = prepareLdapContainer()
+	defer common.DestroyDockerContainer(ldapContainer)
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, ldapContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(ldapContainer)
+	if err != nil || ldapContainer == nil {
+		t.Fatal("LDAP server not available")
+	}
 
 	ldapserver, ldapPort = common.GetContainerHostAndPort(ldapContainer, "389/tcp")
 	base := LdapBaseDn
@@ -86,8 +89,6 @@ func TestBaseLdap(t *testing.T) {
 		// Path inside the project for testing
 		pattern := "*.schema"
 		// Apply all files matching *.config
-		// Using 'ignore=true' because some might already be applied during container init
-
 		err = lc.ApplyLDIFDir(ldifDir, pattern, false)
 		assert.NoErrorf(t, err, "Apply schemas %s/%s failed: %v", ldifDir, pattern, err)
 

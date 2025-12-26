@@ -113,13 +113,13 @@ func applyLdapConfigs(server string, port int, ldifDir string) (err error) {
 		err = fmt.Errorf("Search for schema oidbase failed: %v", e)
 		return
 	}
-	fmt.Printf("Schema Verified: %s exists", entries[0].DN)
+	fmt.Printf("Schema Verified: %s exists\n", entries[0].DN)
 	pattern = "*.config"
 	err = lc.ApplyLDIFDir(ldifDir, pattern, false)
 	if err != nil {
 		return
 	}
-	fmt.Printf("LDAP Configs applied")
+	fmt.Println("LDAP Configs applied")
 
 	// apply entries
 	la := ldaplib.NewConfig(server, port, false, false, LdapBaseDn, ldapTimeout)
@@ -129,11 +129,10 @@ func applyLdapConfigs(server string, port int, ldifDir string) (err error) {
 		return
 	}
 	pattern = "*.ldif"
-
 	err = la.ApplyLDIFDir(ldifDir, pattern, false)
 	if err != nil {
 		return
 	}
-	fmt.Printf("LDAP Entries applied")
+	fmt.Println("LDAP Entries applied")
 	return
 }

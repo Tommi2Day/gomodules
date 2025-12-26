@@ -99,9 +99,12 @@ func TestOracleLdap(t *testing.T) {
 		t.Skip("Skipping LDAP testing in CI environment")
 	}
 	TnsLdapContainer, err = prepareTnsLdapContainer()
+	defer common.DestroyDockerContainer(TnsLdapContainer)
 	require.NoErrorf(t, err, "Ldap Server not available")
 	require.NotNil(t, TnsLdapContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(TnsLdapContainer)
+	if err != nil || TnsLdapContainer == nil {
+		t.Fatal("Oracle LDAP server not available")
+	}
 
 	base := LdapBaseDn
 	server, port = common.GetContainerHostAndPort(TnsLdapContainer, "389/tcp")

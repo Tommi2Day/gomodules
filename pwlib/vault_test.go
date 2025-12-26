@@ -23,9 +23,9 @@ func TestVault(t *testing.T) {
 		t.Skip("Skipping Vault testing in CI environment")
 	}
 	vaultContainer, err := prepareVaultContainer()
+	defer common.DestroyDockerContainer(vaultContainer)
 	require.NoErrorf(t, err, "Vault Server not available")
 	require.NotNil(t, vaultContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(vaultContainer)
 	if err != nil || vaultContainer == nil {
 		t.Fatal("Vault Server not available")
 	}
@@ -86,8 +86,8 @@ func TestVault(t *testing.T) {
 		kvs, err = VaultKVRead(vc, "secret", "test")
 		require.NoErrorf(t, err, "Read returned error: %v", err)
 		require.NotNilf(t, kvs, "Vault Secret is nil")
-		value, ok := kvs.Data["password"].(string)
-		require.True(t, ok, "Key password not found")
+		value, success := kvs.Data["password"].(string)
+		require.True(t, success, "Key password not found")
 		assert.Equalf(t, value, "Hashi123", "unexpected password value %q retrieved from vault", value)
 	})
 	t.Run("Vault logical Write", func(t *testing.T) {
@@ -123,11 +123,11 @@ func TestVault(t *testing.T) {
 		vaultwarn := vs.Warnings
 		assert.Nil(t, vaultwarn, "Should have no warnings, but got %v", vaultwarn)
 		require.NotNil(t, vs.Data, "No Data returned")
-		ok := false
+		success := false
 		value := ""
 		vaultdata = vs.Data["data"].(map[string]interface{})
-		value, ok = vaultdata["password"].(string)
-		require.True(t, ok, "Key password not found")
+		value, success = vaultdata["password"].(string)
+		require.True(t, success, "Key password not found")
 		assert.Equalf(t, value, "Hashi345", "unexpected password value %q retrieved from vault", value)
 	})
 	t.Run("Vault GetPassword", func(t *testing.T) {
@@ -140,5 +140,18 @@ func TestVault(t *testing.T) {
 		expected := "Hashi345"
 		assert.NoErrorf(t, err, "Got unexpected error: %s", err)
 		assert.Equal(t, expected, pass, "Answer not expected. exp:%s,act:%s", expected, pass)
+	})
+	t.Run("Vault GetPassword fail", func(t *testing.T) {
+		// need Env as config is here not exposed
+		_ = os.Setenv("VAULT_ADDR", address)
+		_ = os.Setenv("VAULT_TOKEN", rootToken)
+		app := "test_get_pass_vault_fail"
+		pc := NewConfig(app, test.TestData, test.TestData, app, typeVault)
+		pass, err := pc.GetPassword("/secret/test2", "password")
+		assert.Error(t, err, "Should have failed")
+		assert.Emptyf(t, pass, "pass Should be emty, but have %s", pass)
+		if err != nil {
+			t.Log(err)
+		}
 	})
 }

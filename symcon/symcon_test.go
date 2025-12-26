@@ -33,11 +33,10 @@ func TestSymcon(t *testing.T) {
 		t.Skip("Skipping IPS testing in CI environment")
 	}
 	test.InitTestDirs()
-
 	ipsContainer, err := prepareIpsContainer()
+	defer common.DestroyDockerContainer(ipsContainer)
 	require.NoErrorf(t, err, "IPS Server not available")
 	require.NotNil(t, ipsContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(ipsContainer)
 	if err != nil || ipsContainer == nil {
 		t.Fatal("IPS Server not available")
 	}

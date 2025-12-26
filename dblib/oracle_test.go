@@ -69,9 +69,12 @@ func TestWithOracle(t *testing.T) {
 	}
 
 	oracleContainer, err = prepareContainer()
+	defer common.DestroyDockerContainer(oracleContainer)
 	require.NoErrorf(t, err, "Oracle Server not available:%v", err)
 	require.NotNil(t, oracleContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(oracleContainer)
+	if err != nil || oracleContainer == nil {
+		t.Fatal("Oracle server not available")
+	}
 
 	t.Run("Direct connect", func(t *testing.T) {
 		var db *sql.DB

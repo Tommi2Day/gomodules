@@ -78,9 +78,9 @@ func TestMail(t *testing.T) {
 	test.InitTestDirs()
 	var err error
 	mailContainer, err = prepareMailContainer()
+	defer common.DestroyDockerContainer(mailContainer)
 	require.NoErrorf(t, err, "Mailserver not available: %s", err)
 	require.NotNil(t, mailContainer, "Prepare failed")
-	defer common.DestroyDockerContainer(mailContainer)
 	if err != nil || mailContainer == nil {
 		t.Fatal("Mailserver not available")
 	}
