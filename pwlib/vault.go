@@ -72,10 +72,10 @@ func VaultRead(client *vault.Client, path string) (vaultSecret *vault.Secret, er
 func VaultList(client *vault.Client, path string) (vaultSecret *vault.Secret, err error) {
 	vaultSecret, err = client.Logical().List(path)
 	if err != nil {
-		err = fmt.Errorf("read vault secret failed:%s", err)
+		err = fmt.Errorf("vault list on %s failed:%s", path, err)
 		return
 	}
-	log.Debugf("read on path %s OK", path)
+	log.Debugf("list on path %s OK", path)
 	return
 }
 
@@ -101,10 +101,14 @@ func GetVaultSecret(vaultPath string, vaultAddr string, vaultToken string) (cont
 	if err == nil {
 		sysKey := strings.ReplaceAll(vaultPath, ":", "_")
 		if vs != nil {
-			log.Debug("Vault Read OK")
-			vaultdata = vs.Data["data"].(map[string]interface{})
-			for k, v := range vaultdata {
-				content += fmt.Sprintf("%s:%s:%v\n", sysKey, k, v.(string))
+			if vd, ok := vs.Data["data"]; ok {
+				vaultdata = vd.(map[string]interface{})
+				log.Debug("Vault Read OK")
+				for k, v := range vaultdata {
+					content += fmt.Sprintf("%s:%s:%v\n", sysKey, k, v.(string))
+				}
+			} else {
+				err = fmt.Errorf("no vault data returned")
 			}
 		} else {
 			err = fmt.Errorf("no entries returned")

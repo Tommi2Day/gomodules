@@ -1,6 +1,6 @@
 # Go Library
 
-## [v1.19.1 - 2025-12-25]
+## [v1.19.2 - 2025-12-26]
 ### New
 - ldaplib: add ldif functions
 - common: add GetDockerHost, GetVersionedDockerPool and GetDockerAPIVersion functions and tests
@@ -15,6 +15,7 @@
 
 ### Fixed
 - netlib,dblib: api version error when building docker image
+- pwlib: panic in vault test
 
 ## [v1.18.1 - 2025-12-22]
 ### Changed
