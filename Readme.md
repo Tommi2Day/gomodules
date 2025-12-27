@@ -11,10 +11,10 @@ this is a collection of my often used functions
 - common: Common functions used in modules and implementations
 - pwlib: 
   - password generation, 
-  - password storing and handling with RSA, Openssl, GoPass, Amazon KMS and Hashicorp Vault
+  - password storing and handling with RSA, Openssl, GPG, ACE Amazon KMS and Hashicorp Vault
+  - password profiles
   - totp generation
   - scram(e.g.for postgresql) and ssha(e.g for LDAP userPassword) hashing
-- tools: collection of often used tools as build loader
 - dblib: db related functions, esp. for oracle and tns handling
 - maillib: function to send Mails
 - ldaplib: base ldap functions
@@ -28,7 +28,6 @@ for usage see the provided test cases and the implemenations as is:
 - [tnscli](https://github.com/tommi2day/tnscli)
 - [pwcli](https://github.com/tommi2day/pwcli)
 - [hmcli](https://github.com/Tommi2Day/hmcli)
-- [symconcli](https://github.com/Tommi2Day/symconcli)
 - [tcping2](https://github.com/Tommi2Day/tcping2)
 
 
