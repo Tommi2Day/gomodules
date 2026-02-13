@@ -3,6 +3,7 @@ package pwlib
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	vault "github.com/hashicorp/vault/api"
@@ -68,14 +69,56 @@ func VaultRead(client *vault.Client, path string) (vaultSecret *vault.Secret, er
 	return
 }
 
-// VaultList logical list path
-func VaultList(client *vault.Client, path string) (vaultSecret *vault.Secret, err error) {
-	vaultSecret, err = client.Logical().List(path)
+// VaultList recursively lists all secret paths under the given vaultPath using logical metadata listing.
+// It returns a flat list of all secret paths found under the specified vaultPath.
+func VaultList(client *vault.Client, vaultSecretMount string, vaultPath string) (entries []string, err error) {
+	metaPath := vaultSecretMount + "/metadata/"
+	if !strings.HasPrefix(vaultPath, metaPath) {
+		vaultPath = path.Join(metaPath, vaultPath)
+	}
+	vaultSecret, err := client.Logical().List(vaultPath)
 	if err != nil {
-		err = fmt.Errorf("vault list on %s failed:%s", path, err)
+		err = fmt.Errorf("read vault secret failed:%s", err)
 		return
 	}
-	log.Debugf("list on path %s OK", path)
+	if vaultSecret == nil || vaultSecret.Data == nil {
+		return
+	}
+	keys, ok := vaultSecret.Data["keys"].([]interface{})
+	if !ok {
+		return
+	}
+	for _, key := range keys {
+		k, ok := key.(string)
+		if !ok {
+			continue
+		}
+		if strings.HasSuffix(k, "/") {
+			subPath := vaultPath
+			if !strings.HasSuffix(subPath, "/") {
+				subPath += "/"
+			}
+			childEntries, childErr := VaultList(client, vaultSecretMount, subPath+k)
+			if childErr != nil {
+				log.Warnf("error listing subpath %s: %v", subPath+k, childErr)
+				continue
+			}
+			entries = append(entries, childEntries...)
+		} else {
+			fullPath := vaultPath
+			if !strings.HasSuffix(fullPath, "/") {
+				fullPath += "/"
+			}
+			entries = append(entries, fullPath+k)
+		}
+	}
+	// replace metadata paths with data paths
+	/*
+		for i, entry := range entries {
+			entries[i] = strings.Replace(entry, metaPath+"/", "", 1)
+		}
+	*/
+	log.Debugf("recursively listed paths under %s", path.Join(metaPath, vaultPath))
 	return
 }
 

@@ -1,5 +1,10 @@
 # Go Library
 
+## [v1.20.0 - 2026-02-13]
+### Changed
+- pwlib: make vault list recursive, return only path
+- update dependencies
+
 ## [v1.19.2 - 2025-12-26]
 ### New
 - ldaplib: add ldif functions

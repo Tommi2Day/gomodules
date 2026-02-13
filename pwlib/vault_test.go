@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/tommi2day/gomodules/common"
@@ -14,6 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const vaultTest1 = "test"
+const vaultTest2 = "logical/vaultTest2"
+const vaultTest3 = "logical/dir/vaultTest3"
+const vaultSecretMount = "secret"
 
 func TestVault(t *testing.T) {
 	var vc *vault.Client
@@ -74,7 +80,7 @@ func TestVault(t *testing.T) {
 		var vaultdata = map[string]interface{}{
 			"password": "Hashi123",
 		}
-		err = VaultKVWrite(vc, "secret", "test", vaultdata)
+		err = VaultKVWrite(vc, "secret", vaultTest1, vaultdata)
 		require.NoErrorf(t, err, "Write returned error: %v", err)
 	})
 	t.Run("Vault KV Wrong Path", func(t *testing.T) {
@@ -83,7 +89,7 @@ func TestVault(t *testing.T) {
 		require.Nilf(t, kvs, "Vault Secret should be nil")
 	})
 	t.Run("Vault KV Read", func(t *testing.T) {
-		kvs, err = VaultKVRead(vc, "secret", "test")
+		kvs, err = VaultKVRead(vc, "secret", vaultTest1)
 		require.NoErrorf(t, err, "Read returned error: %v", err)
 		require.NotNilf(t, kvs, "Vault Secret is nil")
 		value, success := kvs.Data["password"].(string)
@@ -96,28 +102,35 @@ func TestVault(t *testing.T) {
 				"password": "Hashi345",
 			},
 		}
-		err = VaultWrite(vc, path.Join("secret", "data", "test2"), vaultdata)
+		err = VaultWrite(vc, path.Join("secret", "data", vaultTest2), vaultdata)
+		require.NoErrorf(t, err, "Write returned error: %v", err)
+		err = VaultWrite(vc, path.Join("secret", "data", vaultTest3), vaultdata)
 		require.NoErrorf(t, err, "Write returned error: %v", err)
 	})
 	t.Run("Vault List", func(t *testing.T) {
-		var vaultkeys []interface{}
-		vs, err = VaultList(vc, path.Join("secret", "metadata"))
+		var entries []string
+		tests := []string{vaultTest1, vaultTest2, vaultTest3}
+		entries, err = VaultList(vc, vaultSecretMount, "")
+		t.Logf("Vault List returned entries: %v", entries)
 		require.NoErrorf(t, err, "List returned error: %v", err)
-		require.NotNilf(t, vs, "Vault Secret is nil")
-		vaultwarn := vs.Warnings
-		assert.Nil(t, vaultwarn, "Should have no warnings, but got %v", vaultwarn)
-		require.NotNil(t, vs.Data, "No Data returned")
-
-		vaultkeys = vs.Data["keys"].([]interface{})
-		require.NotNil(t, vaultkeys, "No Keys returned")
-		assert.Equalf(t, 2, len(vaultkeys), "Returned key count not as expected")
-		for i, k := range vaultkeys {
-			t.Logf("key returned %d:%s", i, k)
+		// Expecting a flat list of all secret paths
+		// Example: ["data/test", "data/logical/vaultTest2"]
+		assert.GreaterOrEqual(t, len(entries), len(entries), "Should return %d secret path entries, but got %d", len(tests), len(entries))
+		for _, entry := range tests {
+			found := false
+			for _, e := range entries {
+				if strings.HasSuffix(e, entry) {
+					found = true
+					break
+				}
+			}
+			assert.Truef(t, found, "Expected secret path %s not found", entry)
+			t.Logf("secret path: %s", entry)
 		}
 	})
 	t.Run("Vault Logical Read", func(t *testing.T) {
 		var vaultdata map[string]interface{}
-		vs, err = VaultRead(vc, path.Join("secret", "data", "test2"))
+		vs, err = VaultRead(vc, path.Join("secret", "data", vaultTest2))
 		require.NoErrorf(t, err, "Read returned error: %v", err)
 		require.NotNilf(t, vs, "Vault Secret is nil")
 		vaultwarn := vs.Warnings
@@ -136,7 +149,7 @@ func TestVault(t *testing.T) {
 		_ = os.Setenv("VAULT_TOKEN", rootToken)
 		app := "test_get_pass_vault"
 		pc := NewConfig(app, test.TestData, test.TestData, app, typeVault)
-		pass, err := pc.GetPassword("/secret/data/test2", "password")
+		pass, err := pc.GetPassword("/secret/data/"+vaultTest2, "password")
 		expected := "Hashi345"
 		assert.NoErrorf(t, err, "Got unexpected error: %s", err)
 		assert.Equal(t, expected, pass, "Answer not expected. exp:%s,act:%s", expected, pass)
@@ -147,7 +160,7 @@ func TestVault(t *testing.T) {
 		_ = os.Setenv("VAULT_TOKEN", rootToken)
 		app := "test_get_pass_vault_fail"
 		pc := NewConfig(app, test.TestData, test.TestData, app, typeVault)
-		pass, err := pc.GetPassword("/secret/test2", "password")
+		pass, err := pc.GetPassword("/secret/vaultTest2", "password")
 		assert.Error(t, err, "Should have failed")
 		assert.Emptyf(t, pass, "pass Should be emty, but have %s", pass)
 		if err != nil {
