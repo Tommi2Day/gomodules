@@ -29,6 +29,7 @@ const (
 	KeyTypeECDSA      = "ecdsa"
 	KeyTypeGPG        = "gpg"
 	KeyTypeAGE        = "age"
+	KeyTypeKMS        = "kms"
 	KeyTypeUnknown    = "unknown"
 	typeGO            = "go"
 	typeOpenssl       = "openssl"
@@ -52,6 +53,9 @@ const (
 	privAgeExt        = ".priv.age"
 	typeAge           = "age"
 	extAge            = "age"
+	extKMS            = "kms"
+	pubKMSExt         = ".pub.kms"
+	privKMSExt        = ".priv.kms"
 	// ... other types ...
 )
 
@@ -98,7 +102,26 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 
 	datadir = getOrDefault(datadir, defaultDir)
 	keydir = getOrDefault(keydir, defaultDir)
-
+	keytype := KeyTypeRSA
+	switch method {
+	case typeGPG:
+		keytype = KeyTypeGPG
+		ext = extGPG
+		privExt = privGPGExt
+		pubExt = pubGPGExt
+	case typeAge:
+		keytype = KeyTypeAGE
+		ext = extAge
+		privExt = privAgeExt
+		pubExt = pubAgeExt
+	case typeKMS:
+		keytype = KeyTypeKMS
+		ext = extKMS
+		privExt = privKMSExt
+		pubExt = pubKMSExt
+	case typeVault:
+		keytype = ""
+	}
 	config := &PassConfig{
 		AppName:         appname,
 		DataDir:         datadir,
@@ -114,7 +137,7 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 		SSLDigest:       SSLDigest,
 		KMSKeyID:        "",
 		CaseSensitive:   false,
-		KeyType:         KeyTypeRSA,
+		KeyType:         keytype,
 	}
 
 	return config
