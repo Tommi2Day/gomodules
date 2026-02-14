@@ -83,6 +83,7 @@ var (
 	pubExt  = pubPemExt
 	privExt = privPemExt
 	ext     = extOpenssl
+	keyType = KeyTypeRSA
 )
 
 // SSLDigest specifies the digest algorithm used by OpenSSL for deriving encryption keys, set to SHA-256.
@@ -97,31 +98,12 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 	method = getValidMethod(method)
 	defaultDir := getDefaultDir(keydir)
 
-	ext, privExt, pubExt = getExtensionsForMethod(method)
+	ext, privExt, pubExt, keyType = getExtensionsForMethod(method)
 	keypass = getKeypass(keypass, appname, method)
 
 	datadir = getOrDefault(datadir, defaultDir)
 	keydir = getOrDefault(keydir, defaultDir)
-	keytype := KeyTypeRSA
-	switch method {
-	case typeGPG:
-		keytype = KeyTypeGPG
-		ext = extGPG
-		privExt = privGPGExt
-		pubExt = pubGPGExt
-	case typeAge:
-		keytype = KeyTypeAGE
-		ext = extAge
-		privExt = privAgeExt
-		pubExt = pubAgeExt
-	case typeKMS:
-		keytype = KeyTypeKMS
-		ext = extKMS
-		privExt = privKMSExt
-		pubExt = pubKMSExt
-	case typeVault:
-		keytype = ""
-	}
+
 	config := &PassConfig{
 		AppName:         appname,
 		DataDir:         datadir,
@@ -137,7 +119,7 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 		SSLDigest:       SSLDigest,
 		KMSKeyID:        "",
 		CaseSensitive:   false,
-		KeyType:         keytype,
+		KeyType:         keyType,
 	}
 
 	return config
@@ -163,25 +145,27 @@ func getValidMethod(method string) string {
 	return defaultMethod
 }
 
-func getExtensionsForMethod(method string) (ext, privExt, pubExt string) {
+func getExtensionsForMethod(method string) (ext, privExt, pubExt string, keyType string) {
 	switch method {
 	case typeOpenssl:
-		return extOpenssl, privPemExt, pubPemExt
+		return extOpenssl, privPemExt, pubPemExt, KeyTypeRSA
 	case typeGO:
-		return extGo, privPemExt, pubPemExt
+		return extGo, privPemExt, pubPemExt, KeyTypeRSA
 	case typePlain:
-		return extPlain, privPemExt, pubPemExt
+		return extPlain, privPemExt, pubPemExt, ""
 	case typeEnc:
-		return extB64, privPemExt, pubPemExt
+		return extB64, privPemExt, pubPemExt, ""
 	case typeAge:
-		return extAge, privAgeExt, pubAgeExt
+		return extAge, privAgeExt, pubAgeExt, KeyTypeAGE
 	case typeGPG:
-		return extGPG, privGPGExt, pubGPGExt
-	case typeGopass, typeKMS, typeVault:
-		return "", "", ""
+		return extGPG, privGPGExt, pubGPGExt, KeyTypeGPG
+	case typeKMS:
+		return extKMS, privKMSExt, pubKMSExt, KeyTypeKMS
+	case typeGopass, typeVault:
+		return "", "", "", ""
 	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)
-		return extGo, privPemExt, pubPemExt
+		return extGo, privPemExt, pubPemExt, KeyTypeRSA
 	}
 }
 
