@@ -6,8 +6,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/tommi2day/gomodules/common"
-
 	"github.com/tommi2day/gomodules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -20,42 +18,9 @@ var (
 )
 
 func TestGenRsaKey(t *testing.T) {
-	test.InitTestDirs()
-	err := os.Chdir(test.TestDir)
-	require.NoErrorf(t, err, "ChDir failed")
-
-	pubfilename := "testdata/key.pub"
-	privfilename := "testdata/key.pem"
-	_ = os.Remove(pubfilename)
-	_ = os.Remove(privfilename)
-
-	t.Run("Key Gen unencrypted", func(t *testing.T) {
-		pubkey, privkey, err := GenRsaKey(pubfilename, privfilename, "")
-		assert.NoErrorf(t, err, "Error while creating key: %s", err)
-		assert.NotEmpty(t, pubkey)
-		assert.NotEmpty(t, privkey)
-		assert.IsTypef(t, p, pubkey, "Not a public key")
-		assert.IsTypef(t, k, privkey, "Not a private key")
-		assert.FileExists(t, pubfilename)
-		assert.FileExists(t, privfilename)
-	})
-	pubfilename = "testdata/enckey.pub"
-	privfilename = "testdata/enckey.pem"
-	_ = os.Remove(pubfilename)
-	_ = os.Remove(privfilename)
-	t.Run("Key Gen encrypted", func(t *testing.T) {
-		pubkey, privkey, err := GenRsaKey(pubfilename, privfilename, "gen_test")
-		assert.NoErrorf(t, err, "Error while creating key: %s", err)
-		assert.NotEmpty(t, pubkey)
-		assert.NotEmpty(t, privkey)
-		assert.IsTypef(t, p, pubkey, "Not a public key")
-		assert.IsTypef(t, k, privkey, "Not a private key")
-		assert.FileExists(t, pubfilename)
-		assert.FileExists(t, privfilename)
-		content, err := common.ReadFileToString(privfilename)
-		assert.NoErrorf(t, err, "File Read Error %s", err)
-		assert.Contains(t, content, "Proc-Type: 4,ENCRYPTED")
-	})
+	runKeyGenTest(t, "RSA", func(pub, priv, pass string) (any, any, error) {
+		return GenRsaKey(pub, priv, pass)
+	}, p, k)
 }
 
 func TestGetKeyFromFile(t *testing.T) {
@@ -125,5 +90,37 @@ func TestGetKeyFromFile(t *testing.T) {
 		assert.NoErrorf(t, err, "Error while reading pubkey: %s", err)
 		assert.NotEmpty(t, pubkey)
 		assert.IsTypef(t, p, pubkey, "Not a public key")
+	})
+}
+
+func TestRsaSigningAndVerification(t *testing.T) {
+	test.InitTestDirs()
+	err := os.Chdir(test.TestDir)
+	require.NoError(t, err, "ChDir failed")
+
+	pubFile := "testdata/rsa_sign.pub"
+	privFile := "testdata/rsa_sign.pem"
+	password := "testpassword"
+	message := "hello world"
+
+	_ = os.Remove(pubFile)
+	_ = os.Remove(privFile)
+
+	_, _, err = GenRsaKey(pubFile, privFile, password)
+	require.NoErrorf(t, err, "Failed to generate RSA key: %v", err)
+
+	t.Run("Sign and Verify", func(t *testing.T) {
+		signature, err := RsaSignString(message, privFile, password)
+		assert.NoErrorf(t, err, "Failed to sign string: %v", err)
+		assert.NotEmpty(t, signature)
+
+		valid, err := RsaVerifyString(message, signature, pubFile)
+		assert.NoErrorf(t, err, "Failed to verify signature: %v", err)
+		assert.True(t, valid, "Signature verification failed")
+
+		// Test with wrong message
+		valid, err = RsaVerifyString("wrong message", signature, pubFile)
+		assert.NoErrorf(t, err, "Failed to verify signature with wrong message: %v", err)
+		assert.False(t, valid, "Signature verification should have failed for wrong message")
 	})
 }

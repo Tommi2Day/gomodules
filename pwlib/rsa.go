@@ -4,6 +4,7 @@ package pwlib
 // alternative: https://gist.github.com/wongoo/2b974a9594627114bea3e53c794980cd
 import (
 	"bytes"
+	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -21,6 +22,51 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+// RsaSignString signs a string with private key
+func RsaSignString(plain string, privatekeyfile string, keypass string) (signature string, err error) {
+	log.Debugf("sign string with private key %s", privatekeyfile)
+	_, privkey, err := GetPrivateKeyFromFile(privatekeyfile, keypass)
+	if err != nil {
+		log.Debugf("Cannot read keys from '%s': %s", privatekeyfile, err)
+		return
+	}
+
+	hash := sha256.Sum256([]byte(plain))
+	sig, err := rsa.SignPKCS1v15(rand.Reader, privkey, crypto.SHA256, hash[:])
+	if err != nil {
+		log.Debugf("sign failed: %s", err)
+		return
+	}
+
+	signature = base64.StdEncoding.EncodeToString(sig)
+	return
+}
+
+// RsaVerifyString verifies a string signature with public key
+func RsaVerifyString(plain string, signature string, publicKeyFile string) (valid bool, err error) {
+	log.Debugf("verify string with public key %s", publicKeyFile)
+	pubkey, err := GetPublicKeyFromFile(publicKeyFile)
+	if err != nil {
+		log.Debugf("Cannot read keys from '%s': %s", publicKeyFile, err)
+		return
+	}
+
+	sig, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		log.Debugf("decode signature failed: %s", err)
+		return
+	}
+
+	hash := sha256.Sum256([]byte(plain))
+	err = rsa.VerifyPKCS1v15(pubkey, crypto.SHA256, hash[:], sig)
+	if err != nil {
+		log.Debugf("verify failed: %s", err)
+		return false, nil
+	}
+
+	return true, nil
+}
 
 // GenRsaKey generate new key pair
 func GenRsaKey(pubfilename string, privfilename string, password string) (publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey, err error) {
@@ -43,7 +89,7 @@ func GenRsaKey(pubfilename string, privfilename string, password string) (public
 
 		// Encrypt the pem
 		if password != "" {
-			//nolint gosec
+			//nolint:staticcheck
 			block, err = x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte(password), x509.PEMCipherAES256)
 			if err != nil {
 				log.Errorf("cannot encrypt private key %s", err)
@@ -100,7 +146,7 @@ func GetPrivateKeyFromFile(privfilename string, rsaPrivateKeyPassword string) (p
 	}
 
 	if rsaPrivateKeyPassword != "" {
-		//nolint gosec
+		//nolint:staticcheck
 		privPemBytes, err = x509.DecryptPEMBlock(privPem, []byte(rsaPrivateKeyPassword))
 		if err != nil {
 			log.Debugf("rsa private password error:%s", err)
@@ -296,8 +342,8 @@ func PrivateDecryptFileGo(cryptedfile string, privatekeyfile string, keypass str
 	return
 }
 
-// PrivateDecryptString Decrypt a string with private key
-func PrivateDecryptString(crypted string, privatekeyfile string, keypass string) (plain string, err error) {
+// RsaDecryptString Decrypt a string with private key
+func RsaDecryptString(crypted string, privatekeyfile string, keypass string) (plain string, err error) {
 	// echo -n "$CRYPTED"|base64 -d  |openssl rsautl -decrypt -inkey ${PRIVATEKEYFILE} -passin pass:$KEYPASS
 	log.Debugf("decrypt string with private key %s", privatekeyfile)
 	_, privkey, err := GetPrivateKeyFromFile(privatekeyfile, keypass)
@@ -320,8 +366,8 @@ func PrivateDecryptString(crypted string, privatekeyfile string, keypass string)
 	return
 }
 
-// PublicEncryptString  Encrypt a string with public key
-func PublicEncryptString(plain string, publicKeyFile string) (crypted string, err error) {
+// RsaEncryptString  Encrypt a string with public key
+func RsaEncryptString(plain string, publicKeyFile string) (crypted string, err error) {
 	// echo -n "$plain"|openssl rsautl -encrypt -pkcs -inkey $PUBLICKEYFILE -pubin |base64
 	log.Debugf("encrypt string with public key %s", publicKeyFile)
 	pubkey, err := GetPublicKeyFromFile(publicKeyFile)
