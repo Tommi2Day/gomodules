@@ -25,6 +25,11 @@ var PCmethods = []string{
 
 const (
 	defaultRsaKeySize = 2048
+	KeyTypeRSA        = "RSA"
+	KeyTypeECDSA      = "ECDSA"
+	KeyTypeGPG        = "GPG"
+	KeyTypeAGE        = "AGE"
+	KeyTypeUnknown    = "UNKNOWN"
 	typeGO            = "go"
 	typeOpenssl       = "openssl"
 	typePlain         = "plain"
