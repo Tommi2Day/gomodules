@@ -90,3 +90,43 @@ func PubEncryptFileSSL(plainFile string, targetFile string, publicKeyFile string
 	}
 	return
 }
+
+// SignFileSSL signs a file using a private key and saves the signature to a file
+func SignFileSSL(plainFile string, signatureFile string, privateKeyFile string, keyPass string) (err error) {
+	log.Debugf("Sign %s with private key %s", plainFile, privateKeyFile)
+	plain, err := common.ReadFileToString(plainFile)
+	if err != nil {
+		log.Debugf("Cannot read plaintext file %s:%s", plainFile, err)
+		return
+	}
+
+	signature, err := SignString(plain, privateKeyFile, keyPass)
+	if err != nil {
+		log.Errorf("Signing failed: %v", err)
+		return
+	}
+
+	err = common.WriteStringToFile(signatureFile, signature)
+	if err != nil {
+		log.Errorf("Cannot write signature file %s:%v", signatureFile, err)
+	}
+	return
+}
+
+// VerifyFileSSL verifies a file signature using a public key
+func VerifyFileSSL(plainFile string, signatureFile string, publicKeyFile string) (valid bool, err error) {
+	log.Debugf("Verify %s with public key %s", plainFile, publicKeyFile)
+	plain, err := common.ReadFileToString(plainFile)
+	if err != nil {
+		log.Debugf("Cannot read plaintext file %s:%s", plainFile, err)
+		return false, err
+	}
+
+	signature, err := common.ReadFileToString(signatureFile)
+	if err != nil {
+		log.Debugf("Cannot read signature file %s:%s", signatureFile, err)
+		return false, err
+	}
+
+	return VerifyString(plain, signature, publicKeyFile)
+}

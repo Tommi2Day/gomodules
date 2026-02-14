@@ -55,6 +55,7 @@ func TestEncryptToDecrypt(t *testing.T) {
 }
 
 func TestPublicEncryptString(t *testing.T) {
+	test.InitTestDirs()
 	app := "test_encrypt_String"
 	testdata := test.TestData
 	pc := NewConfig(app, testdata, testdata, "Test", typeGO)
@@ -329,5 +330,51 @@ func TestOpensslFile(t *testing.T) {
 		expected := plainfile
 		assert.NotEmpty(t, actual)
 		assert.Equalf(t, expected, actual, "Data Mismatch exp:%s,act:%s", expected, actual)
+	})
+}
+
+func TestOpensslSigning(t *testing.T) {
+	test.InitTestDirs()
+	err := os.Chdir(test.TestDir)
+	require.NoErrorf(t, err, "ChDir failed")
+
+	t.Run("RSA Signing and Verification", func(t *testing.T) {
+		app := "test_sign_rsa"
+		testdata := test.TestData
+		pc := NewConfig(app, testdata, testdata, app, typeOpenssl)
+		_, _, err := GenRsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
+		require.NoError(t, err)
+
+		err = common.WriteStringToFile(pc.PlainTextFile, plainfile)
+		require.NoError(t, err)
+
+		signatureFile := pc.CryptedFile + ".sig"
+		err = SignFileSSL(pc.PlainTextFile, signatureFile, pc.PrivateKeyFile, pc.KeyPass)
+		assert.NoError(t, err)
+		assert.FileExists(t, signatureFile)
+
+		valid, err := VerifyFileSSL(pc.PlainTextFile, signatureFile, pc.PubKeyFile)
+		assert.NoError(t, err)
+		assert.True(t, valid)
+	})
+
+	t.Run("ECDSA Signing and Verification", func(t *testing.T) {
+		app := "test_sign_ecdsa"
+		testdata := test.TestData
+		pc := NewConfig(app, testdata, testdata, app, typeOpenssl)
+		_, _, err := GenEcdsaKey(pc.PubKeyFile, pc.PrivateKeyFile, pc.KeyPass)
+		require.NoError(t, err)
+
+		err = common.WriteStringToFile(pc.PlainTextFile, plainfile)
+		require.NoError(t, err)
+
+		signatureFile := pc.CryptedFile + ".sig"
+		err = SignFileSSL(pc.PlainTextFile, signatureFile, pc.PrivateKeyFile, pc.KeyPass)
+		assert.NoError(t, err)
+		assert.FileExists(t, signatureFile)
+
+		valid, err := VerifyFileSSL(pc.PlainTextFile, signatureFile, pc.PubKeyFile)
+		assert.NoError(t, err)
+		assert.True(t, valid)
 	})
 }
