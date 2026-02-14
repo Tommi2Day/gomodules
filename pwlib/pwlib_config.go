@@ -25,11 +25,11 @@ var PCmethods = []string{
 
 const (
 	defaultRsaKeySize = 2048
-	KeyTypeRSA        = "RSA"
-	KeyTypeECDSA      = "ECDSA"
-	KeyTypeGPG        = "GPG"
-	KeyTypeAGE        = "AGE"
-	KeyTypeUnknown    = "UNKNOWN"
+	KeyTypeRSA        = "rsa"
+	KeyTypeECDSA      = "ecdsa"
+	KeyTypeGPG        = "gpg"
+	KeyTypeAGE        = "age"
+	KeyTypeUnknown    = "unknown"
 	typeGO            = "go"
 	typeOpenssl       = "openssl"
 	typePlain         = "plain"
@@ -71,6 +71,7 @@ type PassConfig struct {
 	SSLDigest       openssl.CredsGenerator
 	KMSKeyID        string
 	CaseSensitive   bool
+	KeyType         string
 }
 
 var (
@@ -113,6 +114,7 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 		SSLDigest:       SSLDigest,
 		KMSKeyID:        "",
 		CaseSensitive:   false,
+		KeyType:         KeyTypeRSA,
 	}
 
 	return config
