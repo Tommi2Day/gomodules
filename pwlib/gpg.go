@@ -170,6 +170,89 @@ func GPGEncryptFile(plainFile string, targetFile string, publicKeyFile string) (
 	return
 }
 
+// GPGSignFile signs a file using a private GPG key
+func GPGSignFile(plainFile string, signatureFile string, secretKeyFile string, keypass string) error {
+	log.Debugf("Sign %s with GPG private key %s", plainFile, secretKeyFile)
+	key, err := common.ReadFileToString(secretKeyFile)
+	if err != nil {
+		return err
+	}
+	entityList, err := GPGReadAmoredKeyRing(key)
+	if err != nil {
+		return err
+	}
+	entity, err := GPGSelectEntity(entityList, "")
+	if err != nil {
+		return err
+	}
+	err = GPGUnlockKey(entity, keypass)
+	if err != nil {
+		return err
+	}
+
+	plain, err := os.Open(plainFile)
+	if err != nil {
+		return err
+	}
+	defer func(plain *os.File) {
+		_ = plain.Close()
+	}(plain)
+
+	sigFile, err := os.Create(signatureFile)
+	if err != nil {
+		return err
+	}
+	defer func(sigFile *os.File) {
+		_ = sigFile.Close()
+	}(sigFile)
+
+	err = openpgp.ArmoredDetachSign(sigFile, entity, plain, nil)
+	if err != nil {
+		return fmt.Errorf("failed to sign: %v", err)
+	}
+
+	return nil
+}
+
+// GPGVerifyFile verifies a GPG signature
+func GPGVerifyFile(plainFile string, signatureFile string, publicKeyFile string) (bool, error) {
+	log.Debugf("Verify %s with GPG public key %s", plainFile, publicKeyFile)
+	key, err := common.ReadFileToString(publicKeyFile)
+	if err != nil {
+		return false, err
+	}
+	entityList, err := GPGReadAmoredKeyRing(key)
+	if err != nil {
+		return false, err
+	}
+
+	plain, err := os.Open(plainFile)
+	if err != nil {
+		return false, err
+	}
+	defer func(plain *os.File) {
+		_ = plain.Close()
+	}(plain)
+
+	sig, err := os.Open(signatureFile)
+	if err != nil {
+		return false, err
+	}
+	defer func(sig *os.File) {
+		_ = sig.Close()
+	}(sig)
+
+	signer, err := openpgp.CheckArmoredDetachedSignature(entityList, plain, sig, nil)
+	if err != nil {
+		return false, fmt.Errorf("signature verification failed: %v", err)
+	}
+	if signer == nil {
+		return false, fmt.Errorf("no signer found")
+	}
+
+	return true, nil
+}
+
 // CreateGPGEntity create GPG entity with new key pair
 func CreateGPGEntity(name string, comment string, email string, passPhrase string) (entity *openpgp.Entity, privKeyID string, err error) {
 	var e *openpgp.Entity
@@ -242,6 +325,7 @@ func ExportGPGKeyPair(entity *openpgp.Entity, publicFilename string, privFilenam
 		return
 	}
 	_ = w.Close()
+	_ = out.Close()
 
 	//nolint gosec
 	out, err = os.Create(privFilename)
@@ -256,6 +340,7 @@ func ExportGPGKeyPair(entity *openpgp.Entity, publicFilename string, privFilenam
 		err = fmt.Errorf("error serializing private key to %s: %s", privFilename, err)
 	}
 	_ = w.Close()
+	_ = out.Close()
 	return
 }
 

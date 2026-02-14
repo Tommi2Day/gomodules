@@ -236,13 +236,27 @@ func GenKMSKey(svc *kms.Client, keyspec string, description string, tags map[str
 		}
 		keytags = append(keytags, kt)
 	}
+
+	input := &kms.CreateKeyInput{
+		Description: aws.String(description),
+		KeySpec:     types.KeySpec(keyspec),
+		Tags:        keytags,
+	}
+
+	if keyspec != "" && keyspec != string(types.KeySpecSymmetricDefault) {
+		// For asymmetric keys, we need to specify KeyUsage
+		// Assuming SIGN_VERIFY for now if not symmetric, but we might want to be more flexible
+		// However, for this project's needs, if it's asymmetric it's likely for signing
+		// Actually, RSA can be used for encryption too.
+		// Let's check if the keyspec is for RSA or ECC
+		if strings.HasPrefix(keyspec, "RSA_") || strings.HasPrefix(keyspec, "ECC_") {
+			input.KeyUsage = types.KeyUsageTypeSignVerify
+		}
+	}
+
 	keyOutput, err := svc.CreateKey(
 		context.TODO(),
-		&kms.CreateKeyInput{
-			Description: aws.String(description),
-			KeySpec:     types.KeySpec(keyspec),
-			Tags:        keytags,
-		},
+		input,
 	)
 	if err != nil {
 		e := checkOperationError(err)
@@ -301,6 +315,55 @@ func KMSDecryptString(svc *kms.Client, keyID string, ciphertext string) (string,
 	}
 	log.Debugf("Decrypt was OK")
 	return string(output.Plaintext), nil
+}
+
+// KMSSignString signs a string using AWS KMS
+func KMSSignString(svc *kms.Client, keyID string, plaintext string) (string, error) {
+	if svc == nil {
+		return "", errors.New("KMS service is nil")
+	}
+	if keyID == "" {
+		return "", errors.New("keyID is empty")
+	}
+	log.Debugf("Sign string with KMS Key:%s", keyID)
+	input := &kms.SignInput{
+		KeyId:            aws.String(keyID),
+		Message:          []byte(plaintext),
+		MessageType:      types.MessageTypeRaw,
+		SigningAlgorithm: types.SigningAlgorithmSpecRsassaPkcs1V15Sha256,
+	}
+	output, err := svc.Sign(context.TODO(), input)
+	if err != nil {
+		return "", checkOperationError(err)
+	}
+	return base64.StdEncoding.EncodeToString(output.Signature), nil
+}
+
+// KMSVerifyString verifies a signature using AWS KMS
+func KMSVerifyString(svc *kms.Client, keyID string, plaintext string, signature string) (bool, error) {
+	if svc == nil {
+		return false, errors.New("KMS service is nil")
+	}
+	if keyID == "" {
+		return false, errors.New("keyID is empty")
+	}
+	log.Debugf("Verify string with KMS Key:%s", keyID)
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		return false, err
+	}
+	input := &kms.VerifyInput{
+		KeyId:            aws.String(keyID),
+		Message:          []byte(plaintext),
+		MessageType:      types.MessageTypeRaw,
+		Signature:        sigBytes,
+		SigningAlgorithm: types.SigningAlgorithmSpecRsassaPkcs1V15Sha256,
+	}
+	output, err := svc.Verify(context.TODO(), input)
+	if err != nil {
+		return false, checkOperationError(err)
+	}
+	return output.SignatureValid, nil
 }
 
 // KMSEncryptFile Encrypt a file using the KMS key

@@ -56,6 +56,7 @@ const (
 	extKMS            = "kms"
 	pubKMSExt         = ".pub.kms"
 	privKMSExt        = ".priv.kms"
+	extSig            = "sig"
 	// ... other types ...
 )
 
@@ -76,6 +77,7 @@ type PassConfig struct {
 	KMSKeyID        string
 	CaseSensitive   bool
 	KeyType         string
+	SignatureFile   string
 }
 
 var (
@@ -120,6 +122,7 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 		KMSKeyID:        "",
 		CaseSensitive:   false,
 		KeyType:         keyType,
+		SignatureFile:   path.Join(datadir, appname+"."+extSig),
 	}
 
 	return config

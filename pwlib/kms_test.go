@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
@@ -65,6 +66,7 @@ func TestKMS(t *testing.T) {
 		}
 	})
 	myKeyID := ""
+	mySignKeyID := ""
 	t.Run("TestKMSCreateKey", func(t *testing.T) {
 		key, err := GenKMSKey(kmsClient, "", "TestKey", map[string]string{"test": "test"})
 		require.NoErrorf(t, err, "CreateKeys failed:%s", err)
@@ -77,6 +79,16 @@ func TestKMS(t *testing.T) {
 		assert.Equal(t, "TestKey", *keyDesc, "Description not as expected")
 		myKeyID = keyID
 		pc.KMSKeyID = myKeyID
+	})
+
+	t.Run("TestKMSCreateSigningKey", func(t *testing.T) {
+		key, err := GenKMSKey(kmsClient, string(types.KeySpecRsa2048), "TestSignKey", map[string]string{"test": "test"})
+		require.NoErrorf(t, err, "CreateKeys failed:%s", err)
+		require.NotNil(t, key, "createKey returned nil")
+		keyID, keyARN := GetKMSKeyIDs(key.KeyMetadata)
+		t.Logf("KeyId=%s, KeyArn=%s", keyID, keyARN)
+		assert.NotEmptyf(t, keyID, "KeyID empty")
+		mySignKeyID = keyID
 	})
 
 	if myKeyID == "" {
@@ -162,6 +174,24 @@ func TestKMS(t *testing.T) {
 		assert.NoErrorf(t, err, "Got unexpected error: %s", err)
 		assert.Equal(t, expected, pass, "Answer not expected. exp:%s,act:%s", expected, pass)
 	})
+	t.Run("Sign and Verify File - KMS method", func(t *testing.T) {
+		if mySignKeyID == "" {
+			t.Fatalf("SignKeyID empty")
+		}
+		pc.KMSKeyID = mySignKeyID
+
+		err = pc.SignFile()
+		assert.NoErrorf(t, err, "Signing failed: %s", err)
+		assert.FileExists(t, pc.SignatureFile)
+
+		valid, err := pc.VerifyFile()
+		assert.NoErrorf(t, err, "Verification failed: %s", err)
+		assert.True(t, valid, "Signature should be valid")
+
+		// restore original key id for further tests if any
+		pc.KMSKeyID = myKeyID
+	})
+
 	t.Run("DeleteAlias", func(t *testing.T) {
 		output, err := DeleteKMSAlias(kmsClient, "alias/"+aliasName)
 		require.NoErrorf(t, err, "DeleteAlias failed:%s", err)

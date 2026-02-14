@@ -1,9 +1,10 @@
 # Go Library
 
-## [v1.21.2 - 2026-02-14]
+
+## [v1.22.0 - 2026-02-15]
 ### New
 - pwlib: add ECDSA key generation and signing functions
-- pwlib: add RSA signing functions
+- pwlib: add signing functions and tests
 - pwlib: add function to detect key type from file
 - pwlib: enhance key type detection with GPG and Age
 - pwlib: update openssl.go to handle RSA and ECDSA keys seamlessly
