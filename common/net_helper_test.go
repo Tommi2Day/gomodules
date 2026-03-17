@@ -63,7 +63,7 @@ func TestGetHostPort(t *testing.T) {
 			},
 			{
 				name:    "with ldap url and user/password",
-				input:   "ldap://user:password@ldapserver.de",
+				input:   "ldap://user:password@ldapserver.de", // #nosec G101
 				success: true,
 				host:    "ldapserver.de",
 				port:    389,
