@@ -14,7 +14,7 @@ import (
 )
 
 const Ldaprepo = "docker.io/cleanstart/openldap"
-const LdaprepoTag = "2.6.10"
+const LdaprepoTag = "2.6.12"
 const LdapcontainerTimeout = 120
 
 var ldapcontainerName string
