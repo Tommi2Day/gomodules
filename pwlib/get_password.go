@@ -46,10 +46,17 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		content, err = GPGDecryptFile(cryptedfile, privatekeyfile, keypass, "")
 	case typeAge:
 		content, err = AgeDecryptFile(cryptedfile, privatekeyfile)
-	/*
-		case typeGopass:
-			content, err = GetGopassSecrets(privatekeyfile, keypass)
-	*/
+	case typeGopass:
+		var storeDir string
+		storeDir, err = GopassStoreDir(pc.DataDir)
+		if err != nil {
+			return
+		}
+		cryptoType, _ := GopassDetectCrypto(storeDir)
+		if cryptoType == "" {
+			cryptoType = GopassCryptoGPG
+		}
+		content, err = GopassReadSecretLines(storeDir, cryptedfile, privatekeyfile, keypass, cryptoType)
 	case typeKMS:
 		content, err = KMSDecryptFile(cryptedfile, keyID, sessionpassfile)
 	default:
@@ -124,7 +131,7 @@ func (pc *PassConfig) GetPassword(system string, account string) (password strin
 	var lines []string
 	log.Debugf("GetPassword for '%s'@'%s' entered", account, system)
 	switch pc.Method {
-	case typeVault:
+	case typeVault, typeGopass:
 		pc.CryptedFile = system
 	case typeAge:
 		pc.CryptedFile = pc.DataDir + "/" + system + "/" + account + "." + extAge

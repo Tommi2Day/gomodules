@@ -1,5 +1,18 @@
 # Go Library
 
+## [v1.23.0 - 2026-03-17]
+### New
+- pwlib/gopass: native Go functions for reading, writing, and listing gopass secrets (GPG and age)
+- pwlib/gopass: auto-detect store encryption type from marker files and gopass config
+- pwlib/gopass: support gopass method in GetPassword / DecryptFile
+- pwlib/age: passphrase-encrypted age identity file support (ExportAgeKeyPairEncrypted, AgeLoadEncryptedIdentity)
+- pwlib/age: passphrase-based file encryption/decryption (AgeEncryptFileWithPassphrase, AgeDecryptFileWithPassphrase)
+- pwlib/age: auto-detect plaintext vs passphrase-protected identity (AgeDecryptFileAuto)
+- pwlib/age: detect matching identity for an encrypted file (AgeDetectIdentity, AgeDetectIdentityWithPassphrase)
+- pwlib/gpg: detect recipient key IDs from encrypted file header without decryption (GPGDetectRecipients)
+- pwlib/gpg: find matching private key file for an encrypted file (GPGFindDecryptKey)
+### Fixed
+- linter: suppress gosec false positives on path/env-var constants in gopass.go
 
 ## [v1.22.0 - 2026-02-15]
 ### New
@@ -8,9 +21,11 @@
 - pwlib: add function to detect key type from file
 - pwlib: enhance key type detection with GPG and Age
 - pwlib: update openssl.go to handle RSA and ECDSA keys seamlessly
-- pwlib: fix linter issues in rsa_test.go and ecdsa_test.go
+
 ### Changed
 - pwlib: pwconfig type handling
+### Fixed
+- pwlib: fix linter issues in rsa_test.go and ecdsa_test.go
 
 ## [v1.20.0 - 2026-02-13]
 ### Changed

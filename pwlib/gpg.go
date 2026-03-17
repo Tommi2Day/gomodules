@@ -11,6 +11,7 @@ import (
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -168,6 +169,60 @@ func GPGEncryptFile(plainFile string, targetFile string, publicKeyFile string) (
 	}
 	err = common.WriteStringToFile(targetFile, string(encryptedBytes))
 	return
+}
+
+// GPGEncryptFileMulti encrypts plainFile to targetFile for all GPG entities loaded
+// from pubKeyFiles. Each file must contain one or more armored public keys.
+// The resulting file can be decrypted by any of the corresponding private keys.
+func GPGEncryptFileMulti(plainFile, targetFile string, pubKeyFiles []string) error {
+	if len(pubKeyFiles) == 0 {
+		return fmt.Errorf("no public key files provided")
+	}
+	var entityList openpgp.EntityList
+	for _, kf := range pubKeyFiles {
+		pubKeys, err := common.ReadFileToString(kf)
+		if err != nil {
+			return fmt.Errorf("failed to read public key file '%s': %v", kf, err)
+		}
+		el, err := GPGReadAmoredKeyRing(pubKeys)
+		if err != nil {
+			return fmt.Errorf("failed to parse public key file '%s': %v", kf, err)
+		}
+		entityList = append(entityList, el...)
+	}
+	plain, err := common.ReadFileToString(plainFile)
+	if err != nil {
+		return fmt.Errorf("failed to read plain file: %v", err)
+	}
+	encBuffer := new(bytes.Buffer)
+	pw, err := openpgp.Encrypt(encBuffer, entityList, nil, &openpgp.FileHints{IsBinary: true}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to initialise GPG encryptor: %v", err)
+	}
+	if _, err = pw.Write([]byte(plain)); err != nil {
+		return fmt.Errorf("failed to write encrypted content: %v", err)
+	}
+	_ = pw.Close()
+	encryptedBytes, err := io.ReadAll(encBuffer)
+	if err != nil {
+		return fmt.Errorf("failed to read encrypted buffer: %v", err)
+	}
+	if err = common.WriteStringToFile(targetFile, string(encryptedBytes)); err != nil {
+		return fmt.Errorf("failed to write encrypted file '%s': %v", targetFile, err)
+	}
+	log.Debugf("GPG-encrypted %s → %s for %d key file(s)", plainFile, targetFile, len(pubKeyFiles))
+	return nil
+}
+
+// GPGDecryptFileMulti decrypts filename using the first matching private key found in
+// secretKeyFiles. It delegates detection to GPGFindDecryptKey and decryption to
+// GPGDecryptFile. Returns an error if no key matches.
+func GPGDecryptFileMulti(filename string, secretKeyFiles []string, keypass string) (string, error) {
+	matched, err := GPGFindDecryptKey(filename, secretKeyFiles)
+	if err != nil {
+		return "", err
+	}
+	return GPGDecryptFile(filename, matched, keypass, "")
 }
 
 // GPGSignFile signs a file using a private GPG key
@@ -342,6 +397,97 @@ func ExportGPGKeyPair(entity *openpgp.Entity, publicFilename string, privFilenam
 	_ = w.Close()
 	_ = out.Close()
 	return
+}
+
+// GPGDetectRecipients reads the OpenPGP packet header of an encrypted file and
+// returns the 64-bit key IDs of all explicit recipients (PKESK packets).
+// Files encrypted with wildcard (hidden) recipients return an empty slice and an error.
+func GPGDetectRecipients(filename string) (keyIDs []string, err error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		err = fmt.Errorf("read encrypted file %s failed: %w", filename, err)
+		return
+	}
+	pktReader := packet.NewReader(bytes.NewReader(data))
+	seen := make(map[uint64]bool)
+	for {
+		p, pErr := pktReader.Next()
+		if pErr == io.EOF {
+			break
+		}
+		if pErr != nil {
+			// stop at the first parse error – this is usually the encrypted
+			// data packet itself, which we cannot read without the session key
+			break
+		}
+		ek, ok := p.(*packet.EncryptedKey)
+		if !ok {
+			continue
+		}
+		if ek.KeyId != 0 && !seen[ek.KeyId] {
+			keyIDs = append(keyIDs, fmt.Sprintf("%016X", ek.KeyId))
+			seen[ek.KeyId] = true
+		}
+	}
+	if len(keyIDs) == 0 {
+		err = fmt.Errorf("no explicit recipient key IDs found in %s (file may use wildcard/hidden recipients)", filename)
+	}
+	log.Debugf("detected %d recipient key ID(s) in %s", len(keyIDs), filename)
+	return
+}
+
+// GPGFindDecryptKey searches keyFiles for an armored key whose primary key or
+// encryption subkey matches a recipient ID embedded in the encrypted file at
+// filename. It returns the path of the first matching key file.
+func GPGFindDecryptKey(filename string, keyFiles []string) (matchedFile string, err error) {
+	keyIDs, err := GPGDetectRecipients(filename)
+	if err != nil {
+		return
+	}
+	for _, keyFile := range keyFiles {
+		content, rErr := common.ReadFileToString(keyFile)
+		if rErr != nil {
+			log.Warnf("GPGFindDecryptKey: skip unreadable key file %s: %v", keyFile, rErr)
+			continue
+		}
+		entityList, rErr := GPGReadAmoredKeyRing(content)
+		if rErr != nil {
+			log.Warnf("GPGFindDecryptKey: skip invalid key file %s: %v", keyFile, rErr)
+			continue
+		}
+		if gpgEntityMatchesKeyIDs(entityList, keyIDs) {
+			matchedFile = keyFile
+			log.Debugf("GPGFindDecryptKey: matched key file %s for %s", keyFile, filename)
+			return
+		}
+	}
+	err = fmt.Errorf("no matching GPG key found among %d key file(s) for %s", len(keyFiles), filename)
+	return
+}
+
+// gpgEntityMatchesKeyIDs reports whether any entity in the list has a primary
+// key or subkey whose ID appears in keyIDs.
+func gpgEntityMatchesKeyIDs(entityList openpgp.EntityList, keyIDs []string) bool {
+	for _, e := range entityList {
+		if gpgKeyIDInSlice(fmt.Sprintf("%016X", e.PrimaryKey.KeyId), keyIDs) {
+			return true
+		}
+		for _, sk := range e.Subkeys {
+			if gpgKeyIDInSlice(fmt.Sprintf("%016X", sk.PublicKey.KeyId), keyIDs) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func gpgKeyIDInSlice(keyID string, keyIDs []string) bool {
+	for _, k := range keyIDs {
+		if k == keyID {
+			return true
+		}
+	}
+	return false
 }
 
 /*
