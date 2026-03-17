@@ -6,16 +6,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/tommi2day/gomodules/test"
-
 	"github.com/tommi2day/gomodules/common"
+
+	"github.com/tommi2day/gomodules/test"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 )
 
 const repo = "docker.io/hashicorp/vault"
-const repoTag = "1.19.0"
+const repoTag = "1.21.4"
 const containerTimeout = 120
 const rootToken = "pwlib-test"
 
@@ -53,7 +53,7 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 		CapAdd:   []string{"IPC_LOCK"},
 		Cmd:      []string{},
 		Mounts: []string{
-			test.TestDir + "/docker/vault_provision:/vault_provision",
+			test.TestDir + "/docker/vault_provision:/vault_provision/",
 		},
 	}, func(config *docker.HostConfig) {
 		// set AutoRemove to true so that stopped container goes away by itself
@@ -94,7 +94,7 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 
 	// provision
 	cmdout := ""
-	cmd := []string{"bash /vault_provision/vault_init.sh"}
+	cmd := []string{"/vault_provision/vault_init.sh"}
 	cmdout, _, err = common.ExecDockerCmd(container, cmd)
 	if err != nil {
 		fmt.Printf("Exec Error %s", err)
