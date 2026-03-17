@@ -11,8 +11,11 @@
 - pwlib/age: detect matching identity for an encrypted file (AgeDetectIdentity, AgeDetectIdentityWithPassphrase)
 - pwlib/gpg: detect recipient key IDs from encrypted file header without decryption (GPGDetectRecipients)
 - pwlib/gpg: find matching private key file for an encrypted file (GPGFindDecryptKey)
+### Changed
+- ldaplib/dblib: update ldap container to 2.6.12
 ### Fixed
 - linter: suppress gosec false positives on path/env-var constants in gopass.go
+- pwlib/vault: vault provision
 
 ## [v1.22.0 - 2026-02-15]
 ### New
