@@ -480,7 +480,9 @@ func TestGPGAgentDecrypt(t *testing.T) {
 	t.Run("returns error when gpg-agent socket is not found", func(t *testing.T) {
 		emptyHome := filepath.Join(test.TestData, "gpg-agent-decrypt-empty")
 		require.NoError(t, os.MkdirAll(emptyHome, 0700))
+		t.Setenv("GPG_AGENT_INFO", "")
 		t.Setenv(gpgEnvHome, emptyHome)
+		t.Setenv("XDG_RUNTIME_DIR", "")
 
 		_, agentErr := GPGAgentDecrypt(cryptedFile, openpgp.EntityList{entity})
 		assert.Error(t, agentErr)
