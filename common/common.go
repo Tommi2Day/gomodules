@@ -17,10 +17,13 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/manifoldco/promptui"
 	log "github.com/sirupsen/logrus"
 )
 
 const osWin = "windows"
+
+var InputReader = os.Stdin
 
 func init() {
 	// use text formatter
@@ -279,4 +282,19 @@ func StructToJSON(m interface{}) (string, error) {
 	}
 	c := string(b)
 	return c, nil
+}
+
+func PromptPassword(label string) (pw string, err error) {
+	prompt := promptui.Prompt{
+		Label: label,
+		Mask:  '*',
+		Stdin: InputReader,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		return
+	}
+	pw = result
+	return
 }

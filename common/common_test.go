@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetEnv(t *testing.T) {
@@ -719,4 +720,20 @@ func TestMapToJson(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, jsonStr)
 	})
+}
+
+func TestPromptPassword(t *testing.T) {
+	// redirect Stdin
+	oldStdin := os.Stdin
+	re, wr, _ := os.Pipe()
+	InputReader = re
+	// write to Stdin
+	_, _ = wr.WriteString("test\n")
+	// test promptPassword
+	password, err := PromptPassword("TestPromptPassword:")
+	require.NoError(t, err, "PromptPassword should not return error")
+	assert.Equal(t, "test", password, "PromptPassword should return test")
+	// restore Stdin
+	InputReader = oldStdin
+	_ = wr.Close()
 }
