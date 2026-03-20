@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.23.1 - 2026-03-20]
+### Fixed
+- pwlib/gopass: `GopassRead` with empty `keyFile` now uses system GPG keyring (`GPGDecryptFileAuto`) instead of failing with a path error on Windows
+
 ## [v1.23.0 - 2026-03-17]
 ### New
 - pwlib/gopass: native Go functions for reading, writing, and listing gopass secrets (GPG and age)
