@@ -94,7 +94,7 @@ func prepareVaultContainer() (container *dockertest.Resource, err error) {
 
 	// provision
 	cmdout := ""
-	cmd := []string{"/vault_provision/vault_init.sh"}
+	cmd := []string{"bash /vault_provision/vault_init.sh"}
 	cmdout, _, err = common.ExecDockerCmd(container, cmd)
 	if err != nil {
 		fmt.Printf("Exec Error %s", err)
