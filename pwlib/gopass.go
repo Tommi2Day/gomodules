@@ -122,7 +122,11 @@ func GopassReadRaw(storeDir, secretName, keyFile, keypass, cryptoType string) (c
 	case GopassCryptoAge:
 		content, err = AgeDecryptFileAuto(secretPath, keyFile, keypass)
 	default: // GPG
-		content, err = GPGDecryptFile(secretPath, keyFile, keypass, "")
+		if keyFile == "" {
+			content, err = GPGDecryptFileAuto(secretPath, keypass)
+		} else {
+			content, err = GPGDecryptFile(secretPath, keyFile, keypass, "")
+		}
 	}
 	if err != nil {
 		err = fmt.Errorf("read gopass secret %s failed: %w", secretName, err)
