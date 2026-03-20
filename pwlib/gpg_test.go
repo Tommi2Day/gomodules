@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/tommi2day/gomodules/common"
@@ -226,6 +227,19 @@ func TestGPG(t *testing.T) {
 		assert.NoErrorf(t, err, "should be no error, but got %v", err)
 		assert.Equal(t, plain, actual, "should be equal")
 	})
+
+	t.Run("Decrypt GPG File with empty keypass returns env-var error", func(t *testing.T) {
+		prev, had := os.LookupEnv("GPG_PASSPHRASE")
+		require.NoError(t, os.Unsetenv("GPG_PASSPHRASE"))
+		t.Cleanup(func() {
+			if had {
+				_ = os.Setenv("GPG_PASSPHRASE", prev)
+			}
+		})
+		_, decErr := GPGDecryptFile(cryptedfile, secretGPGKeyFile, "", "")
+		assert.Error(t, decErr)
+		assert.Contains(t, decErr.Error(), "GPG_PASSPHRASE")
+	})
 }
 
 func TestGPGMultiRecipient(t *testing.T) {
@@ -299,5 +313,237 @@ func TestGPGMultiRecipient(t *testing.T) {
 	t.Run("GPGEncryptFileMulti with nonexistent plain file returns error", func(t *testing.T) {
 		err := GPGEncryptFileMulti(path.Join(test.TestData, "no-such.txt"), cryptedFile, []string{pairs[0].pub})
 		assert.Error(t, err)
+	})
+}
+
+// writeSecretKeyRing serialises entity as a binary GPG secret keyring file
+// (the secring.gpg format readable by openpgp.ReadKeyRing).
+func writeSecretKeyRing(t *testing.T, path string, entity *openpgp.Entity) {
+	t.Helper()
+	f, err := os.Create(path) //nolint:gosec // test helper
+	require.NoError(t, err)
+	defer func() { _ = f.Close() }()
+	require.NoError(t, entity.SerializePrivateWithoutSigning(f, nil))
+}
+
+func TestGPGAnyKeyEncrypted(t *testing.T) {
+	test.InitTestDirs()
+
+	t.Run("returns false for empty list", func(t *testing.T) {
+		assert.False(t, gpgAnyKeyEncrypted(openpgp.EntityList{}))
+	})
+
+	t.Run("returns true for freshly created (encrypted) entity", func(t *testing.T) {
+		entity, _, err := CreateGPGEntity(testGPGName, "AnyEncTest", testGPGEmail, testGPGPass)
+		require.NoError(t, err)
+		assert.True(t, gpgAnyKeyEncrypted(openpgp.EntityList{entity}))
+	})
+
+	t.Run("returns false after entity is unlocked", func(t *testing.T) {
+		entity, _, err := CreateGPGEntity(testGPGName, "AnyEncTest", testGPGEmail, testGPGPass)
+		require.NoError(t, err)
+		require.NoError(t, entity.DecryptPrivateKeys([]byte(testGPGPass)))
+		assert.False(t, gpgAnyKeyEncrypted(openpgp.EntityList{entity}))
+	})
+
+	t.Run("returns false for entity with nil private key and nil subkey private keys", func(t *testing.T) {
+		entity, _, err := CreateGPGEntity(testGPGName, "AnyEncTest", testGPGEmail, testGPGPass)
+		require.NoError(t, err)
+		entity.PrivateKey = nil
+		for i := range entity.Subkeys {
+			entity.Subkeys[i].PrivateKey = nil
+		}
+		assert.False(t, gpgAnyKeyEncrypted(openpgp.EntityList{entity}))
+	})
+}
+
+func TestGPGExportSecretKeysArmored(t *testing.T) {
+	test.InitTestDirs()
+
+	t.Run("empty GNUPGHOME returns error (no keys or binary unavailable)", func(t *testing.T) {
+		emptyHome := path.Join(test.TestData, "gnupg-export-empty")
+		_ = os.RemoveAll(emptyHome)
+		require.NoError(t, os.MkdirAll(emptyHome, 0700))
+		_ = os.Setenv(gpgEnvHome, emptyHome)
+		_, err := GPGExportSecretKeysArmored()
+		_ = os.Unsetenv(gpgEnvHome)
+		// gpg binary unavailable → exec error; or available but empty keyring → "no keys" error
+		assert.Error(t, err)
+	})
+}
+
+func TestGPGSystemSecretKeys(t *testing.T) {
+	test.InitTestDirs()
+
+	entity, _, err := CreateGPGEntity(testGPGName, "SystemKeysTest", testGPGEmail, testGPGPass)
+	require.NoError(t, err)
+
+	testGnupgHome := path.Join(test.TestData, "gnupg-system-keys-test")
+	_ = os.RemoveAll(testGnupgHome)
+	require.NoError(t, os.MkdirAll(testGnupgHome, 0700))
+	writeSecretKeyRing(t, path.Join(testGnupgHome, "secring.gpg"), entity)
+
+	t.Run("reads keys from secring.gpg when present", func(t *testing.T) {
+		_ = os.Setenv(gpgEnvHome, testGnupgHome)
+		el, sysErr := GPGSystemSecretKeys()
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.NoError(t, sysErr)
+		assert.NotEmpty(t, el)
+	})
+
+	t.Run("returns error when no secring.gpg and gpg binary yields nothing", func(t *testing.T) {
+		emptyHome := path.Join(test.TestData, "gnupg-system-empty")
+		_ = os.RemoveAll(emptyHome)
+		require.NoError(t, os.MkdirAll(emptyHome, 0700))
+		_ = os.Setenv(gpgEnvHome, emptyHome)
+		_, sysErr := GPGSystemSecretKeys()
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.Error(t, sysErr)
+	})
+}
+
+func TestGPGHomeDir(t *testing.T) {
+	test.InitTestDirs()
+
+	t.Run("GNUPGHOME env var is used", func(t *testing.T) {
+		_ = os.Setenv(gpgEnvHome, "/custom/gnupg")
+		dir, err := GPGHomeDir()
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.NoError(t, err)
+		assert.Equal(t, "/custom/gnupg", dir)
+	})
+
+	t.Run("default is ~/.gnupg", func(t *testing.T) {
+		_ = os.Unsetenv(gpgEnvHome)
+		dir, err := GPGHomeDir()
+		assert.NoError(t, err)
+		assert.Contains(t, filepath.ToSlash(dir), ".gnupg")
+	})
+}
+
+func TestGPGSecretKeyRingPath(t *testing.T) {
+	test.InitTestDirs()
+
+	_ = os.Setenv(gpgEnvHome, "/custom/gnupg")
+	p, err := GPGSecretKeyRingPath()
+	_ = os.Unsetenv(gpgEnvHome)
+	assert.NoError(t, err)
+	assert.Equal(t, filepath.Join("/custom/gnupg", "secring.gpg"), p)
+}
+
+func TestGPGReadSecretKeyRing(t *testing.T) {
+	test.InitTestDirs()
+
+	entity, _, err := CreateGPGEntity(testGPGName, "KeyRingTest", testGPGEmail, testGPGPass)
+	require.NoError(t, err)
+
+	secring := path.Join(test.TestData, "test_secring.gpg")
+	writeSecretKeyRing(t, secring, entity)
+
+	t.Run("reads keys from binary keyring", func(t *testing.T) {
+		el, readErr := GPGReadSecretKeyRing(secring)
+		assert.NoError(t, readErr)
+		assert.NotEmpty(t, el)
+	})
+
+	t.Run("nonexistent keyring returns error", func(t *testing.T) {
+		_, readErr := GPGReadSecretKeyRing(path.Join(test.TestData, "no_such_secring.gpg"))
+		assert.Error(t, readErr)
+	})
+
+	t.Run("empty keyring file returns error", func(t *testing.T) {
+		emptyRing := path.Join(test.TestData, "empty_secring.gpg")
+		require.NoError(t, os.WriteFile(emptyRing, []byte{}, 0600))
+		_, readErr := GPGReadSecretKeyRing(emptyRing)
+		assert.Error(t, readErr)
+	})
+}
+
+func TestGPGDecryptFileAuto(t *testing.T) {
+	test.InitTestDirs()
+
+	entity, _, err := CreateGPGEntity(testGPGName, "AutoDecryptTest", testGPGEmail, testGPGPass)
+	require.NoError(t, err)
+
+	pubKeyFile := path.Join(test.TestData, "auto_decrypt"+pubGPGExt)
+	privKeyFile := path.Join(test.TestData, "auto_decrypt"+privGPGExt)
+	require.NoError(t, ExportGPGKeyPair(entity, pubKeyFile, privKeyFile))
+
+	plaintextFile := path.Join(test.TestData, "auto_decrypt.txt")
+	cryptedFile := path.Join(test.TestData, "auto_decrypt.gpg")
+	require.NoError(t, common.WriteStringToFile(plaintextFile, plain))
+	require.NoError(t, GPGEncryptFile(plaintextFile, cryptedFile, pubKeyFile))
+
+	// set up a test GNUPGHOME with a secring.gpg containing the key
+	testGnupgHome := path.Join(test.TestData, "gnupg-auto-test")
+	_ = os.RemoveAll(testGnupgHome)
+	require.NoError(t, os.MkdirAll(testGnupgHome, 0700))
+	writeSecretKeyRing(t, path.Join(testGnupgHome, "secring.gpg"), entity)
+
+	t.Run("decrypts using secring.gpg", func(t *testing.T) {
+		_ = os.Setenv(gpgEnvHome, testGnupgHome)
+		content, decErr := GPGDecryptFileAuto(cryptedFile, testGPGPass)
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.NoError(t, decErr)
+		assert.Equal(t, plain, content)
+	})
+
+	t.Run("wrong passphrase returns error", func(t *testing.T) {
+		_ = os.Setenv(gpgEnvHome, testGnupgHome)
+		_, decErr := GPGDecryptFileAuto(cryptedFile, "wrongpassphrase")
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.Error(t, decErr)
+	})
+
+	t.Run("empty passphrase with encrypted key falls back to gpg-agent or error", func(t *testing.T) {
+		_ = os.Setenv(gpgEnvHome, testGnupgHome)
+		_, decErr := GPGDecryptFileAuto(cryptedFile, "")
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.Error(t, decErr)
+		// Without a running gpg-agent the error describes the socket lookup failure.
+		assert.NotContains(t, decErr.Error(), "stdin is not a terminal")
+	})
+
+	t.Run("empty GNUPGHOME without gpg binary falls back to error", func(t *testing.T) {
+		emptyHome := path.Join(test.TestData, "gnupg-empty-auto")
+		_ = os.RemoveAll(emptyHome)
+		require.NoError(t, os.MkdirAll(emptyHome, 0700))
+		_ = os.Setenv(gpgEnvHome, emptyHome)
+		_, decErr := GPGDecryptFileAuto(cryptedFile, testGPGPass)
+		_ = os.Unsetenv(gpgEnvHome)
+		// may succeed if a system gpg binary with matching keys is available,
+		// but in a clean test env there should be no matching key
+		t.Logf("empty GNUPGHOME result: %v", decErr)
+	})
+}
+
+func TestGopassGPGDecryptFileAutoKeyRing(t *testing.T) {
+	test.InitTestDirs()
+
+	storeDir := path.Join(test.TestData, "gopass-auto-gpg-store")
+	_ = os.RemoveAll(storeDir)
+	require.NoError(t, os.MkdirAll(storeDir, 0700))
+
+	entity, _, err := CreateGPGEntity(testGPGName, "GopassAutoTest", testGPGEmail, testGPGPass)
+	require.NoError(t, err)
+
+	pubKeyFile := path.Join(test.TestData, "gopass_auto"+pubGPGExt)
+	require.NoError(t, ExportGPGKeyPair(entity, pubKeyFile, path.Join(test.TestData, "gopass_auto"+privGPGExt)))
+
+	// write a gopass secret encrypted to the test key
+	require.NoError(t, GopassWrite(storeDir, "auto/secret", "autopassword", pubKeyFile, GopassCryptoGPG))
+
+	// set up GNUPGHOME with a secring.gpg containing the test key
+	testGnupgHome := path.Join(test.TestData, "gnupg-gopass-auto")
+	_ = os.RemoveAll(testGnupgHome)
+	require.NoError(t, os.MkdirAll(testGnupgHome, 0700))
+	writeSecretKeyRing(t, path.Join(testGnupgHome, "secring.gpg"), entity)
+
+	t.Run("GopassRead with empty keyFile uses system keyring", func(t *testing.T) {
+		_ = os.Setenv(gpgEnvHome, testGnupgHome)
+		secret, readErr := GopassRead(storeDir, "auto/secret", "", testGPGPass, GopassCryptoGPG)
+		_ = os.Unsetenv(gpgEnvHome)
+		assert.NoError(t, readErr)
+		assert.Equal(t, "autopassword", secret)
 	})
 }

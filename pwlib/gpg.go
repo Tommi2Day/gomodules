@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/tommi2day/gomodules/common"
@@ -14,6 +16,132 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	log "github.com/sirupsen/logrus"
 )
+
+const (
+	gpgEnvHome           = "GNUPGHOME"   //nolint:gosec // env-var name, not a credential
+	gpgDefaultHomeDir    = ".gnupg"      //nolint:gosec // path constant, not a credential
+	gpgSecretKeyRingFile = "secring.gpg" //nolint:gosec // path constant, not a credential
+)
+
+// GPGHomeDir returns the GnuPG home directory.
+// GNUPGHOME overrides the default ~/.gnupg.
+func GPGHomeDir() (string, error) {
+	if h := os.Getenv(gpgEnvHome); h != "" {
+		return h, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, gpgDefaultHomeDir), nil
+}
+
+// GPGSecretKeyRingPath returns the path to the user's GPG secret keyring (secring.gpg).
+func GPGSecretKeyRingPath() (string, error) {
+	gpgHome, err := GPGHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(gpgHome, gpgSecretKeyRingFile), nil
+}
+
+// GPGReadSecretKeyRing reads a binary GPG secret keyring file (secring.gpg format).
+// The returned entities may still have encrypted private keys; unlock with DecryptPrivateKeys.
+func GPGReadSecretKeyRing(keyRingPath string) (openpgp.EntityList, error) {
+	f, err := os.Open(keyRingPath) //nolint:gosec // path comes from caller / env
+	if err != nil {
+		return nil, fmt.Errorf("open GPG keyring %s: %w", keyRingPath, err)
+	}
+	defer func() { _ = f.Close() }()
+	el, err := openpgp.ReadKeyRing(f)
+	if err != nil {
+		return nil, fmt.Errorf("read GPG keyring %s: %w", keyRingPath, err)
+	}
+	if len(el) == 0 {
+		return nil, fmt.Errorf("no keys found in GPG keyring %s", keyRingPath)
+	}
+	log.Debugf("read %d GPG key(s) from keyring %s", len(el), keyRingPath)
+	return el, nil
+}
+
+// GPGExportSecretKeysArmored exports all secret keys from the system GPG keyring
+// by calling the gpg binary with --export-secret-keys --armor.
+// This is the reliable path for modern GnuPG (2.1+) that uses private-keys-v1.d.
+func GPGExportSecretKeysArmored() (string, error) {
+	out, err := exec.Command("gpg", "--export-secret-keys", "--armor").Output() //nolint:gosec // fixed args, no user input
+	if err != nil {
+		return "", fmt.Errorf("gpg --export-secret-keys failed: %w", err)
+	}
+	if len(out) == 0 {
+		return "", fmt.Errorf("no GPG secret keys exported (keyring may be empty)")
+	}
+	return string(out), nil
+}
+
+// GPGSystemSecretKeys returns all secret keys available in the user's GPG keyring.
+// It first tries to read secring.gpg (legacy / gopass-managed), then falls back
+// to calling the gpg binary (modern GnuPG 2.1+ using private-keys-v1.d).
+// The returned entities may have encrypted private keys.
+func GPGSystemSecretKeys() (openpgp.EntityList, error) {
+	keyRingPath, pathErr := GPGSecretKeyRingPath()
+	if pathErr == nil {
+		if el, err := GPGReadSecretKeyRing(keyRingPath); err == nil {
+			return el, nil
+		}
+	}
+	// fall back to gpg binary export
+	armored, err := GPGExportSecretKeysArmored()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load GPG secret keys from keyring or gpg binary: %w", err)
+	}
+	el, err := GPGReadAmoredKeyRing(armored)
+	if err != nil {
+		return nil, fmt.Errorf("parse GPG keys from binary export: %w", err)
+	}
+	log.Debugf("loaded %d GPG key(s) via gpg binary export", len(el))
+	return el, nil
+}
+
+// GPGDecryptFileAuto decrypts filename using all secret keys found in the user's
+// GPG keyring (secring.gpg or gpg binary export). passphrase is used to unlock
+// any encrypted private keys. When passphrase is empty the GPG_PASSPHRASE
+// environment variable is tried; if the key is still locked GPGAgentDecrypt is
+// called to use gpg-agent via the native Go Assuan client.
+func GPGDecryptFileAuto(filename, passphrase string) (string, error) {
+	entityList, err := GPGSystemSecretKeys()
+	if err != nil {
+		return "", err
+	}
+	for _, e := range entityList {
+		_ = e.DecryptPrivateKeys([]byte(passphrase))
+	}
+	if passphrase == "" && gpgAnyKeyEncrypted(entityList) {
+		passphrase = os.Getenv("GPG_PASSPHRASE") //nolint:gosec // env-var name, not a credential
+		if passphrase != "" {
+			for _, e := range entityList {
+				_ = e.DecryptPrivateKeys([]byte(passphrase))
+			}
+		}
+	}
+	// If keys are still encrypted, delegate to gpg-agent via the Assuan protocol.
+	if gpgAnyKeyEncrypted(entityList) {
+		return GPGAgentDecrypt(filename, entityList)
+	}
+	encrypted, err := os.ReadFile(filename) //nolint:gosec // path comes from caller
+	if err != nil {
+		return "", fmt.Errorf("read encrypted file %s: %w", filename, err)
+	}
+	md, err := openpgp.ReadMessage(bytes.NewReader(encrypted), entityList, nil, nil)
+	if err != nil {
+		return "", fmt.Errorf("decrypt %s with system GPG keys: %w", filename, err)
+	}
+	decrypted, err := io.ReadAll(md.UnverifiedBody)
+	if err != nil {
+		return "", err
+	}
+	log.Debugf("auto-decrypted %s with system GPG key", filename)
+	return string(decrypted), nil
+}
 
 // GPGConfig holds gpg config
 type GPGConfig struct {
@@ -107,6 +235,13 @@ func GPGDecryptFile(filename string, secretKeyFile string, keypass string, gpgid
 	if err != nil {
 		return
 	}
+	if keypass == "" && gpgAnyKeyEncrypted(openpgp.EntityList{entity}) {
+		keypass = os.Getenv("GPG_PASSPHRASE") //nolint:gosec // env-var name, not a credential
+		if keypass == "" {
+			err = fmt.Errorf("GPG key %s is passphrase-protected: set GPG_PASSPHRASE environment variable or use gpg-agent", entity.PrimaryKey.KeyIdString())
+			return
+		}
+	}
 	err = GPGUnlockKey(entity, keypass)
 	if err != nil {
 		return
@@ -158,6 +293,7 @@ func GPGEncryptFile(plainFile string, targetFile string, publicKeyFile string) (
 	// write plaintext to encryptor
 	_, err = pw.Write([]byte(plain))
 	if err != nil {
+		_ = pw.Close()
 		return
 	}
 	_ = pw.Close()
@@ -200,6 +336,7 @@ func GPGEncryptFileMulti(plainFile, targetFile string, pubKeyFiles []string) err
 		return fmt.Errorf("failed to initialise GPG encryptor: %v", err)
 	}
 	if _, err = pw.Write([]byte(plain)); err != nil {
+		_ = pw.Close()
 		return fmt.Errorf("failed to write encrypted content: %v", err)
 	}
 	_ = pw.Close()
@@ -370,12 +507,15 @@ func ExportGPGKeyPair(entity *openpgp.Entity, publicFilename string, privFilenam
 	out, err = os.Create(publicFilename)
 	w, err = armor.Encode(out, openpgp.PublicKeyType, make(map[string]string))
 	if err != nil {
+		_ = out.Close()
 		err = fmt.Errorf("error creating public key file %s: %s", publicFilename, err)
 		return
 	}
 
 	err = entity.Serialize(w)
 	if err != nil {
+		_ = w.Close()
+		_ = out.Close()
 		err = fmt.Errorf("error serializing public key: %s", err)
 		return
 	}
@@ -386,6 +526,7 @@ func ExportGPGKeyPair(entity *openpgp.Entity, publicFilename string, privFilenam
 	out, err = os.Create(privFilename)
 	w, err = armor.Encode(out, openpgp.PrivateKeyType, make(map[string]string))
 	if err != nil {
+		_ = out.Close()
 		err = fmt.Errorf("error creating private key file %s: %s", privFilename, err)
 		return
 	}
@@ -474,6 +615,22 @@ func gpgEntityMatchesKeyIDs(entityList openpgp.EntityList, keyIDs []string) bool
 		}
 		for _, sk := range e.Subkeys {
 			if gpgKeyIDInSlice(fmt.Sprintf("%016X", sk.PublicKey.KeyId), keyIDs) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// gpgAnyKeyEncrypted reports whether any entity in the list has an encrypted
+// primary private key or an encrypted subkey.
+func gpgAnyKeyEncrypted(entityList openpgp.EntityList) bool {
+	for _, e := range entityList {
+		if e.PrivateKey != nil && e.PrivateKey.Encrypted {
+			return true
+		}
+		for _, sk := range e.Subkeys {
+			if sk.PrivateKey != nil && sk.PrivateKey.Encrypted {
 				return true
 			}
 		}
