@@ -11,16 +11,33 @@ import (
 )
 
 const (
-	gopassEnvStoreDir   = "PASSWORD_STORE_DIR"
-	gopassDefaultSubDir = ".local/share/gopass/stores/root" //nolint:gosec // path constant, not a credential
-	gopassSecretExt     = ".gpg"
-	gopassAgeExt        = ".age"
+	gopassEnvStoreDir    = "PASSWORD_STORE_DIR"
+	gopassEnvXDGData     = "XDG_DATA_HOME"       //nolint:gosec // env-var name, not a credential
+	gopassEnvHomeDir     = "GOPASS_HOMEDIR"      //nolint:gosec // env-var name, not a credential
+	gopassEnvAgePassword = "GOPASS_AGE_PASSWORD" //nolint:gosec // env-var name, not a credential
+	gopassDefaultDataDir = ".local/share"        //nolint:gosec // path constant, not a credential
+	gopassStoreSubPath   = "gopass/stores/root"  //nolint:gosec // path constant, not a credential
+	gopassSecretExt      = ".gpg"
+	gopassAgeExt         = ".age"
 
 	// GopassCryptoGPG selects GPG encryption (default, secrets stored as .gpg files).
 	GopassCryptoGPG = "gpg"
 	// GopassCryptoAge selects age encryption (secrets stored as .age files).
 	GopassCryptoAge = "age"
 )
+
+// gopassAgePassphrase returns the effective age passphrase for gopass operations.
+// If keypass is non-empty it is returned unchanged; otherwise GOPASS_AGE_PASSWORD is checked.
+func gopassAgePassphrase(keypass string) string {
+	if keypass != "" {
+		return keypass
+	}
+	if p := os.Getenv(gopassEnvAgePassword); p != "" {
+		log.Debugf("gopassAgePassphrase: using %s env var", gopassEnvAgePassword)
+		return p
+	}
+	return ""
+}
 
 // gopassExtFor returns the file extension for the given crypto type.
 func gopassExtFor(cryptoType string) string {
@@ -30,9 +47,22 @@ func gopassExtFor(cryptoType string) string {
 	return gopassSecretExt
 }
 
+// gopassHomeDir returns the home directory for gopass path resolution.
+// GOPASS_HOMEDIR overrides os.UserHomeDir.
+func gopassHomeDir() (string, error) {
+	if h := os.Getenv(gopassEnvHomeDir); h != "" {
+		log.Debugf("gopassHomeDir: using %s=%s", gopassEnvHomeDir, h)
+		return h, nil
+	}
+	return os.UserHomeDir()
+}
+
 // GopassStoreDir resolves the gopass store directory.
 // If storeDir is non-empty it is returned as-is.
-// Otherwise PASSWORD_STORE_DIR env var is checked, then ~/.local/share/gopass/stores/root.
+// Resolution order for the default:
+//  1. PASSWORD_STORE_DIR env var
+//  2. root.path from the gopass config file
+//  3. $XDG_DATA_HOME/gopass/stores/root (falls back to ~/.local/share/gopass/stores/root)
 func GopassStoreDir(storeDir string) (string, error) {
 	if storeDir != "" {
 		return storeDir, nil
@@ -41,13 +71,31 @@ func GopassStoreDir(storeDir string) (string, error) {
 		log.Debugf("gopass store dir from env: %s", dir)
 		return dir, nil
 	}
-	home, err := os.UserHomeDir()
+	if dir := gopassRootPathFromConfig(); dir != "" {
+		log.Debugf("gopass store dir from config: %s", dir)
+		return dir, nil
+	}
+	home, err := gopassHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	dir := filepath.Join(home, filepath.FromSlash(gopassDefaultSubDir))
+	dataHome := os.Getenv(gopassEnvXDGData)
+	if dataHome == "" {
+		dataHome = filepath.Join(home, gopassDefaultDataDir)
+	}
+	dir := filepath.Join(dataHome, filepath.FromSlash(gopassStoreSubPath))
 	log.Debugf("gopass store dir default: %s", dir)
 	return dir, nil
+}
+
+// gopassRootPathFromConfig reads the root store path from the gopass config.
+// Returns "" if the config is unavailable or has no root path set.
+func gopassRootPathFromConfig() string {
+	cfg, err := GopassReadConfig("")
+	if err != nil || cfg == nil {
+		return ""
+	}
+	return cfg.Root.Path
 }
 
 // GopassList returns all secret names in the store relative to storeDir, without the crypto extension.
@@ -120,7 +168,7 @@ func GopassReadRaw(storeDir, secretName, keyFile, keypass, cryptoType string) (c
 	secretPath := filepath.Join(storeDir, filepath.FromSlash(secretName)+gopassExtFor(cryptoType))
 	switch cryptoType {
 	case GopassCryptoAge:
-		content, err = AgeDecryptFileAuto(secretPath, keyFile, keypass)
+		content, err = AgeDecryptFileAuto(secretPath, keyFile, gopassAgePassphrase(keypass))
 	default: // GPG
 		if keyFile == "" {
 			content, err = GPGDecryptFileAuto(secretPath, keypass)
@@ -225,16 +273,19 @@ type GopassConfig struct {
 }
 
 // GopassConfigPath returns the path to the gopass configuration file.
-// It checks GOPASS_CONFIG, then XDG_CONFIG_HOME/gopass/config,
-// then falls back to ~/.config/gopass/config.
+// Resolution order: GOPASS_CONFIG env var, XDG_CONFIG_HOME/gopass/config,
+// then $GOPASS_HOMEDIR/.config/gopass/config (falls back to ~/.config/gopass/config).
 func GopassConfigPath() (string, error) {
 	if p := os.Getenv(gopassEnvConfig); p != "" {
+		log.Debugf("GopassConfigPath: using %s=%s", gopassEnvConfig, p)
 		return p, nil
 	}
 	if xdg := os.Getenv(gopassEnvXDGConfig); xdg != "" {
-		return filepath.Join(xdg, "gopass", "config"), nil
+		p := filepath.Join(xdg, "gopass", "config")
+		log.Debugf("GopassConfigPath: using %s, config path: %s", gopassEnvXDGConfig, p)
+		return p, nil
 	}
-	home, err := os.UserHomeDir()
+	home, err := gopassHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
@@ -262,6 +313,25 @@ func GopassReadConfig(configPath string) (cfg *GopassConfig, err error) {
 	}
 	log.Debugf("read gopass config from %s", configPath)
 	return
+}
+
+// GopassMounts returns all stores from the gopass config keyed by name.
+// The root store is included under the key "root"; each mount uses its mount name.
+// Pass configPath="" to resolve the path automatically via GopassConfigPath.
+func GopassMounts(configPath string) (map[string]GopassStoreConfig, error) {
+	cfg, err := GopassReadConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+	stores := make(map[string]GopassStoreConfig, len(cfg.Mounts)+1)
+	if cfg.Root.Path != "" {
+		stores["root"] = cfg.Root
+	}
+	for name, mount := range cfg.Mounts {
+		stores[name] = mount
+	}
+	log.Debugf("gopass mounts: %d store(s) from config", len(stores))
+	return stores, nil
 }
 
 // GopassDetectCrypto determines the encryption type used by a gopass store.

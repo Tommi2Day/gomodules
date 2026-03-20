@@ -179,10 +179,16 @@ func getKeypass(keypass, appname, method string) string {
 	pass := ""
 	switch method {
 	case typeGPG:
-		pass = os.Getenv("GPG_PASSPHRASE")
+		pass = os.Getenv("GPG_PASSPHRASE") //nolint:gosec // env-var name, not a credential
+		if pass != "" {
+			log.Debugf("getKeypass: using GPG_PASSPHRASE env var for app %s", appname)
+		}
 		return pass
 	case typeAge:
-		pass = os.Getenv("AGE_PASSPHRASE")
+		pass = os.Getenv("AGE_PASSPHRASE") //nolint:gosec // env-var name, not a credential
+		if pass != "" {
+			log.Debugf("getKeypass: using AGE_PASSPHRASE env var for app %s", appname)
+		}
 		return pass
 	}
 	return appname

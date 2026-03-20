@@ -27,6 +27,7 @@ const (
 // GNUPGHOME overrides the default ~/.gnupg.
 func GPGHomeDir() (string, error) {
 	if h := os.Getenv(gpgEnvHome); h != "" {
+		log.Debugf("GPGHomeDir: using %s=%s", gpgEnvHome, h)
 		return h, nil
 	}
 	home, err := os.UserHomeDir()
@@ -118,6 +119,7 @@ func GPGDecryptFileAuto(filename, passphrase string) (string, error) {
 	if passphrase == "" && gpgAnyKeyEncrypted(entityList) {
 		passphrase = os.Getenv("GPG_PASSPHRASE") //nolint:gosec // env-var name, not a credential
 		if passphrase != "" {
+			log.Debugf("GPGDecryptFileAuto: using GPG_PASSPHRASE env var to unlock key(s)")
 			for _, e := range entityList {
 				_ = e.DecryptPrivateKeys([]byte(passphrase))
 			}
@@ -125,6 +127,7 @@ func GPGDecryptFileAuto(filename, passphrase string) (string, error) {
 	}
 	// If keys are still encrypted, delegate to gpg-agent via the Assuan protocol.
 	if gpgAnyKeyEncrypted(entityList) {
+		log.Debugf("GPGDecryptFileAuto: key(s) still encrypted, delegating to gpg-agent")
 		return GPGAgentDecrypt(filename, entityList)
 	}
 	encrypted, err := os.ReadFile(filename) //nolint:gosec // path comes from caller
@@ -236,14 +239,21 @@ func GPGDecryptFile(filename string, secretKeyFile string, keypass string, gpgid
 		return
 	}
 	if keypass == "" && gpgAnyKeyEncrypted(openpgp.EntityList{entity}) {
-		keypass = os.Getenv("GPG_PASSPHRASE") //nolint:gosec // env-var name, not a credential
-		if keypass == "" {
-			err = fmt.Errorf("GPG key %s is passphrase-protected: set GPG_PASSPHRASE environment variable or use gpg-agent", entity.PrimaryKey.KeyIdString())
+		if envPass := os.Getenv("GPG_PASSPHRASE"); envPass != "" { //nolint:gosec // env-var name, not a credential
+			keypass = envPass
+			log.Debugf("GPGDecryptFile: using GPG_PASSPHRASE env var to unlock key %s", entity.PrimaryKey.KeyIdString())
+		}
+	}
+	if keypass != "" {
+		err = GPGUnlockKey(entity, keypass)
+		if err != nil {
 			return
 		}
 	}
-	err = GPGUnlockKey(entity, keypass)
-	if err != nil {
+	// If the key is still encrypted (no passphrase supplied or unlock failed), try gpg-agent.
+	if gpgAnyKeyEncrypted(openpgp.EntityList{entity}) {
+		log.Debugf("GPGDecryptFile: key %s still encrypted, delegating to gpg-agent", entity.PrimaryKey.KeyIdString())
+		decryptedContent, err = GPGAgentDecrypt(filename, openpgp.EntityList{entity})
 		return
 	}
 	encrypted := ""

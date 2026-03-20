@@ -228,17 +228,15 @@ func TestGPG(t *testing.T) {
 		assert.Equal(t, plain, actual, "should be equal")
 	})
 
-	t.Run("Decrypt GPG File with empty keypass returns env-var error", func(t *testing.T) {
-		prev, had := os.LookupEnv("GPG_PASSPHRASE")
-		require.NoError(t, os.Unsetenv("GPG_PASSPHRASE"))
-		t.Cleanup(func() {
-			if had {
-				_ = os.Setenv("GPG_PASSPHRASE", prev)
-			}
-		})
+	t.Run("Decrypt GPG File with empty keypass falls back to gpg-agent and errors", func(t *testing.T) {
+		t.Setenv("GPG_PASSPHRASE", "")
+		emptyHome := filepath.Join(test.TestData, "gpg-decrypt-no-agent")
+		require.NoError(t, os.MkdirAll(emptyHome, 0700))
+		t.Setenv(gpgEnvHome, emptyHome)
+		t.Setenv("GPG_AGENT_INFO", "")
+		t.Setenv("XDG_RUNTIME_DIR", "")
 		_, decErr := GPGDecryptFile(cryptedfile, secretGPGKeyFile, "", "")
 		assert.Error(t, decErr)
-		assert.Contains(t, decErr.Error(), "GPG_PASSPHRASE")
 	})
 }
 

@@ -350,6 +350,7 @@ func AgeDecryptFileAuto(filename, identityFile, passphrase string) (string, erro
 		if passphrase == "" {
 			return "", fmt.Errorf("identity file %s is passphrase-protected: set AGE_PASSPHRASE environment variable", identityFile)
 		}
+		log.Debugf("AgeDecryptFileAuto: using AGE_PASSPHRASE env var for passphrase-protected identity %s", identityFile)
 	}
 	log.Debugf("AgeDecryptFileAuto: %s appears to be a passphrase-protected identity", identityFile)
 	return AgeDecryptFileWithEncryptedIdentity(filename, identityFile, passphrase)

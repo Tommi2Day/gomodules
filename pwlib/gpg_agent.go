@@ -25,16 +25,19 @@ import (
 func GPGAgentSocket() (string, error) {
 	if info := os.Getenv("GPG_AGENT_INFO"); info != "" { //nolint:gosec // env-var name, not a credential
 		if parts := strings.SplitN(info, ":", 2); parts[0] != "" {
+			log.Debugf("GPGAgentSocket: using socket from GPG_AGENT_INFO: %s", parts[0])
 			return parts[0], nil
 		}
 	}
 	if gpgHome, err := GPGHomeDir(); err == nil {
 		if sock := filepath.Join(gpgHome, "S.gpg-agent"); gpgFileExists(sock) {
+			log.Debugf("GPGAgentSocket: using socket from GNUPGHOME: %s", sock)
 			return sock, nil
 		}
 	}
 	if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" { //nolint:gosec // env-var name, not a credential
 		if sock := filepath.Join(xdg, "gnupg", "S.gpg-agent"); gpgFileExists(sock) {
+			log.Debugf("GPGAgentSocket: using socket from XDG_RUNTIME_DIR: %s", sock)
 			return sock, nil
 		}
 	}
