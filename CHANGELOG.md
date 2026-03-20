@@ -1,8 +1,18 @@
 # Go Library
 
-## [v1.23.1 - 2026-03-20]
+## [v1.24.0 - 2026-03-20]
+### New
+- pwlib/gpg: GPG agent integration library (`gpg_agent.go`) with Assuan protocol client for decryption via gpg-agent
+- pwlib/gpg: `GPGDecryptFileAuto` — decrypt using all secret keys from the system keyring (secring.gpg or gpg binary export)
+- pwlib/gpg: `GPGSystemSecretKeys`, `GPGSecretKeyRingPath`, `GPGReadSecretKeyRing`, `GPGExportSecretKeysArmored`
+- pwlib/gpg: `GPGDetectRecipients` and `GPGFindDecryptKey` — inspect encrypted file headers without decryption
+- pwlib/age: `AgeDecryptFileAuto` extended tests; improved resource handling in age functions
+- common: `PromptPassword` function with tests
+### Changed
+- update dependencies to latest versions
 ### Fixed
 - pwlib/gopass: `GopassRead` with empty `keyFile` now uses system GPG keyring (`GPGDecryptFileAuto`) instead of failing with a path error on Windows
+- pwlib/gpg_agent: clear `GPG_AGENT_INFO` and `XDG_RUNTIME_DIR` in agent socket/decrypt tests to prevent CI environment's live gpg-agent from interfering
 
 ## [v1.23.0 - 2026-03-17]
 ### New
