@@ -148,6 +148,72 @@ func TestAgePassphrase(t *testing.T) {
 	})
 }
 
+func TestAgeDecryptFileAuto(t *testing.T) {
+	test.InitTestDirs()
+
+	// plaintext identity
+	plainPub := path.Join(test.TestData, "auto_plain"+pubAgeExt)
+	plainPriv := path.Join(test.TestData, "auto_plain"+privAgeExt)
+	identity, _, err := CreateAgeIdentity()
+	require.NoError(t, err)
+	require.NoError(t, ExportAgeKeyPair(identity, plainPub, plainPriv))
+
+	// encrypted identity (passphrase-protected)
+	encPub := path.Join(test.TestData, "auto_enc"+pubAgeExt)
+	encPriv := path.Join(test.TestData, "auto_enc"+privAgeExt)
+	identity2, _, err := CreateAgeIdentity()
+	require.NoError(t, err)
+	require.NoError(t, ExportAgeKeyPairEncrypted(identity2, encPub, encPriv, testAgePassphrase))
+
+	plaintextFile := path.Join(test.TestData, "auto_plain.txt")
+	cryptedPlain := path.Join(test.TestData, "auto_plain.age")
+	cryptedEnc := path.Join(test.TestData, "auto_enc.age")
+	require.NoError(t, common.WriteStringToFile(plaintextFile, plainAge))
+	require.NoError(t, AgeEncryptFile(plaintextFile, cryptedPlain, plainPub))
+	require.NoError(t, AgeEncryptFile(plaintextFile, cryptedEnc, encPub))
+
+	t.Run("plaintext identity decrypts without passphrase", func(t *testing.T) {
+		content, decErr := AgeDecryptFileAuto(cryptedPlain, plainPriv, "")
+		assert.NoError(t, decErr)
+		assert.Equal(t, plainAge, content)
+	})
+
+	t.Run("plaintext identity ignores non-empty passphrase", func(t *testing.T) {
+		content, decErr := AgeDecryptFileAuto(cryptedPlain, plainPriv, "irrelevant")
+		assert.NoError(t, decErr)
+		assert.Equal(t, plainAge, content)
+	})
+
+	t.Run("encrypted identity decrypts with correct passphrase", func(t *testing.T) {
+		content, decErr := AgeDecryptFileAuto(cryptedEnc, encPriv, testAgePassphrase)
+		assert.NoError(t, decErr)
+		assert.Equal(t, plainAge, content)
+	})
+
+	t.Run("encrypted identity with wrong passphrase returns error", func(t *testing.T) {
+		_, decErr := AgeDecryptFileAuto(cryptedEnc, encPriv, "wrongpassphrase")
+		assert.Error(t, decErr)
+	})
+
+	t.Run("encrypted identity with empty passphrase returns env-var error", func(t *testing.T) {
+		prev, had := os.LookupEnv("AGE_PASSPHRASE")
+		require.NoError(t, os.Unsetenv("AGE_PASSPHRASE"))
+		t.Cleanup(func() {
+			if had {
+				_ = os.Setenv("AGE_PASSPHRASE", prev)
+			}
+		})
+		_, decErr := AgeDecryptFileAuto(cryptedEnc, encPriv, "")
+		assert.Error(t, decErr)
+		assert.Contains(t, decErr.Error(), "AGE_PASSPHRASE")
+	})
+
+	t.Run("nonexistent identity file returns error", func(t *testing.T) {
+		_, decErr := AgeDecryptFileAuto(cryptedPlain, path.Join(test.TestData, "no-such.age"), "")
+		assert.Error(t, decErr)
+	})
+}
+
 func TestAgeEncryptedIdentity(t *testing.T) {
 	test.InitTestDirs()
 

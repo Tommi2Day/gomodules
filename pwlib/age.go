@@ -74,6 +74,7 @@ func AgeDecryptFile(filename string, identityFile string) (decryptedContent stri
 		err = fmt.Errorf("failed to open identity file '%s: %v", identityFile, err)
 		return
 	}
+	defer func() { _ = keyFile.Close() }()
 	identities, err := age.ParseIdentities(keyFile)
 	if err != nil {
 		err = fmt.Errorf("failed to parse identity file '%s': %v", identityFile, err)
@@ -163,6 +164,7 @@ func ExportAgeKeyPairEncrypted(identity *age.X25519Identity, pubFile, encPrivFil
 		return fmt.Errorf("failed to initialise identity encryptor: %v", err)
 	}
 	if _, err = w.Write([]byte(identity.String())); err != nil {
+		_ = w.Close()
 		return fmt.Errorf("failed to write encrypted identity: %v", err)
 	}
 	if err = w.Close(); err != nil {
@@ -254,6 +256,7 @@ func AgeEncryptFileWithPassphrase(plainFile, targetFile, passphrase string) erro
 		return fmt.Errorf("failed to initialise encryptor: %v", err)
 	}
 	if _, err = w.Write([]byte(plain)); err != nil {
+		_ = w.Close()
 		_ = f.Close()
 		return fmt.Errorf("failed to write encrypted content: %v", err)
 	}
@@ -343,7 +346,10 @@ func AgeDecryptFileAuto(filename, identityFile, passphrase string) (string, erro
 	}
 	// identity file is not valid plaintext — assume it is passphrase-protected
 	if passphrase == "" {
-		return "", fmt.Errorf("identity file %s is not a valid plaintext identity and no passphrase was provided: %v", identityFile, parseErr)
+		passphrase = os.Getenv("AGE_PASSPHRASE") //nolint:gosec // env-var name, not a credential
+		if passphrase == "" {
+			return "", fmt.Errorf("identity file %s is passphrase-protected: set AGE_PASSPHRASE environment variable", identityFile)
+		}
 	}
 	log.Debugf("AgeDecryptFileAuto: %s appears to be a passphrase-protected identity", identityFile)
 	return AgeDecryptFileWithEncryptedIdentity(filename, identityFile, passphrase)
@@ -374,6 +380,7 @@ func AgeEncryptFile(plainFile string, targetFile string, recipientsFile string) 
 	if err != nil {
 		return fmt.Errorf("failed to create encrypted file '%s': %v", targetFile, err)
 	}
+	defer func() { _ = encryptedFile.Close() }()
 
 	// Create encryptor
 	w, err := age.Encrypt(encryptedFile, recipients...)
@@ -383,13 +390,13 @@ func AgeEncryptFile(plainFile string, targetFile string, recipientsFile string) 
 
 	// Write and encrypt content
 	if _, err = w.Write([]byte(plain)); err != nil {
+		_ = w.Close()
 		return fmt.Errorf("failed to write encrypted content: %v", err)
 	}
 
 	if err = w.Close(); err != nil {
 		return fmt.Errorf("failed to finalize encryption: %v", err)
 	}
-	_ = encryptedFile.Close()
 	return nil
 }
 
@@ -428,6 +435,7 @@ func AgeEncryptFileMulti(plainFile, targetFile string, recipientFiles []string) 
 		return fmt.Errorf("failed to initialise encryptor: %v", err)
 	}
 	if _, err = w.Write([]byte(plain)); err != nil {
+		_ = w.Close()
 		_ = f.Close()
 		return fmt.Errorf("failed to write encrypted content: %v", err)
 	}
