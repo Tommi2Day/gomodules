@@ -6,6 +6,10 @@
 - pwlib/gpg: `GPGDecryptFileAuto` — decrypt using all secret keys from the system keyring (secring.gpg or gpg binary export)
 - pwlib/gpg: `GPGSystemSecretKeys`, `GPGSecretKeyRingPath`, `GPGReadSecretKeyRing`, `GPGExportSecretKeysArmored`
 - pwlib/gpg: `GPGDetectRecipients` and `GPGFindDecryptKey` — inspect encrypted file headers without decryption
+- pwlib/gopass: `GopassMounts` — enumerate all gopass stores (root + mounts) from config
+- pwlib/gopass: `GOPASS_HOMEDIR` env var override for home directory resolution
+- pwlib/gopass: `GOPASS_AGE_PASSWORD` env var support for age passphrase fallback
+- pwlib/gopass: `GopassStoreDir` now also checks root path from gopass config and respects `XDG_DATA_HOME`
 - pwlib/age: `AgeDecryptFileAuto` extended tests; improved resource handling in age functions
 - common: `PromptPassword` function with tests
 ### Changed
