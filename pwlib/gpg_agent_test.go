@@ -63,7 +63,9 @@ func TestGPGAgentSocket(t *testing.T) {
 	t.Run("returns error when no socket found", func(t *testing.T) {
 		emptyHome := filepath.Join(test.TestData, "gpg-agent-no-socket")
 		require.NoError(t, os.MkdirAll(emptyHome, 0700))
+		t.Setenv("GPG_AGENT_INFO", "")
 		t.Setenv(gpgEnvHome, emptyHome)
+		t.Setenv("XDG_RUNTIME_DIR", "")
 		_, err := GPGAgentSocket()
 		assert.Error(t, err)
 	})
