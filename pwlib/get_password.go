@@ -45,7 +45,7 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 	case typeGPG:
 		content, err = GPGDecryptFile(cryptedfile, privatekeyfile, keypass, "")
 	case typeAge:
-		content, err = AgeDecryptFile(cryptedfile, privatekeyfile)
+		content, err = AgeDecryptFileAuto(cryptedfile, privatekeyfile, keypass)
 	case typeGopass:
 		var storeDir string
 		storeDir, err = GopassStoreDir(pc.DataDir)

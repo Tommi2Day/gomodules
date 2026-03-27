@@ -51,20 +51,6 @@ func ExportAgeKeyPair(identity *age.X25519Identity, publicFilename string, privF
 	return nil
 }
 
-/*
-func cleanAgeKeys(content string) []string {
-	// Clean up the identity content by removing comments and empty lines
-	var cleanedContent []string
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		cleanedContent = append(cleanedContent, line)
-	}
-	return cleanedContent
-}
-*/
 // AgeDecryptFile decrypts a file using an age identity
 func AgeDecryptFile(filename string, identityFile string) (decryptedContent string, err error) {
 	decryptedContent = ""
