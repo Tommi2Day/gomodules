@@ -1,5 +1,8 @@
 # Go Library
-
+## [v1.24.1 - 2026-03-27]
+### Changed
+- update dependencies to latest versions
+- add more gopass tests
 ## [v1.24.0 - 2026-03-20]
 ### New
 - pwlib/gpg: GPG agent integration library (`gpg_agent.go`) with Assuan protocol client for decryption via gpg-agent

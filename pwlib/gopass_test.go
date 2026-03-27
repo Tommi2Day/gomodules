@@ -272,6 +272,51 @@ func TestGopassAgeEncryptedIdentity(t *testing.T) {
 	})
 }
 
+func TestGopassAgePasswordEnv(t *testing.T) {
+	test.InitTestDirs()
+
+	storeDir := filepath.Join(test.TestData, "gopass-age-env-store")
+	_ = os.RemoveAll(storeDir)
+	require.NoError(t, os.MkdirAll(storeDir, 0700))
+
+	// create an encrypted age identity (requires a passphrase to use)
+	pubKeyFile := filepath.Join(test.TestData, "gopass_env_age"+pubAgeExt)
+	encPrivKeyFile := filepath.Join(test.TestData, "gopass_env_age"+privAgeExt)
+	identity, _, err := CreateAgeIdentity()
+	require.NoError(t, err)
+	require.NoError(t, ExportAgeKeyPairEncrypted(identity, pubKeyFile, encPrivKeyFile, testAgePassphrase))
+	require.NoError(t, GopassWrite(storeDir, "env/secret", "envpassword", pubKeyFile, GopassCryptoAge))
+
+	t.Run("GOPASS_AGE_PASSWORD used when keypass is empty", func(t *testing.T) {
+		_ = os.Setenv(gopassEnvAgePassword, testAgePassphrase)
+		secret, readErr := GopassRead(storeDir, "env/secret", encPrivKeyFile, "", GopassCryptoAge)
+		_ = os.Unsetenv(gopassEnvAgePassword)
+		assert.NoError(t, readErr)
+		assert.Equal(t, "envpassword", secret)
+	})
+
+	t.Run("explicit keypass takes precedence over env var", func(t *testing.T) {
+		_ = os.Setenv(gopassEnvAgePassword, "wrongpassphrase")
+		secret, readErr := GopassRead(storeDir, "env/secret", encPrivKeyFile, testAgePassphrase, GopassCryptoAge)
+		_ = os.Unsetenv(gopassEnvAgePassword)
+		assert.NoError(t, readErr)
+		assert.Equal(t, "envpassword", secret)
+	})
+
+	t.Run("wrong env passphrase returns error", func(t *testing.T) {
+		_ = os.Setenv(gopassEnvAgePassword, "wrongpassphrase")
+		_, readErr := GopassRead(storeDir, "env/secret", encPrivKeyFile, "", GopassCryptoAge)
+		_ = os.Unsetenv(gopassEnvAgePassword)
+		assert.Error(t, readErr)
+	})
+
+	t.Run("no env and no keypass returns error for encrypted identity", func(t *testing.T) {
+		_ = os.Unsetenv(gopassEnvAgePassword)
+		_, readErr := GopassRead(storeDir, "env/secret", encPrivKeyFile, "", GopassCryptoAge)
+		assert.Error(t, readErr)
+	})
+}
+
 func TestGopassStoreDir(t *testing.T) {
 	test.InitTestDirs()
 	storeDir := filepath.Join(test.TestData, "gopass-storedir-test")
@@ -292,10 +337,78 @@ func TestGopassStoreDir(t *testing.T) {
 
 	t.Run("default resolves to gopass path under home", func(t *testing.T) {
 		_ = os.Unsetenv(gopassEnvStoreDir)
+		_ = os.Unsetenv(gopassEnvConfig)
+		_ = os.Unsetenv(gopassEnvHomeDir)
+		_ = os.Unsetenv(gopassEnvXDGData)
 		dir, err := GopassStoreDir("")
 		assert.NoError(t, err)
 		assert.NotEmpty(t, dir)
 		assert.Contains(t, dir, "gopass")
+	})
+
+	t.Run("config root.path used when no env var set", func(t *testing.T) {
+		_ = os.Unsetenv(gopassEnvStoreDir)
+		cfgFile := filepath.Join(test.TestData, "gopass_storeDir_cfg.yml")
+		require.NoError(t, os.WriteFile(cfgFile, []byte("root:\n  path: "+storeDir+"\n  crypto: gpgcli\n"), 0600))
+		_ = os.Setenv(gopassEnvConfig, cfgFile)
+		dir, err := GopassStoreDir("")
+		_ = os.Unsetenv(gopassEnvConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, storeDir, dir)
+	})
+
+	t.Run("XDG_DATA_HOME used for default store path", func(t *testing.T) {
+		_ = os.Unsetenv(gopassEnvStoreDir)
+		_ = os.Setenv(gopassEnvConfig, filepath.Join(test.TestData, "no_such_gopass_cfg.yml"))
+		_ = os.Setenv(gopassEnvXDGData, "/custom/data")
+		dir, err := GopassStoreDir("")
+		_ = os.Unsetenv(gopassEnvConfig)
+		_ = os.Unsetenv(gopassEnvXDGData)
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join("/custom/data", "gopass", "stores", "root"), dir)
+	})
+
+	t.Run("GOPASS_HOMEDIR used for default store path", func(t *testing.T) {
+		_ = os.Unsetenv(gopassEnvStoreDir)
+		_ = os.Unsetenv(gopassEnvXDGData)
+		_ = os.Setenv(gopassEnvConfig, filepath.Join(test.TestData, "no_such_gopass_cfg.yml"))
+		_ = os.Setenv(gopassEnvHomeDir, "/custom/home")
+		dir, err := GopassStoreDir("")
+		_ = os.Unsetenv(gopassEnvConfig)
+		_ = os.Unsetenv(gopassEnvHomeDir)
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join("/custom/home", ".local", "share", "gopass", "stores", "root"), dir)
+	})
+}
+
+func TestGopassMounts(t *testing.T) {
+	test.InitTestDirs()
+	cfgFile := filepath.Join(test.TestData, "gopass_mounts_cfg.yml")
+
+	t.Run("root and mounts returned", func(t *testing.T) {
+		content := sampleGopassConfig("/stores/root", "/stores/work")
+		require.NoError(t, os.WriteFile(cfgFile, []byte(content), 0600))
+		stores, err := GopassMounts(cfgFile)
+		assert.NoError(t, err)
+		require.Contains(t, stores, "root")
+		assert.Equal(t, "/stores/root", stores["root"].Path)
+		assert.Equal(t, "gpgcli", stores["root"].Crypto)
+		require.Contains(t, stores, "work")
+		assert.Equal(t, "/stores/work", stores["work"].Path)
+		assert.Equal(t, "age", stores["work"].Crypto)
+	})
+
+	t.Run("root without path is omitted", func(t *testing.T) {
+		require.NoError(t, os.WriteFile(cfgFile, []byte("mounts:\n  work:\n    path: /stores/work\n    crypto: age\n"), 0600))
+		stores, err := GopassMounts(cfgFile)
+		assert.NoError(t, err)
+		assert.NotContains(t, stores, "root")
+		require.Contains(t, stores, "work")
+	})
+
+	t.Run("missing config returns error", func(t *testing.T) {
+		_, err := GopassMounts(filepath.Join(test.TestData, "no_such_mounts_cfg.yml"))
+		assert.Error(t, err)
 	})
 }
 
@@ -610,9 +723,20 @@ func TestGopassConfigPath(t *testing.T) {
 	t.Run("default falls back to ~/.config/gopass/config", func(t *testing.T) {
 		_ = os.Unsetenv(gopassEnvConfig)
 		_ = os.Unsetenv(gopassEnvXDGConfig)
+		_ = os.Unsetenv(gopassEnvHomeDir)
 		p, err := GopassConfigPath()
 		assert.NoError(t, err)
 		assert.Contains(t, filepath.ToSlash(p), ".config/gopass/config")
+	})
+
+	t.Run("GOPASS_HOMEDIR overrides home for config path", func(t *testing.T) {
+		_ = os.Unsetenv(gopassEnvConfig)
+		_ = os.Unsetenv(gopassEnvXDGConfig)
+		_ = os.Setenv(gopassEnvHomeDir, "/custom/home")
+		p, err := GopassConfigPath()
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join("/custom/home", ".config", "gopass", "config"), p)
+		_ = os.Unsetenv(gopassEnvHomeDir)
 	})
 }
 
