@@ -2,7 +2,7 @@
 ## [v1.24.2 - 2026-03-27]
 ### Changed
 - update dependencies to latest versions
-- add more gopass tests
+- pwlib/gopass: add more tests
 ### Fixed
 - pwlib/age: fix age decrypt with passphrase fallback
 
