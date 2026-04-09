@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -252,9 +251,6 @@ const (
 	gopassEnvXDGConfig = "XDG_CONFIG_HOME"       //nolint:gosec // env-var name, not a credential
 	gopassConfigSubDir = ".config/gopass/config" //nolint:gosec // path constant, not a credential
 
-	// gopassCryptoAge is the gopass internal backend name for age.
-	gopassCryptoAge = "age"
-
 	// Marker files written by gopass into the store root.
 	gopassAgeMarker = ".age-recipients"
 	gopassGPGMarker = ".gpg-id"
@@ -262,14 +258,13 @@ const (
 
 // GopassStoreConfig holds the configuration for a single gopass store or mount.
 type GopassStoreConfig struct {
-	Path   string `yaml:"path"`
-	Crypto string `yaml:"crypto"`
+	Path string
 }
 
 // GopassConfig is a parsed subset of the gopass configuration file.
 type GopassConfig struct {
-	Root   GopassStoreConfig            `yaml:"root"`
-	Mounts map[string]GopassStoreConfig `yaml:"mounts"`
+	Root   GopassStoreConfig
+	Mounts map[string]GopassStoreConfig
 }
 
 // GopassConfigPath returns the path to the gopass configuration file.
@@ -293,6 +288,13 @@ func GopassConfigPath() (string, error) {
 }
 
 // GopassReadConfig reads and parses the gopass configuration file.
+// The format is the git-config-like format used by the gopass CLI:
+//
+//	[mounts]
+//	    path = /path/to/root/store
+//	[mounts "work"]
+//	    path = /path/to/work/store
+//
 // Pass configPath="" to resolve the path automatically via GopassConfigPath.
 func GopassReadConfig(configPath string) (cfg *GopassConfig, err error) {
 	if configPath == "" {
@@ -306,13 +308,52 @@ func GopassReadConfig(configPath string) (cfg *GopassConfig, err error) {
 		err = fmt.Errorf("read gopass config %s failed: %w", configPath, err)
 		return
 	}
-	cfg = &GopassConfig{}
-	if err = yaml.Unmarshal(data, cfg); err != nil {
-		err = fmt.Errorf("parse gopass config %s failed: %w", configPath, err)
-		cfg = nil
-	}
+	cfg = parseGopassConfig(data)
 	log.Debugf("read gopass config from %s", configPath)
 	return
+}
+
+// parseGopassConfig parses the git-config-like format used by the gopass CLI.
+// Sections [mounts] (root store) and [mounts "name"] (named mounts) are recognised.
+// Invalid or unknown lines are silently skipped, matching gopass's own behaviour.
+func parseGopassConfig(data []byte) *GopassConfig {
+	cfg := &GopassConfig{
+		Mounts: make(map[string]GopassStoreConfig),
+	}
+	var section, subsection string
+	for _, rawLine := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			inner := line[1 : len(line)-1]
+			if sp := strings.Index(inner, " "); sp >= 0 {
+				section = strings.ToLower(strings.TrimSpace(inner[:sp]))
+				subsection = strings.Trim(strings.TrimSpace(inner[sp+1:]), "\"")
+			} else {
+				section = strings.ToLower(strings.TrimSpace(inner))
+				subsection = ""
+			}
+			continue
+		}
+		idx := strings.Index(line, "=")
+		if idx < 0 {
+			continue
+		}
+		key := strings.ToLower(strings.TrimSpace(line[:idx]))
+		value := strings.TrimSpace(line[idx+1:])
+		if section == "mounts" && key == "path" {
+			if subsection == "" {
+				cfg.Root.Path = value
+			} else {
+				m := cfg.Mounts[subsection]
+				m.Path = value
+				cfg.Mounts[subsection] = m
+			}
+		}
+	}
+	return cfg
 }
 
 // GopassMounts returns all stores from the gopass config keyed by name.
@@ -417,18 +458,15 @@ func detectCryptoFromConfig(storeDir string) string {
 	return ""
 }
 
-// storeCryptoFromConfig maps a GopassStoreConfig entry to a GopassCrypto*
-// constant when its path matches storeDir. Returns "" on no match.
+// storeCryptoFromConfig returns the default crypto type (GPG) when storeDir
+// matches the store's path. The gopass config format does not store the crypto
+// backend, so GPG is always returned as the gopass default.
+// Returns "" on no match.
 func storeCryptoFromConfig(sc GopassStoreConfig, storeDir string) string {
 	if sc.Path == "" || filepath.Clean(sc.Path) != filepath.Clean(storeDir) {
 		return ""
 	}
-	switch sc.Crypto {
-	case gopassCryptoAge:
-		return GopassCryptoAge
-	default: // "gpgcli", "gpg", "" → GPG is the gopass default
-		return GopassCryptoGPG
-	}
+	return GopassCryptoGPG
 }
 
 // GopassReadSecretLines reads a gopass secret and returns its content formatted

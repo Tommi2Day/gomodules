@@ -349,7 +349,7 @@ func TestGopassStoreDir(t *testing.T) {
 	t.Run("config root.path used when no env var set", func(t *testing.T) {
 		_ = os.Unsetenv(gopassEnvStoreDir)
 		cfgFile := filepath.Join(test.TestData, "gopass_storeDir_cfg.yml")
-		require.NoError(t, os.WriteFile(cfgFile, []byte("root:\n  path: "+storeDir+"\n  crypto: gpgcli\n"), 0600))
+		require.NoError(t, os.WriteFile(cfgFile, []byte("[mounts]\n\tpath = "+storeDir+"\n"), 0600))
 		_ = os.Setenv(gopassEnvConfig, cfgFile)
 		dir, err := GopassStoreDir("")
 		_ = os.Unsetenv(gopassEnvConfig)
@@ -392,14 +392,12 @@ func TestGopassMounts(t *testing.T) {
 		assert.NoError(t, err)
 		require.Contains(t, stores, "root")
 		assert.Equal(t, "/stores/root", stores["root"].Path)
-		assert.Equal(t, "gpgcli", stores["root"].Crypto)
 		require.Contains(t, stores, "work")
 		assert.Equal(t, "/stores/work", stores["work"].Path)
-		assert.Equal(t, "age", stores["work"].Crypto)
 	})
 
 	t.Run("root without path is omitted", func(t *testing.T) {
-		require.NoError(t, os.WriteFile(cfgFile, []byte("mounts:\n  work:\n    path: /stores/work\n    crypto: age\n"), 0600))
+		require.NoError(t, os.WriteFile(cfgFile, []byte("[mounts \"work\"]\n\tpath = /stores/work\n"), 0600))
 		stores, err := GopassMounts(cfgFile)
 		assert.NoError(t, err)
 		assert.NotContains(t, stores, "root")
@@ -694,10 +692,10 @@ func TestGopassMixedStore(t *testing.T) {
 	_ = age.GenerateX25519Identity // ensure age import is used (avoids false unused-import lint warnings)
 }
 
-// sampleGopassConfig returns a minimal gopass YAML config that maps two store
-// paths to specific crypto backends.
+// sampleGopassConfig returns a minimal gopass config (git-config format) that
+// maps two store paths, matching the format used by the gopass CLI.
 func sampleGopassConfig(rootPath, mountPath string) string {
-	return "root:\n  path: " + rootPath + "\n  crypto: gpgcli\nmounts:\n  work:\n    path: " + mountPath + "\n    crypto: age\n"
+	return "[mounts]\n\tpath = " + rootPath + "\n[mounts \"work\"]\n\tpath = " + mountPath + "\n"
 }
 
 func TestGopassConfigPath(t *testing.T) {
@@ -751,19 +749,17 @@ func TestGopassReadConfig(t *testing.T) {
 		assert.NoError(t, err)
 		require.NotNil(t, cfg)
 		assert.Equal(t, "/stores/root", cfg.Root.Path)
-		assert.Equal(t, "gpgcli", cfg.Root.Crypto)
 		require.Contains(t, cfg.Mounts, "work")
 		assert.Equal(t, "/stores/work", cfg.Mounts["work"].Path)
-		assert.Equal(t, "age", cfg.Mounts["work"].Crypto)
 	})
 
-	t.Run("config without crypto field defaults to empty string", func(t *testing.T) {
-		require.NoError(t, common.WriteStringToFile(cfgFile, "root:\n  path: /stores/root\n"))
+	t.Run("config with only root path", func(t *testing.T) {
+		require.NoError(t, common.WriteStringToFile(cfgFile, "[mounts]\n\tpath = /stores/root\n"))
 		cfg, err := GopassReadConfig(cfgFile)
 		assert.NoError(t, err)
 		require.NotNil(t, cfg)
 		assert.Equal(t, "/stores/root", cfg.Root.Path)
-		assert.Empty(t, cfg.Root.Crypto)
+		assert.Empty(t, cfg.Mounts)
 	})
 
 	t.Run("missing config file returns error", func(t *testing.T) {
@@ -772,11 +768,13 @@ func TestGopassReadConfig(t *testing.T) {
 		assert.Nil(t, cfg)
 	})
 
-	t.Run("invalid YAML returns error", func(t *testing.T) {
-		require.NoError(t, common.WriteStringToFile(cfgFile, "root: [invalid: yaml: {{\n"))
+	t.Run("invalid or empty config returns empty result without error", func(t *testing.T) {
+		require.NoError(t, common.WriteStringToFile(cfgFile, "not a valid config at all\n"))
 		cfg, err := GopassReadConfig(cfgFile)
-		assert.Error(t, err)
-		assert.Nil(t, cfg)
+		assert.NoError(t, err)
+		require.NotNil(t, cfg)
+		assert.Empty(t, cfg.Root.Path)
+		assert.Empty(t, cfg.Mounts)
 	})
 }
 
@@ -836,23 +834,11 @@ func TestGopassDetectCrypto(t *testing.T) {
 		assert.Equal(t, GopassCryptoAge, ct)
 	})
 
-	t.Run("config lookup finds root store with age crypto", func(t *testing.T) {
-		dir := newStore("detect-cfg-age-root")
+	t.Run("config lookup finds root store and defaults to GPG", func(t *testing.T) {
+		dir := newStore("detect-cfg-root")
 		cfgFile := filepath.Join(test.TestData, "gopass_detect_cfg.yml")
 		require.NoError(t, common.WriteStringToFile(cfgFile,
-			"root:\n  path: "+dir+"\n  crypto: age\n"))
-		_ = os.Setenv(gopassEnvConfig, cfgFile)
-		ct, err := GopassDetectCrypto(dir)
-		_ = os.Unsetenv(gopassEnvConfig)
-		assert.NoError(t, err)
-		assert.Equal(t, GopassCryptoAge, ct)
-	})
-
-	t.Run("config lookup finds mount with gpgcli crypto", func(t *testing.T) {
-		dir := newStore("detect-cfg-gpg-mount")
-		cfgFile := filepath.Join(test.TestData, "gopass_detect_cfg.yml")
-		require.NoError(t, common.WriteStringToFile(cfgFile,
-			"root:\n  path: /other/store\n  crypto: age\nmounts:\n  work:\n    path: "+dir+"\n    crypto: gpgcli\n"))
+			"[mounts]\n\tpath = "+dir+"\n"))
 		_ = os.Setenv(gopassEnvConfig, cfgFile)
 		ct, err := GopassDetectCrypto(dir)
 		_ = os.Unsetenv(gopassEnvConfig)
@@ -860,11 +846,11 @@ func TestGopassDetectCrypto(t *testing.T) {
 		assert.Equal(t, GopassCryptoGPG, ct)
 	})
 
-	t.Run("config lookup: empty crypto field defaults to GPG", func(t *testing.T) {
-		dir := newStore("detect-cfg-default")
+	t.Run("config lookup finds named mount and defaults to GPG", func(t *testing.T) {
+		dir := newStore("detect-cfg-mount")
 		cfgFile := filepath.Join(test.TestData, "gopass_detect_cfg.yml")
 		require.NoError(t, common.WriteStringToFile(cfgFile,
-			"root:\n  path: "+dir+"\n"))
+			"[mounts]\n\tpath = /other/store\n[mounts \"work\"]\n\tpath = "+dir+"\n"))
 		_ = os.Setenv(gopassEnvConfig, cfgFile)
 		ct, err := GopassDetectCrypto(dir)
 		_ = os.Unsetenv(gopassEnvConfig)
