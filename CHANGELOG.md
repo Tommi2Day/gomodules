@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.24.4 - 2026-05-30]
+### Changed
+- update dependencies to solve CVEs
+
 ## [v1.24.3 - 2026-04-09]
 ### Changed
 - pwlib: migrate gopass config parsing to native config format, remove YAML support, and update tests accordingly

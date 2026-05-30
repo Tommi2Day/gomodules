@@ -24,11 +24,12 @@ this is a collection of my often used functions
 ### usage
 for usage see the provided test cases and the implemenations as is:
 
-- [tnscli](https://github.com/tommi2day/tnscli)
-- [pwcli](https://github.com/tommi2day/pwcli)
-- [hmcli](https://github.com/Tommi2Day/hmcli)
-- [tcping2](https://github.com/Tommi2Day/tcping2)
 
+- [hmcli](https://github.com/Tommi2Day/hmcli)
+- [mailcli](https://github.com/tommi2day/mailcli)
+- [pwcli](https://github.com/tommi2day/pwcli)
+- [tcping2](https://github.com/Tommi2Day/tcping2)
+- [tnscli](https://github.com/tommi2day/tnscli)
 
 ### API
 see [godoc](https://pkg.go.dev/github.com/tommi2day/gomodules)
