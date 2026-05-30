@@ -44,12 +44,19 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: stable
           cache: false
+      - name: Debug lint context
+        run: |
+          echo "GITHUB_SHA=${GITHUB_SHA}"
+          git --no-pager log -1 --oneline
+          grep -n "testKey1\|testJohn\|testFieldName" common/common_test.go || true
       - uses: golangci/golangci-lint-action@v9
         with:
-          args: --timeout=10m
+          args: --timeout=10m --config=.golangci.yml ./...
           skip-cache: true
