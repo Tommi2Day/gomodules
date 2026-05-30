@@ -3,8 +3,8 @@
 ## [v1.24.4 - 2026-05-30]
 ### Changed
 - update dependencies to solve CVEs
-- fic linter issues
-- set openlap container to latest
+- fix linter issues by fixing linter version
+- set openldap container to latest
 
 ## [v1.24.3 - 2026-04-09]
 ### Changed
