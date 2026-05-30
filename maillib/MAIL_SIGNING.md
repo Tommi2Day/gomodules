@@ -430,11 +430,12 @@ go test -v ./maillib -run "TestMailSigning|TestSMIME|TestSign"
 
 ### S/MIME Certificate Validation
 
-When `PublicKeyFile` is set, S/MIME verification uses a trust-pool approach:
+When `PublicKeyFile` is set, S/MIME verification uses a two-step approach:
 
-1. The expected certificate is loaded from `PublicKeyFile` and added as the sole trust anchor.
-2. `VerifyWithChain` (an extension to the vendored `pkcs7` library) verifies the cryptographic signature **and** validates the *actual* signer certificate — identified by the PKCS#7 signerInfo's issuer+serial — against the trust pool using `x509.Certificate.Verify`. This checks both chain-of-trust and certificate expiry.
-3. Simply embedding the expected certificate in the PKCS#7 certificate bag is **not** sufficient to pass verification; the certificate used to produce the signature must chain to the trust anchor.
+1. `pkcs7.Verify()` checks the cryptographic signature and resolves the signer certificate by its signerInfo issuer+serial number.
+2. `pkcs7.GetOnlySigner()` retrieves that resolved signer certificate — not just any certificate present in the attacker-controlled certificate bag. The signer cert is then validated against the expected certificate as a sole trust anchor via `x509.Certificate.Verify`, checking both chain-of-trust and expiry.
+
+Simply embedding the expected certificate in the PKCS#7 certificate bag is **not** sufficient to pass verification; the certificate that produced the signature must chain to the trust anchor.
 
 When no `PublicKeyFile` is set (standalone `VerifySMIMEMultipartSigned`), only the cryptographic signature and certificate validity period are checked. Full chain validation requires a trust anchor from the caller.
 

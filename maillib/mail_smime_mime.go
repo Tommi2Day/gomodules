@@ -156,22 +156,36 @@ func verifySMIMEPKCS7DetachedSignatureWithCert(data []byte, sigDER []byte, expec
 	}
 	p7.Content = data
 
+	// Verify the cryptographic signature via the standard library path.
+	if err := p7.Verify(); err != nil {
+		return false, fmt.Errorf("verify pkcs7 failed: %w", err)
+	}
+
 	if expected != nil {
-		// Build a single-cert trust pool so VerifyWithChain confirms the actual
-		// signer cert (identified by issuer+serial inside the PKCS#7) chains to
-		// the expected cert — not just that the expected cert appears anywhere in
-		// the attacker-controlled certificate bag.
+		// GetOnlySigner resolves the cert that actually produced the signature
+		// (matched by signerInfo issuer+serial, not just cert-bag membership),
+		// preventing cert-stuffing: an attacker cannot pass by embedding the
+		// expected cert alongside their own signer cert in p7.Certificates.
+		signerCert := p7.GetOnlySigner()
+		if signerCert == nil {
+			return false, fmt.Errorf("could not identify unique signer certificate")
+		}
+		// Validate the actual signer cert against expected as the sole trust
+		// anchor. This checks chain-of-trust and expiry without requiring a
+		// system root store.
 		trustPool := x509.NewCertPool()
 		trustPool.AddCert(expected)
-		if err := p7.VerifyWithChain(trustPool); err != nil {
-			return false, fmt.Errorf("verify pkcs7 with chain failed: %w", err)
+		opts := x509.VerifyOptions{
+			Roots:       trustPool,
+			CurrentTime: time.Now(),
+			KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		}
+		if _, err := signerCert.Verify(opts); err != nil {
+			return false, fmt.Errorf("signer certificate validation failed: %w", err)
 		}
 	} else {
-		// No pinned cert: verify the cryptographic signature only, then check
-		// that no embedded certificate is outside its validity window.
-		if err := p7.Verify(); err != nil {
-			return false, fmt.Errorf("verify pkcs7 failed: %w", err)
-		}
+		// No pinned cert: at minimum check that no embedded certificate is
+		// outside its validity window.
 		now := time.Now()
 		for _, cert := range p7.Certificates {
 			if now.Before(cert.NotBefore) || now.After(cert.NotAfter) {
