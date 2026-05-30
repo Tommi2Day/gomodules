@@ -12,6 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testFieldName  = "Name"
+	testJohn       = "John"
+	testAlice      = "Alice"
+	testBob        = "Bob"
+	testMainStreet = "123 Main St"
+	testAnytown    = "Anytown"
+	testKey1       = "key1"
+	testKey2       = "key2"
+	testKey3       = "key3"
+	testValue1     = "value1"
+	testValue2     = "value2"
+)
+
 func TestGetEnv(t *testing.T) {
 	const fallback = "NotFound"
 	t.Run("Test String Env", func(t *testing.T) {
@@ -325,8 +339,8 @@ func TestStructToMap(t *testing.T) {
 			Name string
 			Age  int
 		}
-		input := SimpleStruct{Name: "John", Age: 30}
-		expected := map[string]interface{}{"Name": "John", "Age": float64(30)}
+		input := SimpleStruct{Name: testJohn, Age: 30}
+		expected := map[string]interface{}{testFieldName: testJohn, "Age": float64(30)}
 
 		result, err := StructToMap(input)
 		assert.NoError(t, err)
@@ -342,20 +356,20 @@ func TestStructToMap(t *testing.T) {
 			}
 		}
 		input := NestedStruct{
-			Name: "Alice",
+			Name: testAlice,
 			Address: struct {
 				Street string
 				City   string
 			}{
-				Street: "123 Main St",
-				City:   "Anytown",
+				Street: testMainStreet,
+				City:   testAnytown,
 			},
 		}
 		expected := map[string]interface{}{
-			"Name": "Alice",
+			testFieldName: testAlice,
 			"Address": map[string]interface{}{
-				"Street": "123 Main St",
-				"City":   "Anytown",
+				"Street": testMainStreet,
+				"City":   testAnytown,
 			},
 		}
 
@@ -369,10 +383,10 @@ func TestStructToMap(t *testing.T) {
 			Name    string
 			Numbers []int
 		}
-		input := SliceStruct{Name: "Bob", Numbers: []int{1, 2, 3}}
+		input := SliceStruct{Name: testBob, Numbers: []int{1, 2, 3}}
 		expected := map[string]interface{}{
-			"Name":    "Bob",
-			"Numbers": []interface{}{float64(1), float64(2), float64(3)},
+			testFieldName: testBob,
+			"Numbers":     []interface{}{float64(1), float64(2), float64(3)},
 		}
 
 		result, err := StructToMap(input)
@@ -387,7 +401,7 @@ func TestStructToMap(t *testing.T) {
 		}
 		value := 42
 		input := PointerStruct{Name: "Charlie", Value: &value}
-		expected := map[string]interface{}{"Name": "Charlie", "Value": float64(42)}
+		expected := map[string]interface{}{testFieldName: "Charlie", "Value": float64(42)}
 
 		result, err := StructToMap(input)
 		assert.NoError(t, err)
@@ -410,7 +424,7 @@ func TestStructToMap(t *testing.T) {
 			age  int
 		}
 		input := UnexportedStruct{Name: "Dave", age: 25}
-		expected := map[string]interface{}{"Name": "Dave"}
+		expected := map[string]interface{}{testFieldName: "Dave"}
 
 		result, err := StructToMap(input)
 		assert.NoError(t, err)
@@ -453,7 +467,7 @@ func TestStructToString(t *testing.T) {
 			age  int
 		}
 		testObj := TestStruct{
-			Name: "Alice",
+			Name: testAlice,
 			age:  25,
 		}
 		result := StructToString(testObj, "")
@@ -468,7 +482,7 @@ func TestStructToString(t *testing.T) {
 		}
 		score := 100
 		testObj := TestStruct{
-			Name:  "Bob",
+			Name:  testBob,
 			Score: &score,
 		}
 		result := StructToString(testObj, "")
@@ -494,8 +508,8 @@ func TestStructToString(t *testing.T) {
 		testObj := Person{
 			Name: "Charlie",
 			Address: Address{
-				Street: "123 Main St",
-				City:   "Anytown",
+				Street: testMainStreet,
+				City:   testAnytown,
 			},
 		}
 		result := StructToString(testObj, "")
@@ -508,20 +522,20 @@ func TestStructToString(t *testing.T) {
 func TestMergeMaps(t *testing.T) {
 	t.Run("TestMergeMapsWithNonOverlappingKeys", func(t *testing.T) {
 		m1 := map[string]interface{}{
-			"key1": "value1",
-			"key2": 42,
+			testKey1: testValue1,
+			testKey2: 42,
 		}
 
 		m2 := map[string]interface{}{
-			"key3": true,
-			"key4": []string{"a", "b"},
+			testKey3: true,
+			"key4":   []string{"a", "b"},
 		}
 
 		expected := map[string]interface{}{
-			"key1": "value1",
-			"key2": 42,
-			"key3": true,
-			"key4": []string{"a", "b"},
+			testKey1: testValue1,
+			testKey2: 42,
+			testKey3: true,
+			"key4":   []string{"a", "b"},
 		}
 
 		result, err := MergeMaps(m1, m2)
@@ -539,13 +553,13 @@ func TestMergeMaps(t *testing.T) {
 		var m1 map[string]interface{}
 
 		m2 := map[string]interface{}{
-			"key1": "value1",
-			"key2": 42,
+			testKey1: testValue1,
+			testKey2: 42,
 		}
 
 		expected := map[string]interface{}{
-			"key1": "value1",
-			"key2": 42,
+			testKey1: testValue1,
+			testKey2: 42,
 		}
 
 		result, err := MergeMaps(m1, m2)
@@ -556,17 +570,17 @@ func TestMergeMaps(t *testing.T) {
 	// Merge two non-empty maps with overlapping keys
 	t.Run("TestMergeMapsWithOverlappingKeys", func(t *testing.T) {
 		m1 := map[string]interface{}{
-			"key1": "value1",
-			"key2": "value2",
+			testKey1: testValue1,
+			testKey2: testValue2,
 		}
 		m2 := map[string]interface{}{
-			"key2": "newValue2",
-			"key3": "value3",
+			testKey2: "newValue2",
+			testKey3: "value3",
 		}
 		expected := map[string]interface{}{
-			"key1": "value1",
-			"key2": "newValue2",
-			"key3": "value3",
+			testKey1: testValue1,
+			testKey2: "newValue2",
+			testKey3: "value3",
 		}
 		result, err := MergeMaps(m1, m2)
 		assert.NoError(t, err)
@@ -577,12 +591,12 @@ func TestMergeMaps(t *testing.T) {
 	t.Run("TestMergeEmptyMapWithNonEmptyMap", func(t *testing.T) {
 		m1 := map[string]interface{}{}
 		m2 := map[string]interface{}{
-			"key1": "value1",
-			"key2": "value2",
+			testKey1: testValue1,
+			testKey2: testValue2,
 		}
 		expected := map[string]interface{}{
-			"key1": "value1",
-			"key2": "value2",
+			testKey1: testValue1,
+			testKey2: testValue2,
 		}
 		result, err := MergeMaps(m1, m2)
 		assert.NoError(t, err)
@@ -592,20 +606,20 @@ func TestMergeMaps(t *testing.T) {
 	// Merge maps with nested interface{} values
 	t.Run("TestMergeMapsWithNestedValues", func(t *testing.T) {
 		m1 := map[string]interface{}{
-			"key1": map[string]interface{}{
+			testKey1: map[string]interface{}{
 				"nestedKey1": "nestedValue1",
 			},
 		}
 		m2 := map[string]interface{}{
-			"key2": map[string]interface{}{
+			testKey2: map[string]interface{}{
 				"nestedKey2": "nestedValue2",
 			},
 		}
 		expected := map[string]interface{}{
-			"key1": map[string]interface{}{
+			testKey1: map[string]interface{}{
 				"nestedKey1": "nestedValue1",
 			},
-			"key2": map[string]interface{}{
+			testKey2: map[string]interface{}{
 				"nestedKey2": "nestedValue2",
 			},
 		}
@@ -616,16 +630,16 @@ func TestMergeMaps(t *testing.T) {
 	t.Run("TestMergeMapWithCustomType", func(t *testing.T) {
 		type mytype map[string]string
 		m1 := mytype{
-			"key1": "value1",
-			"key2": "value1",
+			testKey1: testValue1,
+			testKey2: testValue1,
 		}
 		m2 := mytype{
-			"key1": "value1",
-			"key2": "value2",
+			testKey1: testValue1,
+			testKey2: testValue2,
 		}
 		expected := mytype{
-			"key1": "value1",
-			"key2": "value2",
+			testKey1: testValue1,
+			testKey2: testValue2,
 		}
 		result, err := MergeMaps(m1, m2)
 		assert.NoError(t, err)
@@ -637,7 +651,7 @@ func TestMapToJson(t *testing.T) {
 	t.Run("TestMapToJsonWithSimpleMap", func(t *testing.T) {
 		// Create a simple map
 		testMap := map[string]interface{}{
-			"name": "John",
+			"name": testJohn,
 			"age":  30,
 			"city": "New York",
 		}
@@ -688,7 +702,7 @@ func TestMapToJson(t *testing.T) {
 			Name string
 			Age  int
 		}
-		person := Person{Name: "Alice", Age: 30}
+		person := Person{Name: testAlice, Age: 30}
 		expected := "{\n \"Name\": \"Alice\",\n \"Age\": 30\n}"
 
 		jsonStr, err := StructToJSON(person)
@@ -699,7 +713,7 @@ func TestMapToJson(t *testing.T) {
 	// Convert a nested map to JSON string
 	t.Run("TestConvertNestedMapToJsonString", func(t *testing.T) {
 		nestedMap := map[string]interface{}{
-			"name": "Bob",
+			"name": testBob,
 			"details": map[string]interface{}{
 				"age":  25,
 				"city": "New York",
