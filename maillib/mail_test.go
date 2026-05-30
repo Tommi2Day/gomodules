@@ -135,7 +135,7 @@ func TestMail(t *testing.T) {
 	time.Sleep(10 * time.Second)
 	t.Run("Imap Connect 143", func(t *testing.T) {
 		i := NewImapConfig(mailServer, imapPort, TO, infoPass)
-		i.ServerConfig.EnableTLS(false)
+		i.ServerConfig.EnableTLS(true)
 		i.ServerConfig.SetTimeout(20)
 		err = i.Connect()
 		assert.NoErrorf(t, err, "Imap Plain Connect returned error %v", err)
@@ -143,7 +143,7 @@ func TestMail(t *testing.T) {
 	})
 	t.Run("Imap Connect wrong password", func(t *testing.T) {
 		i := NewImapConfig(mailServer, imapPort, TO, "WrongPass")
-		i.ServerConfig.EnableTLS(false)
+		i.ServerConfig.EnableTLS(true)
 		i.ServerConfig.SetTimeout(20)
 		err = i.Connect()
 		t.Logf("expected Error:%v", err)

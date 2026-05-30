@@ -2,6 +2,7 @@ package maillib
 
 import (
 	"crypto/tls"
+	"fmt"
 	"strings"
 	"time"
 
@@ -55,7 +56,7 @@ func (mailConfig *MailConfigType) SetTimeout(seconds int64) {
 func (mailConfig *MailConfigType) EnableSSL(insecure bool) {
 	mailConfig.tlsConfig = &tls.Config{
 		//nolint gosec
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: insecure,
 	}
 	mailConfig.StartTLS = false
 	mailConfig.SSLinsecure = insecure
@@ -71,7 +72,7 @@ func (mailConfig *MailConfigType) EnableSSL(insecure bool) {
 func (mailConfig *MailConfigType) EnableTLS(insecure bool) {
 	mailConfig.tlsConfig = &tls.Config{
 		//nolint gosec
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: insecure,
 	}
 	mailConfig.StartTLS = true
 	mailConfig.SSLinsecure = insecure
@@ -116,15 +117,19 @@ func (mailConfig *MailConfigType) SetAuthMethod(method string) {
 
 // MailType collects all recipients of a mail and attachment
 type MailType struct {
-	Attachments []string
-	To          []string
-	CC          []string
-	Bcc         []string
-	From        string
-	Subject     string
-	Date        time.Time
-	TextParts   []string
-	ID          uint32
+	Attachments       []string
+	To                []string
+	CC                []string
+	Bcc               []string
+	From              string
+	Subject           string
+	Date              time.Time
+	TextParts         []string
+	ID                uint32
+	Signature         string
+	SignatureConfig   *MailSignatureConfig
+	IsSigned          bool
+	SignatureVerified bool
 }
 
 // NewMail perepare a new Mail Address List
@@ -153,4 +158,59 @@ func (mt *MailType) SetBcc(bcclist string) {
 // SetAttach adds list of Attachments (comma delimited full path)
 func (mt *MailType) SetAttach(filelist []string) {
 	mt.Attachments = filelist
+}
+
+// SignMail signs the current mail content with the specified signing configuration
+func (mt *MailType) SignMail(config *MailSignatureConfig) error {
+	if config == nil {
+		return fmt.Errorf("signature config is nil")
+	}
+
+	if len(mt.TextParts) == 0 {
+		return fmt.Errorf("no content to sign")
+	}
+
+	// Join all text parts
+	content := strings.Join(mt.TextParts, "\n")
+
+	signature, err := SignMailContent(content, config)
+	if err != nil {
+		return err
+	}
+
+	mt.Signature = signature
+	mt.SignatureConfig = config
+	mt.IsSigned = true
+	log.Debugf("Mail signed with method: %s", config.Method)
+	return nil
+}
+
+// VerifyMailSignature verifies the signature of the current mail
+func (mt *MailType) VerifyMailSignature() (bool, error) {
+	if !mt.IsSigned || mt.Signature == "" {
+		return false, fmt.Errorf("mail is not signed")
+	}
+
+	if mt.SignatureConfig == nil {
+		return false, fmt.Errorf("signature config not set")
+	}
+
+	// Join all text parts
+	content := strings.Join(mt.TextParts, "\n")
+
+	valid, err := VerifyMailSignature(content, mt.Signature, mt.SignatureConfig)
+	if err != nil {
+		return false, err
+	}
+
+	mt.SignatureVerified = valid
+	return valid, nil
+}
+
+// GetSignatureMethod returns the current signing method
+func (mt *MailType) GetSignatureMethod() string {
+	if mt.SignatureConfig == nil {
+		return ""
+	}
+	return string(mt.SignatureConfig.Method)
 }

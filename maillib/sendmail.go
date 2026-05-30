@@ -2,6 +2,7 @@
 package maillib
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -120,7 +121,20 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 	}
 	// set content
 	m.Subject(subject)
-	m.SetBodyString(config.mailContentType, text)
+	if addresses.SignatureConfig != nil && addresses.SignatureConfig.Method == SigningMethodSMIME {
+		mimeBody, smimeContentType, signature, smimeErr := BuildSMIMEMultipartSigned(text, addresses.SignatureConfig)
+		if smimeErr != nil {
+			errtxt = fmt.Sprintf("sendmail: failed to create smime multipart signature: %s", smimeErr)
+			err = errors.New(errtxt)
+			log.Error(errtxt)
+			return
+		}
+		addresses.Signature = signature
+		addresses.IsSigned = true
+		m.SetBodyString(mail.ContentType(smimeContentType), mimeBody)
+	} else {
+		m.SetBodyString(config.mailContentType, text)
+	}
 	// handle Attachments
 	if len(addresses.Attachments) > 0 {
 		err = addresses.attachFiles(m, config.maxSize)
@@ -138,6 +152,7 @@ func (config *SendMailConfigType) SendMail(addresses *MailType, subject string, 
 		log.Error(errtxt)
 		return
 	}
+	defer func() { _ = c.Close() }()
 
 	// send mail
 	log.Debugf("sendmail: send via %s", c.ServerAddr())
@@ -197,12 +212,17 @@ func (mt *MailType) attachFiles(m *mail.Msg, maxSize int64) error {
 			f, oserr := os.Open(fn)
 			if oserr != nil {
 				errtxt := fmt.Sprintf("attach: Cannot read %s: %v", fn, oserr)
-				err := errors.New(errtxt)
 				log.Error(errtxt)
-				return err
+				return errors.New(errtxt)
 			}
-			lr := io.LimitReader(f, maxSize)
-			err := m.AttachReader(fn, lr, mail.WithFileName(filepath.Base(fn)))
+			content, rerr := io.ReadAll(io.LimitReader(f, maxSize))
+			_ = f.Close()
+			if rerr != nil {
+				errtxt := fmt.Sprintf("attach: Cannot read content of %s: %v", fn, rerr)
+				log.Error(errtxt)
+				return errors.New(errtxt)
+			}
+			err := m.AttachReader(fn, bytes.NewReader(content), mail.WithFileName(filepath.Base(fn)))
 			if err != nil {
 				errtxt := fmt.Sprintf("attach: Cannot attach %s: %v", fn, err)
 				log.Error(errtxt)

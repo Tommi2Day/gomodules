@@ -1,10 +1,40 @@
 # Go Library
 
-## [v1.24.4 - 2026-05-30]
+## [v1.25.0 - 2026-05-30]
+### New
+- maillib: mail signature support with multiple signing methods
+  - New `mail_signing.go` with `SignMailContent()` and `VerifyMailSignature()` functions
+  - Supported signing methods: RSA, ECDSA, GPG, and S/MIME
+  - `MailSignatureConfig` struct for flexible signing configuration
+  - `MailType.SignMail()` method to sign mail content
+  - `MailType.VerifyMailSignature()` method to verify mail signatures
+  - Helper functions: `IsValidSigningMethod()`, `GetSupportedSigningMethods()`
+  - Comprehensive test coverage with `mail_sign_test.go`
+  - GPG signing uses temporary files to work with existing GPG infrastructure
+  - S/MIME CMS/PKCS#7 detached signature support
+  - New `BuildSMIMEMultipartSigned()` and `VerifySMIMEMultipartSigned()` helpers
+  - `SendMail` now auto-builds `multipart/signed` payloads when S/MIME config is set
 ### Changed
+- maillib: extended `MailType` struct with signature fields:
+  - `Signature` field for storing signature data
+  - `SignatureConfig` field for signature configuration
+  - `IsSigned` and `SignatureVerified` boolean flags
+- Updated Readme.md with new mail signature capabilities
 - update dependencies to solve CVEs
 - fix linter issues by fixing linter version
-- set openldap container to latest
+- update openldap container to 2.6.13
+### Security
+- maillib/smime: added `VerifyWithChain` to vendored pkcs7 library — S/MIME verification
+  now validates the actual signer certificate against a caller-supplied trust pool
+  (expiry + chain-of-trust), replacing the previous check that only tested certificate
+  presence in the attacker-controlled certificate bag
+- maillib/smime: `VerifySMIMEMultipartSigned` (no-pinned-cert path) now rejects signatures
+  whose embedded certificates are outside their validity window
+- maillib: `EnableSSL` / `EnableTLS` now correctly set `InsecureSkipVerify` from the
+  `insecure` parameter instead of unconditionally hardcoding `true`
+### Fixed
+- maillib: IMAP docker-test connections updated to pass `insecure=true` for self-signed
+  test-server certificates after the `InsecureSkipVerify` fix above
 
 ## [v1.24.3 - 2026-04-09]
 ### Changed

@@ -14,8 +14,14 @@ this is a collection of my often used functions
   - password profiles
   - totp generation
   - scram(e.g.for postgresql) and ssha(e.g for LDAP userPassword) hashing
+  - file and string signing with RSA, ECDSA, GPG, and S/MIME
 - dblib: db related functions, esp. for oracle and tns handling
-- maillib: function to send Mails
+- maillib: 
+  - function to send Mails (SMTP, TLS, SSL)
+  - mail signature support (RSA, ECDSA, GPG, S/MIME)
+  - S/MIME CMS/PKCS#7 multipart/signed message building and verification helpers
+  - mail verification with multiple signing methods
+  - IMAP mail retrieval and parsing
 - ldaplib: base ldap functions
 - hmlib: handle access to homematic devices using [XMLAPI-Addon](https://github.com/homematic-community/XML-API)
 - netlib: IP/DNS related funtions
