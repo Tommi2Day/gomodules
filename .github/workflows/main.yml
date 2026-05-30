@@ -58,5 +58,7 @@ jobs:
           grep -n "testKey1\|testJohn\|testFieldName" common/common_test.go || true
       - uses: golangci/golangci-lint-action@v9
         with:
-          args: --timeout=10m --config=.golangci.yml ./...
+          version: v2.11.3
+          args: --verbose --timeout=10m --config=.golangci.yml ./...
+          only-new-issues: false
           skip-cache: true
