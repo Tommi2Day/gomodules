@@ -40,25 +40,20 @@ jobs:
         env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  lint:
-    runs-on: "ubuntu-latest"
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: false
-      - name: Debug lint context
-        run: |
-          echo "GITHUB_SHA=${GITHUB_SHA}"
-          git --no-pager log -1 --oneline
-          grep -n "testKey1\|testJohn\|testFieldName" common/common_test.go || true
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.11.3
-          args: --verbose --timeout=10m --config=.golangci.yml ./...
-          only-new-issues: false
-          skip-cache: true
+ lint:
+   runs-on: "ubuntu-latest"
+   steps:
+     - uses: actions/checkout@v5
+       with:
+         fetch-depth: 0
+     - name: Set up Go
+       uses: actions/setup-go@v6
+       with:
+         go-version: stable
+         cache: false
+     - uses: golangci/golangci-lint-action@v9
+       with:
+         version: v2.11.3
+         args: --verbose --timeout=10m --config=.golangci.yml ./...
+         only-new-issues: false
+         skip-cache: true
