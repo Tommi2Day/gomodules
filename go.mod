@@ -1,6 +1,6 @@
 module github.com/tommi2day/gomodules
 
-go 1.25.0
+go 1.26
 
 require (
 	filippo.io/age v1.3.1
