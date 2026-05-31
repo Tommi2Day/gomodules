@@ -8,6 +8,13 @@ import (
 	"github.com/tommi2day/gomodules/common"
 )
 
+const (
+	paramDeviceID = "device_id"
+	paramIseID    = "ise_id"
+	paramNewValue = "new_value"
+	paramSID      = "sid"
+)
+
 // StateEndpoint is the endpoint to retrieve the state for a given list of devices
 const StateEndpoint = "/addons/xmlapi/state.cgi"
 
@@ -121,7 +128,7 @@ func GetStateByDeviceID(ids string) (result StateDeviceResponse, err error) {
 		err = fmt.Errorf("no ids given")
 		return
 	}
-	parameter := map[string]string{"device_id": common.RemoveSpace(ids)}
+	parameter := map[string]string{paramDeviceID: common.RemoveSpace(ids)}
 	err = QueryAPI(StateEndpoint, &result, parameter)
 	log.Debugf("getstate returned: %v", result)
 	return
@@ -211,8 +218,8 @@ func ChangeState(ids string, values string) (result StateChangeResponse, err err
 		err = fmt.Errorf("no values given")
 		return
 	}
-	parameter := map[string]string{"ise_id": common.RemoveSpace(ids)}
-	parameter["new_value"] = common.RemoveSpace(values)
+	parameter := map[string]string{paramIseID: common.RemoveSpace(ids)}
+	parameter[paramNewValue] = common.RemoveSpace(values)
 	err = QueryAPI(StateChangeEndpoint, &result, parameter)
 	if err != nil {
 		err = fmt.Errorf("value query Error id %v", err)

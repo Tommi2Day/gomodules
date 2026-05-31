@@ -60,7 +60,7 @@ func GenEcdsaKey(pubfilename string, privfilename string, password string) (publ
 	if len(pubfilename) > 0 {
 		pubbytes, _ := x509.MarshalPKIXPublicKey(publicKey)
 		block := &pem.Block{
-			Type:  "PUBLIC KEY",
+			Type:  pemTypePublicKey,
 			Bytes: pubbytes,
 		}
 		pubkeyPem := pem.EncodeToMemory(block)
@@ -147,7 +147,7 @@ func GetEcdsaPublicKeyFromFile(publicKeyFile string) (publicKey *ecdsa.PublicKey
 		err = fmt.Errorf("cannot decode pem in %s", publicKeyFile)
 		return
 	}
-	if pubPem.Type != "PUBLIC KEY" {
+	if pubPem.Type != pemTypePublicKey {
 		log.Debugf("ECDSA public key is of the wrong type %s", pubPem.Type)
 		err = fmt.Errorf("ECDSA public key is of the wrong type %s", pubPem.Type)
 		return

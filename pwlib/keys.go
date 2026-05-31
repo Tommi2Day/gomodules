@@ -122,7 +122,7 @@ func GetKeyTypeFromFile(keyFile string) (keyType string, err error) {
 		return KeyTypeECDSA, nil
 	case "PGP PRIVATE KEY BLOCK", "PGP PUBLIC KEY BLOCK", "PGP MESSAGE":
 		return KeyTypeGPG, nil
-	case "PUBLIC KEY", "PRIVATE KEY":
+	case pemTypePublicKey, "PRIVATE KEY":
 		// These are generic PKCS8 or PKIX types, need to parse bytes
 		return detectKeyTypeFromBytes(block.Bytes)
 	}

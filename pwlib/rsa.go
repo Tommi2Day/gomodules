@@ -109,7 +109,7 @@ func GenRsaKey(pubfilename string, privfilename string, password string) (public
 	if len(pubfilename) > 0 {
 		pubbytes, _ := x509.MarshalPKIXPublicKey(publicKey)
 		block := &pem.Block{
-			Type:  "PUBLIC KEY",
+			Type:  pemTypePublicKey,
 			Bytes: pubbytes,
 		}
 		pubkeyPem := pem.EncodeToMemory(block)
@@ -191,7 +191,7 @@ func GetPublicKeyFromFile(publicKeyFile string) (publicKey *rsa.PublicKey, err e
 		log.Debugf("Cannot Decode %s", publicKeyFile)
 		return
 	}
-	if pubPem.Type != "PUBLIC KEY" {
+	if pubPem.Type != pemTypePublicKey {
 		log.Debugf("RSA public key is of the wrong type %s", pubPem.Type)
 		return
 	}
@@ -357,7 +357,7 @@ func RsaDecryptString(crypted string, privatekeyfile string, keypass string) (pl
 		return
 	}
 
-	data, err := rsa.DecryptPKCS1v15(rand.Reader, privkey, b64dec)
+	data, err := rsa.DecryptPKCS1v15(rand.Reader, privkey, b64dec) //nolint:staticcheck // intentional: openssl PKCS1v15 compatibility
 	if err != nil {
 		log.Debugf("decode session key failed:%s", err)
 		return
@@ -376,7 +376,7 @@ func RsaEncryptString(plain string, publicKeyFile string) (crypted string, err e
 		return
 	}
 
-	data, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey, []byte(plain))
+	data, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey, []byte(plain)) //nolint:staticcheck // intentional: openssl PKCS1v15 compatibility
 	if err != nil {
 		log.Debugf("decode session key failed:%s", err)
 		return

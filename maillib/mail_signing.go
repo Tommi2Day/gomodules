@@ -79,6 +79,7 @@ const (
 	SigningMethodECDSA SigningMethod = "ecdsa"
 	SigningMethodGPG   SigningMethod = "gpg"
 	SigningMethodSMIME SigningMethod = "smime"
+	pemTypeCertificate               = "CERTIFICATE"
 )
 
 // MailSignatureConfig holds signing configuration
@@ -361,7 +362,7 @@ func loadSMIMEPrivateKeyAndCert(certFile string, password string) (*rsa.PrivateK
 			if err != nil {
 				return nil, nil, err
 			}
-		case "CERTIFICATE":
+		case pemTypeCertificate:
 			cert, err = x509.ParseCertificate(block.Bytes)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to parse certificate: %w", err)
@@ -392,7 +393,7 @@ func loadSMIMEPublicCert(certFile string) (*x509.Certificate, error) {
 			break
 		}
 
-		if block.Type == "CERTIFICATE" {
+		if block.Type == pemTypeCertificate {
 			cert, err = x509.ParseCertificate(block.Bytes)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse certificate: %w", err)

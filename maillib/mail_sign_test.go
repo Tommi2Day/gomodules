@@ -26,7 +26,7 @@ func TestMailSigningRSA(t *testing.T) {
 		// Generate RSA keys
 		pubKeyFile := test.TestData + "/test_mail_rsa.pub"
 		privKeyFile := test.TestData + "/test_mail_rsa.key"
-		keyPass := "testpass"
+		keyPass := rootPass
 
 		_, _, err := pwlib.GenRsaKey(pubKeyFile, privKeyFile, keyPass)
 		require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestMailSigningRSA(t *testing.T) {
 		pubKeyFile := test.TestData + "/test_mail_rsa_invalid.pub"
 		privKeyFile := test.TestData + "/test_mail_rsa_invalid.key"
 
-		_, _, err := pwlib.GenRsaKey(pubKeyFile, privKeyFile, "testpass")
+		_, _, err := pwlib.GenRsaKey(pubKeyFile, privKeyFile, rootPass)
 		require.NoError(t, err)
 		defer os.Remove(pubKeyFile)
 		defer os.Remove(privKeyFile)
@@ -84,7 +84,7 @@ func TestMailSigningRSA(t *testing.T) {
 		pubKeyFile := test.TestData + "/test_mail_rsa_multi.pub"
 		privKeyFile := test.TestData + "/test_mail_rsa_multi.key"
 
-		_, _, err := pwlib.GenRsaKey(pubKeyFile, privKeyFile, "testpass")
+		_, _, err := pwlib.GenRsaKey(pubKeyFile, privKeyFile, rootPass)
 		require.NoError(t, err)
 		defer os.Remove(pubKeyFile)
 		defer os.Remove(privKeyFile)
@@ -96,7 +96,7 @@ func TestMailSigningRSA(t *testing.T) {
 			Method:         SigningMethodRSA,
 			PrivateKeyFile: privKeyFile,
 			PublicKeyFile:  pubKeyFile,
-			KeyPassphrase:  "testpass",
+			KeyPassphrase:  rootPass,
 		}
 
 		err = mail.SignMail(config)
@@ -115,7 +115,7 @@ func TestMailSigningECDSA(t *testing.T) {
 		// Generate ECDSA keys
 		pubKeyFile := test.TestData + "/test_mail_ecdsa.pub"
 		privKeyFile := test.TestData + "/test_mail_ecdsa.key"
-		keyPass := "testpass"
+		keyPass := rootPass
 
 		_, _, err := pwlib.GenEcdsaKey(pubKeyFile, privKeyFile, keyPass)
 		require.NoError(t, err)
@@ -157,7 +157,7 @@ func TestMailSigningGPG(t *testing.T) {
 		pubKeyFile := test.TestData + "/test_mail_gpg.pub"
 		privKeyFile := test.TestData + "/test_mail_gpg.priv"
 
-		entity, _, err := pwlib.CreateGPGEntity("Mail Test", "mail", "mail@test.com", "testpass")
+		entity, _, err := pwlib.CreateGPGEntity("Mail Test", "mail", "mail@test.com", rootPass)
 		require.NoError(t, err)
 
 		err = pwlib.ExportGPGKeyPair(entity, pubKeyFile, privKeyFile)
@@ -173,7 +173,7 @@ func TestMailSigningGPG(t *testing.T) {
 			Method:         SigningMethodGPG,
 			PrivateKeyFile: privKeyFile,
 			PublicKeyFile:  pubKeyFile,
-			KeyPassphrase:  "testpass",
+			KeyPassphrase:  rootPass,
 		}
 
 		err = mail.SignMail(config)
@@ -298,7 +298,7 @@ func createSMIMEFixture(bundleFile, certFile string) error {
 		return err
 	}
 
-	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: pemTypeCertificate, Bytes: der})
 	privPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privKey)})
 
 	bundle := make([]byte, 0, len(certPEM)+len(privPEM))
@@ -689,7 +689,7 @@ func TestSMIMECertChain(t *testing.T) {
 		require.NoError(t, err)
 
 		certOnlyFile := filepath.Join(test.TestData, "test_smime_certonly.pem")
-		certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+		certPEM := pem.EncodeToMemory(&pem.Block{Type: pemTypeCertificate, Bytes: der})
 		require.NoError(t, os.WriteFile(certOnlyFile, certPEM, 0o600))
 		defer os.Remove(certOnlyFile)
 

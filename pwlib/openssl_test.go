@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	plaintext = "hallowelt"
+	cmdOpenssl = "openssl"
+	plaintext  = "hallowelt"
 	//nolint gosec
 	passphrase = "z4yH36a6zerhfE5427ZV"
 	plainfile  = `
@@ -102,7 +103,7 @@ func TestOpensslCompString(t *testing.T) {
 	t.Run("Encrypt_Openssl-Decrypt_String", func(t *testing.T) {
 		// encrypt using openssl os cmd
 		cmdArgs := []string{
-			"openssl", "rsautl",
+			cmdOpenssl, "rsautl",
 			"-inkey", pc.PubKeyFile,
 			"-pubin",
 			"-pkcs",
@@ -148,7 +149,7 @@ func TestOpensslCompString(t *testing.T) {
 
 		// decode crypted string in bin format using openssl os cmd
 		cmdArgs := []string{
-			"openssl", "rsautl",
+			cmdOpenssl, "rsautl",
 			"-inkey", pc.PrivateKeyFile,
 			"-pkcs",
 			"-decrypt",
@@ -234,7 +235,7 @@ func TestOpensslFile(t *testing.T) {
 
 		// encrypt using openssl cmd
 		cmdArgs := []string{
-			"openssl", "enc", "-e",
+			cmdOpenssl, "enc", "-e",
 			"-aes-256-cbc",
 			"-base64",
 			"-pass", fmt.Sprintf("pass:%s", sessionKey),
@@ -284,7 +285,7 @@ func TestOpensslFile(t *testing.T) {
 
 		// decode crypted string in bin format using openssl os cmd
 		cmdArgs := []string{
-			"openssl", "rsautl",
+			cmdOpenssl, "rsautl",
 			"-inkey", pc.PrivateKeyFile,
 			"-pkcs",
 			"-decrypt",
@@ -306,7 +307,7 @@ func TestOpensslFile(t *testing.T) {
 
 		// decrypt using openssl cmd, must use -base64 -A for singleline base64 string
 		cmdArgs = []string{
-			"openssl", "enc", "-d",
+			cmdOpenssl, "enc", "-d",
 			"-aes-256-cbc",
 			"-base64",
 			"-A",

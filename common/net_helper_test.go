@@ -21,16 +21,16 @@ func TestGetHostPort(t *testing.T) {
 		for _, testconfig := range []testTableType{
 			{
 				name:    "only host",
-				input:   "localhost",
+				input:   testLocalhost,
 				success: true,
-				host:    "localhost",
+				host:    testLocalhost,
 				port:    0,
 			},
 			{
 				name:    "host and port",
 				input:   "localhost:1234",
 				success: true,
-				host:    "localhost",
+				host:    testLocalhost,
 				port:    1234,
 			},
 			{
@@ -44,21 +44,21 @@ func TestGetHostPort(t *testing.T) {
 				name:    "with http url",
 				input:   "http://localhost:8080/app/index.html",
 				success: true,
-				host:    "localhost",
+				host:    testLocalhost,
 				port:    8080,
 			},
 			{
 				name:    "with http url without port",
 				input:   "http://localhost/app/index.html",
 				success: true,
-				host:    "localhost",
+				host:    testLocalhost,
 				port:    80,
 			},
 			{
 				name:    "with ssh url without port",
 				input:   "ssh://localhost",
 				success: true,
-				host:    "localhost",
+				host:    testLocalhost,
 				port:    22,
 			},
 			// testdata, no need to complain
@@ -93,7 +93,7 @@ func TestGetHostPort(t *testing.T) {
 }
 func TestSetHostPort(t *testing.T) {
 	t.Run("Test SetHostPort ipv4", func(t *testing.T) {
-		actual := SetHostPort("localhost", 1234)
+		actual := SetHostPort(testLocalhost, 1234)
 		assert.Equalf(t, "localhost:1234", actual, "actual not expected %s", actual)
 	})
 	t.Run("Test SetHostPort tcpv6", func(t *testing.T) {
@@ -101,8 +101,8 @@ func TestSetHostPort(t *testing.T) {
 		assert.Equalf(t, "[fe80::3436:bd7c:3037:df6f]:1234", actual, "actual not expected: %s", actual)
 	})
 	t.Run("Test SetHostPort noport", func(t *testing.T) {
-		actual := SetHostPort("localhost", 0)
-		assert.Equalf(t, "localhost", actual, "actual not expected: %s", actual)
+		actual := SetHostPort(testLocalhost, 0)
+		assert.Equalf(t, testLocalhost, actual, "actual not expected: %s", actual)
 	})
 }
 

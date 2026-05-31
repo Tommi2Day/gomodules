@@ -443,12 +443,12 @@ func TestReadFileToStructComplex(t *testing.T) {
 		Address   Address `json:"address" yaml:"address" xml:"address"`
 	}
 	expected := &Person{
-		FirstName: "John",
+		FirstName: testJohn,
 		LastName:  "Doe",
 		Age:       30,
 		Address: Address{
-			Street:     "123 Main St",
-			City:       "Anytown",
+			Street:     testStreet,
+			City:       testCity,
 			PostalCode: "12345",
 		},
 	}

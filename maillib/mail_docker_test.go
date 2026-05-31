@@ -13,6 +13,7 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 )
 
+const allInterfaces = "0.0.0.0"
 const mailRepo = "docker.io/mailserver/docker-mailserver"
 const mailRepoTag = "15.1.0"
 const smtpPort = 31025
@@ -87,19 +88,19 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		ExposedPorts: []string{"25", "143", "465", "587", "993"},
 		PortBindings: map[docker.Port][]docker.PortBinding{
 			"25": {
-				{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", smtpPort)},
+				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", smtpPort)},
 			},
 			"143": {
-				{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", imapPort)},
+				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", imapPort)},
 			},
 			"465": {
-				{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", sslPort)},
+				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", sslPort)},
 			},
 			"587": {
-				{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", tlsPort)},
+				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", tlsPort)},
 			},
 			"993": {
-				{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", imapsPort)},
+				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", imapsPort)},
 			},
 		},
 	}, func(config *docker.HostConfig) {

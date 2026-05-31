@@ -223,7 +223,7 @@ func parsePEMCertificates(pemData []byte) ([]*x509.Certificate, error) {
 		if block == nil {
 			break
 		}
-		if block.Type != "CERTIFICATE" {
+		if block.Type != pemTypeCertificate {
 			continue
 		}
 		cert, err := x509.ParseCertificate(block.Bytes)

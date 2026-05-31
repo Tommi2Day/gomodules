@@ -11,9 +11,15 @@ import (
 )
 
 const (
-	tLdap    = "ldap." + netlibDomain
-	tLdapIP4 = "ldap-ip4." + netlibDomain
-	tDB      = "db." + netlibDomain
+	tLdap           = "ldap." + netlibDomain
+	tLdapIP4        = "ldap-ip4." + netlibDomain
+	tDB             = "db." + netlibDomain
+	testIPv4Name    = "ipv4"
+	testIPv6Name    = "ipv6"
+	testIPv6Addr    = "fe80::3436:bd7c:3037:df6f"
+	testIP172       = "172.10.0.1"
+	testInvalid     = "invalid"
+	testInvalidHost = "invalid.host"
 )
 
 func TestMain(m *testing.M) {
@@ -45,13 +51,13 @@ func TestIPs(t *testing.T) {
 		}
 		for _, testconfig := range []testTableType{
 			{
-				name:     "ipv4",
+				name:     testIPv4Name,
 				input:    "127.0.0.1",
 				expected: true,
 			},
 			{
-				name:     "ipv6",
-				input:    "fe80::3436:bd7c:3037:df6f",
+				name:     testIPv6Name,
+				input:    testIPv6Addr,
 				expected: true,
 			},
 			{
@@ -86,7 +92,7 @@ func TestIPs(t *testing.T) {
 			},
 			{
 				name:     "public ipv4 172.10",
-				input:    "172.10.0.1",
+				input:    testIP172,
 				expected: true,
 			},
 			{
@@ -101,12 +107,12 @@ func TestIPs(t *testing.T) {
 			},
 			{
 				name:     "public ipv6",
-				input:    "fe80::3436:bd7c:3037:df6f",
+				input:    testIPv6Addr,
 				expected: false,
 			},
 			{
-				name:     "invalid",
-				input:    "invalid.host",
+				name:     testInvalid,
+				input:    testInvalidHost,
 				expected: false,
 			},
 		} {
@@ -127,12 +133,12 @@ func TestIPs(t *testing.T) {
 
 			{
 				name:     "private ipv4 12.0.0.1",
-				input:    "172.10.0.1",
+				input:    testIP172,
 				expected: false,
 			},
 			{
 				name:     "public ipv4 172.10",
-				input:    "172.10.0.1",
+				input:    testIP172,
 				expected: false,
 			},
 			{
@@ -142,12 +148,12 @@ func TestIPs(t *testing.T) {
 			},
 			{
 				name:     "public ipv6",
-				input:    "fe80::3436:bd7c:3037:df6f",
+				input:    testIPv6Addr,
 				expected: true,
 			},
 			{
-				name:     "invalid",
-				input:    "invalid.host",
+				name:     testInvalid,
+				input:    testInvalidHost,
 				expected: false,
 			},
 		} {
@@ -186,7 +192,7 @@ func TestIPs(t *testing.T) {
 			},
 			{
 				name:     "public ipv4 172.10",
-				input:    "172.10.0.1",
+				input:    testIP172,
 				expected: false,
 			},
 			{
@@ -196,12 +202,12 @@ func TestIPs(t *testing.T) {
 			},
 			{
 				name:     "public ipv6",
-				input:    "fe80::3436:bd7c:3037:df6f",
+				input:    testIPv6Addr,
 				expected: false,
 			},
 			{
-				name:     "invalid",
-				input:    "invalid.host",
+				name:     testInvalid,
+				input:    testInvalidHost,
 				expected: false,
 			},
 		} {
@@ -276,17 +282,17 @@ func TestLookupIP(t *testing.T) {
 
 	for _, testconfig := range []testTableType{
 		{
-			name:     "ipv4",
+			name:     testIPv4Name,
 			input:    "127.0.0.1",
 			expected: true,
-			iptype:   "ipv4",
+			iptype:   testIPv4Name,
 			l:        1,
 		},
 		{
-			name:     "ipv6",
-			input:    "fe80::3436:bd7c:3037:df6f",
+			name:     testIPv6Name,
+			input:    testIPv6Addr,
 			expected: true,
-			iptype:   "ipv6",
+			iptype:   testIPv6Name,
 			l:        1,
 		},
 		{
@@ -300,14 +306,14 @@ func TestLookupIP(t *testing.T) {
 			name:     "hostname ipv4",
 			input:    tLdap,
 			expected: true,
-			iptype:   "ipv4",
+			iptype:   testIPv4Name,
 			l:        1,
 		},
 		{
 			name:     "hostname ipv6",
 			input:    tLdap,
 			expected: true,
-			iptype:   "ipv6",
+			iptype:   testIPv6Name,
 			l:        1,
 		},
 		{
@@ -321,12 +327,12 @@ func TestLookupIP(t *testing.T) {
 			name:     "hostname ipv4 query ipv6",
 			input:    tLdapIP4,
 			expected: false,
-			iptype:   "ipv6",
+			iptype:   testIPv6Name,
 			l:        0,
 		},
 		{
-			name:     "invalid",
-			input:    "invalid.host",
+			name:     testInvalid,
+			input:    testInvalidHost,
 			expected: false,
 		},
 	} {
@@ -334,10 +340,10 @@ func TestLookupIP(t *testing.T) {
 			dns.IPv4Only = false
 			dns.IPv6Only = false
 
-			if testconfig.iptype == "ipv4" {
+			if testconfig.iptype == testIPv4Name {
 				dns.IPv4Only = true
 			}
-			if testconfig.iptype == "ipv6" {
+			if testconfig.iptype == testIPv6Name {
 				dns.IPv6Only = true
 			}
 

@@ -135,7 +135,7 @@ func testLoadPasswordProfilesFromStringWithInvalidYamlInput(t *testing.T) {
 
 func testActivateProfileWithDefaultSpecialChars(t *testing.T) {
 	ps := PasswordProfileSets{
-		"test": PasswordProfileSet{
+		vaultTest1: PasswordProfileSet{
 			Profile: PasswordProfile{
 				Length:      16,
 				Upper:       1,
@@ -146,7 +146,7 @@ func testActivateProfileWithDefaultSpecialChars(t *testing.T) {
 			},
 		},
 	}
-	pp, cs, err := ps.ActivateProfile("test")
+	pp, cs, err := ps.ActivateProfile(vaultTest1)
 	assert.NoError(t, err)
 	assert.Equal(t, DefaultSpecialChars, cs.SpecialChar)
 	expectedAllChars := UpperChar + LowerChar + Digits + DefaultSpecialChars
@@ -156,7 +156,7 @@ func testActivateProfileWithDefaultSpecialChars(t *testing.T) {
 
 func testActivateNonExistentProfile(t *testing.T) {
 	ps := PasswordProfileSets{
-		"test": PasswordProfileSet{
+		vaultTest1: PasswordProfileSet{
 			Profile: PasswordProfile{
 				Length:      16,
 				Upper:       1,

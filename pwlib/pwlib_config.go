@@ -12,15 +12,15 @@ import (
 
 // PCmethods is a list of supported encryption methods
 var PCmethods = []string{
-	"go",
-	"openssl",
-	"plain",
-	"b64",
-	"vault",
-	"gpg",
-	"gopass",
-	"kms",
-	"age",
+	typeGO,
+	typeOpenssl,
+	typePlain,
+	typeEnc,
+	typeVault,
+	typeGPG,
+	typeGopass,
+	typeKMS,
+	typeAge,
 }
 
 const (
@@ -57,6 +57,7 @@ const (
 	pubKMSExt         = ".pub.kms"
 	privKMSExt        = ".priv.kms"
 	extSig            = "sig"
+	pemTypePublicKey  = "PUBLIC KEY"
 	// ... other types ...
 )
 

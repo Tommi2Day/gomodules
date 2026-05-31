@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const typeInt = "int"
+
 func TestConversion(t *testing.T) {
 	t.Run("Check Type Conversion", func(t *testing.T) {
 		type testTableType struct {
@@ -149,21 +151,21 @@ func TestCheckType(t *testing.T) {
 		for _, testconfig := range []testTableType{
 			{
 				name:         "Test IntVal",
-				inputType:    "int",
-				expectedType: "int",
+				inputType:    typeInt,
+				expectedType: typeInt,
 				inputValue:   123,
 				success:      true,
 			},
 			{
 				name:         "Test IntVal as string",
-				inputType:    "int",
+				inputType:    typeInt,
 				expectedType: "string",
 				inputValue:   "123",
 				success:      false,
 			},
 			{
 				name:         "Test IntVal as nil",
-				inputType:    "int",
+				inputType:    typeInt,
 				expectedType: "<nil>",
 				inputValue:   nil,
 				success:      false,

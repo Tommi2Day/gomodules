@@ -74,7 +74,7 @@ func TestState(t *testing.T) {
 		var s StateDatapointResponse
 		queryDP := url.Values{
 			"datapoint_id": []string{"4748"},
-			"sid":          []string{hmToken},
+			paramSID:       []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", stateURL, queryDP,
@@ -92,7 +92,7 @@ func TestState(t *testing.T) {
 		var s StateDatapointResponse
 		queryStateEmpty := url.Values{
 			"datapoint_id": []string{"9999"},
-			"sid":          []string{hmToken},
+			paramSID:       []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", stateURL, queryStateEmpty,
@@ -107,9 +107,9 @@ func TestState(t *testing.T) {
 		var r StateChangeResponse
 
 		queryChange := url.Values{
-			"ise_id":    []string{"4740"},
-			"new_value": []string{"11"},
-			"sid":       []string{hmToken},
+			paramIseID:    []string{"4740"},
+			paramNewValue: []string{"11"},
+			paramSID:      []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,
@@ -128,9 +128,9 @@ func TestState(t *testing.T) {
 	t.Run("one state change not found, space in list", func(t *testing.T) {
 		var r StateChangeResponse
 		queryChange := url.Values{
-			"ise_id":    []string{"474,4740"},
-			"new_value": []string{"11"},
-			"sid":       []string{hmToken},
+			paramIseID:    []string{"474,4740"},
+			paramNewValue: []string{"11"},
+			paramSID:      []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,
@@ -150,14 +150,14 @@ func TestState(t *testing.T) {
 	t.Run("state change empty", func(t *testing.T) {
 		var r StateChangeResponse
 		queryChange := url.Values{
-			"device_id": []string{"4740"},
-			"new_value": []string{"11"},
-			"sid":       []string{hmToken},
+			paramDeviceID: []string{"4740"},
+			paramNewValue: []string{"11"},
+			paramSID:      []string{hmToken},
 		}
 		p := map[string]string{
-			"device_id": "4740",
-			"new_value": "11",
-			"sid":       hmToken,
+			paramDeviceID: "4740",
+			paramNewValue: "11",
+			paramSID:      hmToken,
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,

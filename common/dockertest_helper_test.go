@@ -55,7 +55,7 @@ func TestGetDockerHelper(t *testing.T) {
 		server, port = GetContainerHostAndPort(container, "80/tcp")
 		t.Logf("server: %s, port: %d", server, port)
 		assert.Greaterf(t, port, 30000, "GetContainerHostAndPort() should return a port >30000")
-		assert.True(t, server == "localhost" || server == "docker", "GetContainerHostAndPort() should return localhost or docker as server")
+		assert.True(t, server == testLocalhost || server == "docker", "GetContainerHostAndPort() should return localhost or docker as server")
 	})
 	t.Run("Test GetContainerHostAndPort other docker", func(t *testing.T) {
 		_ = os.Setenv("DOCKER_HOST", "tcp://web:2375")

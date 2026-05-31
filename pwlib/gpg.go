@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	cmdGPG               = "gpg"
 	gpgEnvHome           = "GNUPGHOME"   //nolint:gosec // env-var name, not a credential
 	gpgDefaultHomeDir    = ".gnupg"      //nolint:gosec // path constant, not a credential
 	gpgSecretKeyRingFile = "secring.gpg" //nolint:gosec // path constant, not a credential
@@ -69,7 +70,7 @@ func GPGReadSecretKeyRing(keyRingPath string) (openpgp.EntityList, error) {
 // by calling the gpg binary with --export-secret-keys --armor.
 // This is the reliable path for modern GnuPG (2.1+) that uses private-keys-v1.d.
 func GPGExportSecretKeysArmored() (string, error) {
-	out, err := exec.Command("gpg", "--export-secret-keys", "--armor").Output() //nolint:gosec // fixed args, no user input
+	out, err := exec.Command(cmdGPG, "--export-secret-keys", "--armor").Output() //nolint:gosec // fixed args, no user input
 	if err != nil {
 		return "", fmt.Errorf("gpg --export-secret-keys failed: %w", err)
 	}

@@ -39,8 +39,8 @@ func TestSysvar(t *testing.T) {
 		SysVarIDMap = map[string]SysVarEntry{}
 		fakeURL := hmURL + SysVarListEndpoint
 		queryVar := url.Values{
-			"text": []string{"true"},
-			"sid":  []string{hmToken},
+			"text":   []string{"true"},
+			paramSID: []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", fakeURL, queryVar,
@@ -55,8 +55,8 @@ func TestSysvar(t *testing.T) {
 		fakeURL := hmURL + SysVarEndpoint
 		// mock the response for state
 		queryVar := url.Values{
-			"ise_id": []string{"4711"},
-			"sid":    []string{hmToken},
+			paramIseID: []string{"4711"},
+			paramSID:   []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", fakeURL, queryVar,

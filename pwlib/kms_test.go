@@ -68,7 +68,7 @@ func TestKMS(t *testing.T) {
 	myKeyID := ""
 	mySignKeyID := ""
 	t.Run("TestKMSCreateKey", func(t *testing.T) {
-		key, err := GenKMSKey(kmsClient, "", "TestKey", map[string]string{"test": "test"})
+		key, err := GenKMSKey(kmsClient, "", "TestKey", map[string]string{vaultTest1: vaultTest1})
 		require.NoErrorf(t, err, "CreateKeys failed:%s", err)
 		require.NotNil(t, key, "createKey returned nil")
 		keyID, keyARN := GetKMSKeyIDs(key.KeyMetadata)
@@ -82,7 +82,7 @@ func TestKMS(t *testing.T) {
 	})
 
 	t.Run("TestKMSCreateSigningKey", func(t *testing.T) {
-		key, err := GenKMSKey(kmsClient, string(types.KeySpecRsa2048), "TestSignKey", map[string]string{"test": "test"})
+		key, err := GenKMSKey(kmsClient, string(types.KeySpecRsa2048), "TestSignKey", map[string]string{vaultTest1: vaultTest1})
 		require.NoErrorf(t, err, "CreateKeys failed:%s", err)
 		require.NotNil(t, key, "createKey returned nil")
 		keyID, keyARN := GetKMSKeyIDs(key.KeyMetadata)

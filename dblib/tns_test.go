@@ -91,6 +91,7 @@ SSL_CLIENT_AUTHENTICATION = True
 SSL_CIPHER_SUITES= (SSL_RSA_WITH_RC4_128_SHA)
 `
 const entryCount = 6
+const tnsXE = "XE"
 
 var tnsAdmin = "testdata"
 
@@ -153,13 +154,13 @@ func TestParseTns(t *testing.T) {
 				name:    "XE-full",
 				alias:   "XE.local",
 				success: true,
-				service: "XE",
+				service: tnsXE,
 			},
 			{
 				name:    "XE-short",
-				alias:   "XE",
+				alias:   tnsXE,
 				success: true,
-				service: "XE",
+				service: tnsXE,
 			},
 			{
 				name:    "XE-SID",
@@ -206,7 +207,7 @@ func TestParseTns(t *testing.T) {
 		}
 	})
 
-	alias := "XE"
+	alias := tnsXE
 	t.Run("Check entry value", func(t *testing.T) {
 		e, ok := GetEntry(alias, tnsEntries, domain)
 		assert.True(t, ok, "Alias %s not found", alias)

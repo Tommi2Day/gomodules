@@ -106,7 +106,7 @@ func TestGetPassword(t *testing.T) {
 		{
 			name:     "direct match",
 			account:  "testuser",
-			system:   "test",
+			system:   vaultTest1,
 			answer:   "testpass",
 			hasError: false,
 		},

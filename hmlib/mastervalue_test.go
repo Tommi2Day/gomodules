@@ -25,9 +25,9 @@ func TestValue(t *testing.T) {
 		rn := "ARR_TIMEOUT,LOW_BAT_LIMIT"
 		devices := "4740,4741"
 		queryValue := url.Values{
-			"device_id":       []string{devices},
+			paramDeviceID:     []string{devices},
 			"requested_names": []string{rn},
-			"sid":             []string{hmToken},
+			paramSID:          []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", valueURL, queryValue,
@@ -46,9 +46,9 @@ func TestValue(t *testing.T) {
 		var err error
 		rn := "ARR_TIMEOUT,CYCLIC_BIDI_INFO_MSG_DISCARD_FACTOR"
 		queryValueError := url.Values{
-			"device_id":       []string{"2850"},
+			paramDeviceID:     []string{"2850"},
 			"requested_names": []string{rn},
-			"sid":             []string{hmToken},
+			paramSID:          []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", valueURL, queryValueError,
@@ -67,10 +67,10 @@ func TestValue(t *testing.T) {
 		var v MasterValues
 		var err error
 		queryChange := url.Values{
-			"device_id": []string{"4740"},
-			"name":      []string{"ARR_TIMEOUT"},
-			"value":     []string{"11"},
-			"sid":       []string{hmToken},
+			paramDeviceID: []string{"4740"},
+			"name":        []string{"ARR_TIMEOUT"},
+			"value":       []string{"11"},
+			paramSID:      []string{hmToken},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", changeURL, queryChange,

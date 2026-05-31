@@ -76,7 +76,7 @@ func TestDevice(t *testing.T) {
 		SetHmToken(sid)
 		SetHmURL("http://localhost:80")
 		q := url.Values{
-			"sid": []string{sid},
+			paramSID: []string{sid},
 		}
 		httpmock.RegisterResponderWithQuery(
 			"GET", fakeURL, q,

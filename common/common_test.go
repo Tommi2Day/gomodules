@@ -12,20 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	testFieldName  = "Name"
-	testJohn       = "John"
-	testAlice      = "Alice"
-	testBob        = "Bob"
-	testMainStreet = "123 Main St"
-	testAnytown    = "Anytown"
-	testKey1       = "key1"
-	testKey2       = "key2"
-	testKey3       = "key3"
-	testValue1     = "value1"
-	testValue2     = "value2"
-)
-
 func TestGetEnv(t *testing.T) {
 	const fallback = "NotFound"
 	t.Run("Test String Env", func(t *testing.T) {
@@ -340,7 +326,7 @@ func TestStructToMap(t *testing.T) {
 			Age  int
 		}
 		input := SimpleStruct{Name: testJohn, Age: 30}
-		expected := map[string]interface{}{testFieldName: testJohn, "Age": float64(30)}
+		expected := map[string]interface{}{testNameKey: testJohn, "Age": float64(30)}
 
 		result, err := StructToMap(input)
 		assert.NoError(t, err)
@@ -361,15 +347,15 @@ func TestStructToMap(t *testing.T) {
 				Street string
 				City   string
 			}{
-				Street: testMainStreet,
-				City:   testAnytown,
+				Street: testStreet,
+				City:   testCity,
 			},
 		}
 		expected := map[string]interface{}{
-			testFieldName: testAlice,
+			testNameKey: testAlice,
 			"Address": map[string]interface{}{
-				"Street": testMainStreet,
-				"City":   testAnytown,
+				"Street": testStreet,
+				"City":   testCity,
 			},
 		}
 
@@ -385,8 +371,8 @@ func TestStructToMap(t *testing.T) {
 		}
 		input := SliceStruct{Name: testBob, Numbers: []int{1, 2, 3}}
 		expected := map[string]interface{}{
-			testFieldName: testBob,
-			"Numbers":     []interface{}{float64(1), float64(2), float64(3)},
+			testNameKey: testBob,
+			"Numbers":   []interface{}{float64(1), float64(2), float64(3)},
 		}
 
 		result, err := StructToMap(input)
@@ -401,7 +387,7 @@ func TestStructToMap(t *testing.T) {
 		}
 		value := 42
 		input := PointerStruct{Name: "Charlie", Value: &value}
-		expected := map[string]interface{}{testFieldName: "Charlie", "Value": float64(42)}
+		expected := map[string]interface{}{testNameKey: "Charlie", "Value": float64(42)}
 
 		result, err := StructToMap(input)
 		assert.NoError(t, err)
@@ -424,7 +410,7 @@ func TestStructToMap(t *testing.T) {
 			age  int
 		}
 		input := UnexportedStruct{Name: "Dave", age: 25}
-		expected := map[string]interface{}{testFieldName: "Dave"}
+		expected := map[string]interface{}{testNameKey: "Dave"}
 
 		result, err := StructToMap(input)
 		assert.NoError(t, err)
@@ -508,8 +494,8 @@ func TestStructToString(t *testing.T) {
 		testObj := Person{
 			Name: "Charlie",
 			Address: Address{
-				Street: testMainStreet,
-				City:   testAnytown,
+				Street: testStreet,
+				City:   testCity,
 			},
 		}
 		result := StructToString(testObj, "")
