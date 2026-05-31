@@ -1,5 +1,15 @@
 # Go Library
 
+## [v1.25.1 - 2026-06-01]
+### Changed
+- use Go1.26
+- update dependencies
+
+### Fixed
+- maillib/imap: avoid potential deadlock in `ReadMessages` by running `Fetch` in a goroutine while draining the messages channel concurrently
+- maillib/imap: close IMAP client connections on `StartTLS` and `Login` error paths in `Connect`
+- maillib/imap: ensure attachment files are always closed in `writeAttachment` using deferred close
+
 ## [v1.25.0 - 2026-05-30]
 ### New
 - maillib: mail signature support with multiple signing methods
