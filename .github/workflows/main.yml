@@ -52,7 +52,6 @@ jobs:
          cache: false
      - uses: golangci/golangci-lint-action@v9
        with:
-         version: v2.11.3
          args: --verbose --timeout=10m --config=.golangci.yml ./...
          only-new-issues: false
          skip-cache: true

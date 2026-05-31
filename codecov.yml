@@ -1,8 +1,8 @@
 coverage:
   range: 50..75
   ignore:
-    - "*/vendor/*"
-    - "*/test/*"
+    - "vendor/*"
+    - "test/*"
   status:
     patch: false
     project:
