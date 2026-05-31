@@ -47,7 +47,6 @@ func (it *ImapType) Connect() error {
 	var c *client.Client
 	var err error
 	url := ""
-	it.Client = c
 	mc := it.ServerConfig
 	port := mc.Port
 	if mc.SSL {
@@ -67,6 +66,11 @@ func (it *ImapType) Connect() error {
 			tlsConfig := mc.tlsConfig
 			if err = c.StartTLS(tlsConfig); err == nil {
 				log.Debugf("imap:StartTLS on port %d activated", port)
+			} else {
+				if closeErr := c.Close(); closeErr != nil {
+					log.Warnf("imap: Close failed:%s", closeErr)
+				}
+				return err
 			}
 		}
 	}
@@ -75,14 +79,18 @@ func (it *ImapType) Connect() error {
 		log.Errorf("imap: connect to %s failed:%v", url, err)
 		return err
 	}
+	it.Client = c
 	log.Debugf("imap: Connected to %s", url)
 
 	// Login
 	if err := c.Login(it.ServerConfig.Username, it.ServerConfig.Password); err != nil {
 		log.Errorf("imap: Login  User %s failed:%v", it.ServerConfig.Username, err)
+		if closeErr := c.Close(); closeErr != nil {
+			log.Warnf("imap: Close failed:%s", closeErr)
+		}
+		it.Client = nil
 		return err
 	}
-	it.Client = c
 	log.Debugf("imap:Logged in as %s", it.ServerConfig.Username)
 	log.Debug("imap:Connect leaved ..")
 	return nil
@@ -200,15 +208,17 @@ func (it *ImapType) ReadMessages(ids []uint32) (msgList []ImapMsg, err error) {
 	seqset := new(imap.SeqSet)
 	seqset.AddNum(ids...)
 
-	messages := make(chan *imap.Message, 10)
-	if err = c.Fetch(seqset,
-		items,
-		messages); err != nil {
-		log.Errorf("imap: Fetch messages failed:%s", err)
-		return
-	}
+	// Fetch must run in a goroutine so this goroutine can drain the channel
+	// concurrently. With a fixed-size buffer, a mailbox containing more
+	// messages than the buffer capacity causes go-imap's reader goroutine to
+	// block on send while Fetch blocks waiting for the response to finish —
+	// a guaranteed deadlock.
+	messages := make(chan *imap.Message)
+	fetchErr := make(chan error, 1)
+	go func() {
+		fetchErr <- c.Fetch(seqset, items, messages)
+	}()
 
-	// read messages from chan
 	for msg := range messages {
 		r := msg.GetBody(&section)
 		if r == nil {
@@ -218,6 +228,10 @@ func (it *ImapType) ReadMessages(ids []uint32) (msgList []ImapMsg, err error) {
 		newMsg.UID = msg.Uid
 		newMsg.Content = r
 		msgList = append(msgList, newMsg)
+	}
+	if err = <-fetchErr; err != nil {
+		log.Errorf("imap: Fetch messages failed:%s", err)
+		return
 	}
 	log.Debug("imap:ReadMessages leaved..")
 	return
@@ -314,13 +328,17 @@ func writeAttachment(fn string, body io.Reader) {
 		log.Errorf("imap: Create Attachement file '%s' failed:%s", fn, err)
 		return
 	}
+	defer func() {
+		if closeErr := dst.Close(); closeErr != nil {
+			log.Warnf("imap: Close attachment file '%s' failed:%s", fn, closeErr)
+		}
+	}()
 	size, err := io.Copy(dst, body)
 	if err != nil {
 		log.Errorf("imap: write Attachment file '%s' failed:%s", fn, err)
 		return
 	}
 	log.Debugf("imap: Attachment file '%s' (%d bytes) written", fn, size)
-	_ = dst.Close()
 }
 
 // GetUnseenMessageIDs returns IDs of unseen Messages
