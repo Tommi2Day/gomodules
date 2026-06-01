@@ -276,6 +276,11 @@ func parseHeader(header mail.Header) (mailContent MailType) {
 // ParseMessage parses a given imap body for his parts
 func (it *ImapType) ParseMessage(imapData ImapMsg, saveAttachments bool) (mailContent MailType, err error) {
 	log.Debug("imap:ParseMessage entered..")
+	if imapData.Content == nil {
+		err = fmt.Errorf("imap:ParseMessage: message UID %d has no body", imapData.UID)
+		log.Error(err)
+		return
+	}
 	// Create a new mail reader
 	mr, err := mail.CreateReader(imapData.Content)
 	if err != nil {

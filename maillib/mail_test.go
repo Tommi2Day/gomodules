@@ -231,35 +231,41 @@ func TestMail(t *testing.T) {
 		})
 		t.Run("Imap Read Message", func(t *testing.T) {
 			allMsg, err = i.ReadMessages(ids)
-			assert.NoErrorf(t, err, "ReadMessages Error:%s", err)
+			require.NoErrorf(t, err, "ReadMessages Error:%s", err)
 		})
 		c := len(allMsg)
 		require.Equal(t, 4, c, "Message Count not fit")
-		if c > 3 {
-			t.Run("Imap Parse Message", func(t *testing.T) {
-				i.DownloadDir = test.TestData
-				// parse and download
-				msg, err := i.ParseMessage(allMsg[2], true)
-				assert.NoErrorf(t, err, "ParseMessage Error:%s", err)
-				require.NotNil(t, msg, "Content should not nil")
-				from := msg.From
-				to := msg.To
-				cc := msg.CC
-				subject := msg.Subject
-				attach := msg.Attachments
-				text := msg.TextParts
-				date := msg.Date
-				assert.NotEmpty(t, from, "From should be set")
-				assert.Equal(t, 1, len(to), "To should be set")
-				assert.Equal(t, 1, len(cc), "CC should be set")
-				assert.Equal(t, subject, "Testmail3", "Subject not as expected")
-				assert.Equal(t, 2, len(attach), "Attach Count not as expected")
-				assert.Equal(t, 1, len(text), "Text Part Count not as expected")
-				assert.NotEmpty(t, date, "Date should be set")
-				fn := path.Join(test.TestData, attach[0])
-				assert.FileExistsf(t, fn, "expected attachment file '%s' not found", fn)
-			})
-		}
+		t.Run("Imap Parse Message", func(t *testing.T) {
+			i.DownloadDir = test.TestData
+			// search for the specific message by subject so we don't rely on ordering
+			criteria := imap.NewSearchCriteria()
+			criteria.Header.Add("Subject", "Testmail3")
+			subjectIDs, err := i.SearchMessages(criteria)
+			require.NoErrorf(t, err, "SearchMessages by subject Error:%s", err)
+			require.Lenf(t, subjectIDs, 1, "expected 1 message with subject 'Testmail3', got %d", len(subjectIDs))
+			targetMsgs, err := i.ReadMessages(subjectIDs)
+			require.NoErrorf(t, err, "ReadMessages for Testmail3 Error:%s", err)
+			require.Lenf(t, targetMsgs, 1, "expected 1 message, got %d", len(targetMsgs))
+			msg, err := i.ParseMessage(targetMsgs[0], true)
+			assert.NoErrorf(t, err, "ParseMessage Error:%s", err)
+			require.NotNil(t, msg, "Content should not nil")
+			from := msg.From
+			to := msg.To
+			cc := msg.CC
+			subject := msg.Subject
+			attach := msg.Attachments
+			text := msg.TextParts
+			date := msg.Date
+			assert.NotEmpty(t, from, "From should be set")
+			assert.Equal(t, 1, len(to), "To should be set")
+			assert.Equal(t, 1, len(cc), "CC should be set")
+			assert.Equal(t, subject, "Testmail3", "Subject not as expected")
+			assert.Equal(t, 2, len(attach), "Attach Count not as expected")
+			assert.Equal(t, 1, len(text), "Text Part Count not as expected")
+			assert.NotEmpty(t, date, "Date should be set")
+			fn := path.Join(test.TestData, attach[0])
+			assert.FileExistsf(t, fn, "expected attachment file '%s' not found", fn)
+		})
 		t.Run("Imap Delete", func(t *testing.T) {
 			time.Sleep(3 * time.Second)
 			var mbox *imap.MailboxStatus
