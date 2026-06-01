@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.25.2 - 2026-06-02]
+### Fixed
+- maillib: set `ServerName` in TLS/SSL configurations and add related tests to fix TLS config issues
+
 ## [v1.25.1 - 2026-06-01]
 ### Changed
 - use Go1.26

@@ -55,6 +55,7 @@ func (mailConfig *MailConfigType) SetTimeout(seconds int64) {
 // EnableSSL allows usage SMTPS Connections (e.g. Port 465)
 func (mailConfig *MailConfigType) EnableSSL(insecure bool) {
 	mailConfig.tlsConfig = &tls.Config{
+		ServerName: mailConfig.Server,
 		//nolint gosec
 		InsecureSkipVerify: insecure,
 	}
@@ -71,6 +72,7 @@ func (mailConfig *MailConfigType) EnableSSL(insecure bool) {
 // EnableTLS allows usage of STARTTLS
 func (mailConfig *MailConfigType) EnableTLS(insecure bool) {
 	mailConfig.tlsConfig = &tls.Config{
+		ServerName: mailConfig.Server,
 		//nolint gosec
 		InsecureSkipVerify: insecure,
 	}

@@ -55,6 +55,36 @@ func TestSetMailConfig(t *testing.T) {
 		actual := s.GetConfig()
 		assert.Equal(t, int64(2048), actual.maxSize)
 	})
+	t.Run("EnableTLS sets ServerName", func(t *testing.T) {
+		c := NewConfig("smtp.example.com", 587, "", "")
+		c.EnableTLS(false)
+		require.NotNil(t, c.tlsConfig, "tlsConfig should not be nil after EnableTLS")
+		assert.Equal(t, "smtp.example.com", c.tlsConfig.ServerName, "ServerName must match server to satisfy tls.Config requirements")
+		assert.False(t, c.tlsConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+		assert.True(t, c.StartTLS, "StartTLS should be set")
+	})
+	t.Run("EnableTLS insecure sets ServerName", func(t *testing.T) {
+		c := NewConfig("smtp.example.com", 587, "", "")
+		c.EnableTLS(true)
+		require.NotNil(t, c.tlsConfig, "tlsConfig should not be nil after EnableTLS")
+		assert.Equal(t, "smtp.example.com", c.tlsConfig.ServerName, "ServerName must match server")
+		assert.True(t, c.tlsConfig.InsecureSkipVerify, "InsecureSkipVerify should be true")
+	})
+	t.Run("EnableSSL sets ServerName", func(t *testing.T) {
+		c := NewConfig("smtp.example.com", 465, "", "")
+		c.EnableSSL(false)
+		require.NotNil(t, c.tlsConfig, "tlsConfig should not be nil after EnableSSL")
+		assert.Equal(t, "smtp.example.com", c.tlsConfig.ServerName, "ServerName must match server to satisfy tls.Config requirements")
+		assert.False(t, c.tlsConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+		assert.True(t, c.SSL, "SSL should be set")
+	})
+	t.Run("EnableSSL insecure sets ServerName", func(t *testing.T) {
+		c := NewConfig("smtp.example.com", 465, "", "")
+		c.EnableSSL(true)
+		require.NotNil(t, c.tlsConfig, "tlsConfig should not be nil after EnableSSL")
+		assert.Equal(t, "smtp.example.com", c.tlsConfig.ServerName, "ServerName must match server")
+		assert.True(t, c.tlsConfig.InsecureSkipVerify, "InsecureSkipVerify should be true")
+	})
 }
 
 func TestSendMailError(t *testing.T) {
