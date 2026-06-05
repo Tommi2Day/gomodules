@@ -18,7 +18,7 @@ const (
 	dblibDNSContainerTimeout = 10
 	dblibNetworkName         = "dblib-dns"
 	dblibNetworkPrefix       = "172.24.0"
-	dblibRepoTag             = "9.20"
+	dblibRepoTag             = "9.21"
 	dblibDNSPort             = 9054
 	dblibTestAddr            = racaddr
 )

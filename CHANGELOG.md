@@ -1,5 +1,9 @@
 # Go Library
 
+## [v1.25.3 - 2026-06-05]
+### Changed
+- dblib, netlib: update BIND images to 9.21 and Oracle repo tag to 23.26.2-slim, adjust DNS zone configurations
+
 ## [v1.25.2 - 2026-06-02]
 ### Fixed
 - maillib: set `ServerName` in TLS/SSL configurations and add related tests to fix TLS config issues

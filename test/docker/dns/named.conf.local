@@ -1,4 +1,0 @@
-zone "netlib.lan" {
-    type master;
-    file "/etc/bind/zones/netlib.lan.zone";
-};

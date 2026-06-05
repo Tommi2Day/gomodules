@@ -19,7 +19,7 @@ const (
 	netlibNetworkPrefix       = "172.25.0"
 	netlibDomain              = "netlib.lan"
 	netlibTestAddr            = tDB
-	netlibRepoTag             = "9.20"
+	netlibRepoTag             = "9.21"
 	netlibDNSPort             = 9053
 )
 
