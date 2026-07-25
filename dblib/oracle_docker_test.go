@@ -1,13 +1,16 @@
 package dblib
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"net/netip"
 	"os"
 	"time"
 
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/ory/dockertest/v4"
 	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
 )
@@ -27,7 +30,7 @@ const SYSTEMSERVICE = "FREE"
 var containerName string
 
 // prepareContainer create an Oracle Docker Container
-func prepareContainer() (container *dockertest.Resource, err error) {
+func prepareContainer() (resource dockertest.ClosableResource, err error) {
 	if os.Getenv("SKIP_ORACLE") != "" {
 		err = fmt.Errorf("skipping ORACLE Container in CI environment")
 		return
@@ -36,7 +39,7 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	if containerName == "" {
 		containerName = "dblib-oracledb"
 	}
-	var pool *dockertest.Pool
+	var pool dockertest.Pool
 	pool, err = common.GetDockerPool()
 	if err != nil {
 		return
@@ -44,50 +47,55 @@ func prepareContainer() (container *dockertest.Resource, err error) {
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + repo
 
+	ctx := context.Background()
 	fmt.Printf("Try to start docker container for %s:%s\n", repoString, repoTag)
-	container, err = pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: repoString,
-		Tag:        repoTag,
-
-		Hostname: containerName,
-		Name:     containerName,
-		Env: []string{
+	resource, err = pool.Run(ctx, repoString,
+		dockertest.WithTag(repoTag),
+		dockertest.WithHostname(containerName),
+		dockertest.WithName(containerName),
+		dockertest.WithEnv([]string{
 			"ORACLE_PASSWORD=" + DBPASSWORD,
-		},
-		ExposedPorts: []string{"1521"},
-		// need fixed mapping here
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"1521": {
-				{HostIP: "0.0.0.0", HostPort: DBPort},
-			},
-		},
+		}),
 		// "./oracle:/container-entrypoint-initdb.d"
-		Mounts: []string{
+		dockertest.WithMounts([]string{
 			test.TestDir + "/docker/oracle-db:/container-entrypoint-initdb.d:ro",
-		},
-	}, func(config *docker.HostConfig) {
-		// set AutoRemove to true so that stopped container goes away by itself
-		config.AutoRemove = true
-		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
+		}),
+		dockertest.WithContainerConfig(func(config *container.Config) {
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = network.PortSet{}
+			}
+			config.ExposedPorts[network.MustParsePort("1521/tcp")] = struct{}{}
+		}),
+		dockertest.WithHostConfig(func(config *container.HostConfig) {
+			// set AutoRemove to true so that stopped container goes away by itself
+			config.AutoRemove = true
+			config.RestartPolicy = container.RestartPolicy{Name: container.RestartPolicyDisabled}
+			// need fixed mapping here
+			config.PortBindings = network.PortMap{
+				network.MustParsePort("1521/tcp"): {
+					{HostIP: netip.MustParseAddr("0.0.0.0"), HostPort: DBPort},
+				},
+			}
+		}),
+	)
 
 	if err != nil {
 		err = fmt.Errorf("error starting DB docker %s container: %v", containerName, err)
-		if container != nil {
-			_ = pool.Purge(container)
+		if resource != nil {
+			_ = resource.Close(ctx)
 		}
 		return
 	}
 	err = WaitForOracle(pool)
 	if err != nil {
-		_ = pool.Purge(container)
+		_ = resource.Close(ctx)
 		return
 	}
 	return
 }
 
 // WaitForOracle waits to successfully connect to Oracle
-func WaitForOracle(pool *dockertest.Pool) (err error) {
+func WaitForOracle(pool dockertest.Pool) (err error) {
 	if os.Getenv("SKIP_ORACLE") != "" {
 		err = fmt.Errorf("skipping ORACLE Container in CI environment")
 		return
@@ -100,11 +108,10 @@ func WaitForOracle(pool *dockertest.Pool) (err error) {
 		}
 	}
 
-	pool.MaxWait = containerTimeout * time.Second
 	target = fmt.Sprintf("oracle://%s:%s@%s:%s/%s", SYSTEMUSER, DBPASSWORD, DBhost, DBPort, SYSTEMSERVICE)
 	fmt.Printf("Wait to successfully init db with %s (max %ds)...\n", target, containerTimeout)
 	start := time.Now()
-	if err = pool.Retry(func() error {
+	if err = pool.Retry(context.Background(), containerTimeout*time.Second, func() error {
 		var err error
 		var db *sql.DB
 		db, err = sql.Open("oracle", target)

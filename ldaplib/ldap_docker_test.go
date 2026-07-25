@@ -1,6 +1,7 @@
 package ldaplib
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -8,8 +9,8 @@ import (
 	"github.com/tommi2day/gomodules/test"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/moby/moby/api/types/container"
+	"github.com/ory/dockertest/v4"
 	"github.com/tommi2day/gomodules/common"
 )
 
@@ -18,10 +19,10 @@ const LdaprepoTag = "2.6.13"
 const LdapcontainerTimeout = 120
 
 var ldapcontainerName string
-var ldapContainer *dockertest.Resource
+var ldapContainer dockertest.ClosableResource
 
 // prepareContainer create an OpenLdap Docker Container
-func prepareLdapContainer() (container *dockertest.Resource, err error) {
+func prepareLdapContainer() (resource dockertest.ClosableResource, err error) {
 	if os.Getenv("SKIP_LDAP") != "" {
 		err = fmt.Errorf("skipping LDAP Container in CI environment")
 		return
@@ -31,7 +32,7 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 		ldapcontainerName = "ldaplib-openldap"
 	}
 
-	var pool *dockertest.Pool
+	var pool dockertest.Pool
 	pool, err = common.GetDockerPool()
 	if err != nil || pool == nil {
 		return
@@ -39,38 +40,36 @@ func prepareLdapContainer() (container *dockertest.Resource, err error) {
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + Ldaprepo
 
+	ctx := context.Background()
 	fmt.Printf("Try to start docker container for %s:%s\n", repoString, LdaprepoTag)
-	container, err = pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: repoString,
-		Tag:        LdaprepoTag,
-
-		Mounts: []string{
+	resource, err = pool.Run(ctx, repoString,
+		dockertest.WithTag(LdaprepoTag),
+		dockertest.WithMounts([]string{
 			test.TestDir + "/docker/ldap/certs:/certs:ro",
 			// test.TestDir + "/docker/ldap/schema:/schema:ro",
 			test.TestDir + "/docker/ldap/ldif:/ldif:ro",
 			test.TestDir + "/docker/ldap/etc/slapd.conf:/etc/openldap/slapd.conf:ro",
-		},
-
-		Hostname: ldapcontainerName,
-		Name:     ldapcontainerName,
-	}, func(config *docker.HostConfig) {
-		// set AutoRemove to true so that stopped container goes away by itself
-		config.AutoRemove = true
-		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
+		}),
+		dockertest.WithHostname(ldapcontainerName),
+		dockertest.WithName(ldapcontainerName),
+		dockertest.WithHostConfig(func(config *container.HostConfig) {
+			// set AutoRemove to true so that stopped container goes away by itself
+			config.AutoRemove = true
+			config.RestartPolicy = container.RestartPolicy{Name: container.RestartPolicyDisabled}
+		}),
+	)
 
 	if err != nil {
 		err = fmt.Errorf("error starting ldap docker container: %v", err)
 		return
 	}
 
-	pool.MaxWait = LdapcontainerTimeout * time.Second
-	myhost, myport := common.GetContainerHostAndPort(container, "389/tcp")
+	myhost, myport := common.GetContainerHostAndPort(resource, "389/tcp")
 	dialURL := fmt.Sprintf("ldap://%s:%d", myhost, myport)
 	fmt.Printf("Wait to successfully connect to Ldap with %s (max %ds)...\n", dialURL, LdapcontainerTimeout)
 	start := time.Now()
 	var l *ldap.Conn
-	if err = pool.Retry(func() error {
+	if err = pool.Retry(ctx, LdapcontainerTimeout*time.Second, func() error {
 		l, err = ldap.DialURL(dialURL)
 		return err
 	}); err != nil {

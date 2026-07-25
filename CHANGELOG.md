@@ -1,5 +1,15 @@
 # Go Library
 
+## [v1.25.4 - 2026-07-25]
+### Changed
+- migrate all Docker integration tests from `ory/dockertest/v3` to `ory/dockertest/v4`
+  - `common`: `GetDockerPool`, `GetContainerHostAndPort`, `DestroyDockerContainer`, `ExecDockerCmd` adapted to v4's context-aware, interface-based API
+  - `common`: added `CreateNetworkWithSubnet` helper for fixed-subnet Docker networks (used by DNS tests), since v4's `NetworkCreateOptions` no longer exposes IPAM configuration
+  - `common`: `GetDockerHost` now takes a daemon endpoint string instead of a pool, since v4 pools always connect to a live daemon
+  - removed `common.GetVersionedDockerPool`/`GetDockerAPIVersion`; v4's underlying client negotiates the Docker API version automatically
+  - dblib, ldaplib, maillib, netlib, pwlib, symcon: updated all `*_docker_test.go` container setup to v4's functional `RunOption`/`BuildOptions` API
+  - go.mod: `github.com/ory/dockertest/v4` replaces `v3`, pulling in `github.com/moby/moby/{api,client}` directly
+
 ## [v1.25.3 - 2026-06-05]
 ### Changed
 - dblib, netlib: update BIND images to 9.21 and Oracle repo tag to 23.26.2-slim, adjust DNS zone configurations

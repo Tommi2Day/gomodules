@@ -1,107 +1,33 @@
 package common
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"regexp"
 
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/ory/dockertest/v4"
 	log "github.com/sirupsen/logrus"
 )
 
-// DockerPool is a docker pool resource
-var dockerpool *dockertest.Pool
+// dockerpool is a docker pool resource
+var dockerpool dockertest.ClosablePool
 
 // GetDockerPool initializes a docker pool
-func GetDockerPool() (*dockertest.Pool, error) {
+func GetDockerPool() (dockertest.ClosablePool, error) {
 	var err error
 	if dockerpool == nil {
-		dockerpool, err = dockertest.NewPool("")
+		dockerpool, err = dockertest.NewPool(context.Background(), "")
 		if err != nil {
 			err = fmt.Errorf("cannot attach to docker: %v", err)
 			return nil, err
 		}
 	}
-	/*
-		// workaround for api error client version to old
-			if os.Getenv("DOCKER_API_VERSION") == "" {
-				_ = os.Setenv("DOCKER_API_VERSION", "1.44")
-			}
-			c,err:=docker.NewClientFromEnv()
-			if err!=nil{
-				return nil,err
-			}
-			dockerpool.Client=c
-	*/
-	err = dockerpool.Client.Ping()
-	if err != nil {
-		err = fmt.Errorf("could not connect to Docker: %s", err)
-		return nil, err
-	}
 	return dockerpool, nil
 }
 
-// GetDockerAPIVersion returns the running supported docker API version
-func GetDockerAPIVersion(client *docker.Client) (v string) {
-	v = ""
-	versionInfo, err := client.Version()
-	if versionInfo == nil || err != nil {
-		return
-	}
-	v = versionInfo.Get("ApiVersion")
-	return
-}
-
-// GetVersionedDockerPool returns a docker pool with a specific docker version, use running version if empty
-func GetVersionedDockerPool(version string) (pool *dockertest.Pool, err error) {
-	var client *docker.Client
-	pool, err = dockertest.NewPool("")
-	if err != nil || pool == nil {
-		if err != nil {
-			err = fmt.Errorf("cannot attach to docker: %v", err)
-		} else {
-			err = fmt.Errorf("pool is nil")
-		}
-		return nil, err
-	}
-	dockerVersion := GetDockerAPIVersion(pool.Client)
-	mAPI, err := docker.NewAPIVersion(dockerVersion)
-	if err != nil {
-		err = fmt.Errorf("error parsing minimal supported version %s: %w", dockerVersion, err)
-		return
-	}
-	if version == "" {
-		version = dockerVersion
-	}
-	nAPI, err := docker.NewAPIVersion(version)
-	if err != nil {
-		err = fmt.Errorf("error parsing version %s: %w", version, err)
-		return
-	}
-	if nAPI.LessThan(mAPI) {
-		err = fmt.Errorf("version %s is less than minimal supported version %s", version, version)
-		return
-	}
-	endpoint := pool.Client.Endpoint()
-	client, err = docker.NewVersionedClient(endpoint, version)
-	if err != nil || client == nil {
-		err = fmt.Errorf("cannot create docker client for version %s: %s", version, err)
-		return nil, err
-	}
-	client.SkipServerVersionCheck = true
-	err = client.Ping()
-	if err != nil {
-		err = fmt.Errorf("could not ping Docker endpoint %s: %s", endpoint, err)
-		return nil, err
-	}
-	pool.Client = client
-	return
-}
-
 // GetContainerHostAndPort returns the mapped host and port of a docker container for a given portID
-func GetContainerHostAndPort(container *dockertest.Resource, portID string) (server string, port int) {
+func GetContainerHostAndPort(container dockertest.Resource, portID string) (server string, port int) {
 	if container == nil {
 		return
 	}
@@ -119,31 +45,35 @@ func GetContainerHostAndPort(container *dockertest.Resource, portID string) (ser
 }
 
 // DestroyDockerContainer destroys a docker container
-func DestroyDockerContainer(container *dockertest.Resource) {
-	if container == nil || dockerpool == nil {
+func DestroyDockerContainer(container dockertest.ClosableResource) {
+	if container == nil {
 		return
 	}
-	if err := dockerpool.Purge(container); err != nil {
+	if err := container.Close(context.Background()); err != nil {
 		fmt.Printf("Could not purge resource: %s\n", err)
 	}
 }
 
 // ExecDockerCmd executes an OS cmd within container and print output
-func ExecDockerCmd(container *dockertest.Resource, cmd []string) (out string, code int, err error) {
-	var cmdout bytes.Buffer
+func ExecDockerCmd(container dockertest.Resource, cmd []string) (out string, code int, err error) {
 	if container == nil {
 		err = fmt.Errorf("container is nil")
 		return
 	}
-	cmdout.Reset()
-	code, err = container.Exec(cmd, dockertest.ExecOptions{StdOut: &cmdout})
-	out = cmdout.String()
+	var res dockertest.ExecResult
+	res, err = container.Exec(context.Background(), cmd)
+	if err == nil && !IsNil(res) {
+		out = res.StdOut
+		code = res.ExitCode
+	} else if IsNil(res) && IsNil(err) {
+		err = fmt.Errorf("could not execute command")
+		code = 128
+	}
 	return
 }
 
-// GetDockerHost returns the docker host from a pool
-func GetDockerHost(pool *dockertest.Pool) string {
-	ep := pool.Client.Endpoint()
+// GetDockerHost returns the docker host from a docker daemon endpoint (e.g. pool.Client().DaemonHost())
+func GetDockerHost(ep string) string {
 	log.Debugf("Docker Endpoint: %s\n", ep)
 	re := regexp.MustCompile("tcp://(.*):")
 	re2 := regexp.MustCompile("npipe://.*")

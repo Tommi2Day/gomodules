@@ -1,16 +1,19 @@
 package maillib
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"time"
 
 	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
 
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/ory/dockertest/v4"
 )
 
 const allInterfaces = "0.0.0.0"
@@ -24,11 +27,11 @@ const imapsPort = 31993
 const containerTimeout = 120
 
 var mailContainerName string
-var mailContainer *dockertest.Resource
+var mailContainer dockertest.ClosableResource
 var mailServer = "127.0.0.1"
 
 // prepareContainer create an Oracle Docker Container
-func prepareMailContainer() (container *dockertest.Resource, err error) {
+func prepareMailContainer() (resource dockertest.ClosableResource, err error) {
 	if os.Getenv("SKIP_MAIL") != "" {
 		err = fmt.Errorf("skipping Mail Container in CI environment")
 		return
@@ -44,7 +47,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		return
 	}
 	// align hostname in CI
-	dh := common.GetDockerHost(pool)
+	dh := common.GetDockerHost(pool.Client().DaemonHost())
 	if dh != "" {
 		mailServer = dh
 		fmt.Printf("Docker Host: %s\n", mailServer)
@@ -58,11 +61,30 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + mailRepo
 	fmt.Printf("Try to start docker container for %s:%s\n", repoString, mailRepoTag)
-	container, err = pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: repoString,
-		Tag:        mailRepoTag,
 
-		Env: []string{
+	exposedPorts := []string{"25/tcp", "143/tcp", "465/tcp", "587/tcp", "993/tcp"}
+	portBindings := network.PortMap{
+		network.MustParsePort("25/tcp"): {
+			{HostIP: netip.MustParseAddr(allInterfaces), HostPort: fmt.Sprintf("%d", smtpPort)},
+		},
+		network.MustParsePort("143/tcp"): {
+			{HostIP: netip.MustParseAddr(allInterfaces), HostPort: fmt.Sprintf("%d", imapPort)},
+		},
+		network.MustParsePort("465/tcp"): {
+			{HostIP: netip.MustParseAddr(allInterfaces), HostPort: fmt.Sprintf("%d", sslPort)},
+		},
+		network.MustParsePort("587/tcp"): {
+			{HostIP: netip.MustParseAddr(allInterfaces), HostPort: fmt.Sprintf("%d", tlsPort)},
+		},
+		network.MustParsePort("993/tcp"): {
+			{HostIP: netip.MustParseAddr(allInterfaces), HostPort: fmt.Sprintf("%d", imapsPort)},
+		},
+	}
+
+	ctx := context.Background()
+	resource, err = pool.Run(ctx, repoString,
+		dockertest.WithTag(mailRepoTag),
+		dockertest.WithEnv([]string{
 			"LOG_LEVEL=debug",
 			"ONE_DIR=1",
 			"POSTFIX_INET_PROTOCOLS=ipv4",
@@ -73,52 +95,43 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 			"SSL_TYPE=manual",
 			"SSL_CERT_PATH=/tmp/custom-certs/" + mailHostname + "-full.crt",
 			"SSL_KEY_PATH=/tmp/custom-certs/" + mailHostname + ".key",
-		},
-		Hostname: mailHostname,
-		Name:     mailContainerName,
-		Mounts: []string{
+		}),
+		dockertest.WithHostname(mailHostname),
+		dockertest.WithName(mailContainerName),
+		dockertest.WithMounts([]string{
 			test.TestDir + "/docker/mail/config:/tmp/docker-mailserver/",
 			test.TestDir + "/docker/mail/ssl:/tmp/custom-certs/:ro",
-		},
+		}),
 		/*
 			CapAdd: []string{
 				"NET_ADMIN",
 			},
 		*/
-		ExposedPorts: []string{"25", "143", "465", "587", "993"},
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"25": {
-				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", smtpPort)},
-			},
-			"143": {
-				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", imapPort)},
-			},
-			"465": {
-				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", sslPort)},
-			},
-			"587": {
-				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", tlsPort)},
-			},
-			"993": {
-				{HostIP: allInterfaces, HostPort: fmt.Sprintf("%d", imapsPort)},
-			},
-		},
-	}, func(config *docker.HostConfig) {
-		// set AutoRemove to true so that stopped container goes away by itself
-		config.AutoRemove = true
-		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
+		dockertest.WithContainerConfig(func(config *container.Config) {
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = network.PortSet{}
+			}
+			for _, p := range exposedPorts {
+				config.ExposedPorts[network.MustParsePort(p)] = struct{}{}
+			}
+		}),
+		dockertest.WithHostConfig(func(config *container.HostConfig) {
+			// set AutoRemove to true so that stopped container goes away by itself
+			config.AutoRemove = true
+			config.RestartPolicy = container.RestartPolicy{Name: container.RestartPolicyDisabled}
+			config.PortBindings = portBindings
+		}),
+	)
 
 	if err != nil {
 		err = fmt.Errorf("error starting mailserver docker container: %v", err)
 		return
 	}
 
-	pool.MaxWait = containerTimeout * time.Second
 	fmt.Printf("Wait to successfully connect to Mailserver with %s:%d (max %ds)...\n", mailServer, tlsPort, containerTimeout)
 	start := time.Now()
 	var c net.Conn
-	if err = pool.Retry(func() error {
+	if err = pool.Retry(ctx, containerTimeout*time.Second, func() error {
 		c, err = net.Dial("udp", net.JoinHostPort(mailServer, fmt.Sprintf("%d", tlsPort)))
 		if err != nil {
 			fmt.Printf("Err:%s\n", err)
@@ -138,7 +151,7 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 	// test main.cf
 	cmdout := ""
 	cmd := []string{"/bin/ls", "-l", "/etc/postfix/*"}
-	cmdout, _, err = common.ExecDockerCmd(container, cmd)
+	cmdout, _, err = common.ExecDockerCmd(resource, cmd)
 	if err != nil {
 		fmt.Printf("Exec Error %s", err)
 	} else {

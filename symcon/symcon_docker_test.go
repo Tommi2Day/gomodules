@@ -1,13 +1,17 @@
 package symcon
 
 import (
+	"context"
 	"fmt"
+	"net/netip"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	mobyclient "github.com/moby/moby/client"
+	"github.com/ory/dockertest/v4"
 	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
 )
@@ -25,7 +29,7 @@ var ipsTestURL = fmt.Sprintf("http://%s:%d/console/", ipsHost, ipsPort)
 
 // https://github.com/nsmithuk/local-kms
 // prepareIpsContainer create an Oracle Docker Container
-func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
+func prepareIpsContainer() (ipsResource dockertest.ClosableResource, err error) {
 	if os.Getenv("SKIP_IPS") != "" {
 		err = fmt.Errorf("skipping IPS Container in CI environment")
 		return
@@ -40,43 +44,50 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 		return
 	}
 
+	ctx := context.Background()
 	// always load image as is the stable tag
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	repoString := vendorImagePrefix + ipsImage
-	err = pool.Client.PullImage(docker.PullImageOptions{Repository: repoString, Tag: ipsImageTag}, docker.AuthConfiguration{})
+	pullResp, err := pool.Client().ImagePull(ctx, repoString+":"+ipsImageTag, mobyclient.ImagePullOptions{})
+	if err == nil {
+		err = pullResp.Wait(ctx)
+		_ = pullResp.Close()
+	}
 	if err != nil {
 		err = fmt.Errorf("cannot pull docker image %s:%s (%v)", repoString, ipsImageTag, err)
 		return
 	}
 
 	fmt.Printf("Try to start docker ips Container for %s:%s\n", ipsImage, ipsImageTag)
-	ipsContainer, err = pool.RunWithOptions(&dockertest.RunOptions{
-		Repository:   repoString,
-		Tag:          ipsImageTag,
-		Env:          []string{},
-		Hostname:     ipsContainerName,
-		Name:         ipsContainerName,
-		ExposedPorts: []string{"3777"},
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"3777": {
-				{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", ipsPort)},
-			},
-		},
-		Mounts: []string{
+	ipsResource, err = pool.Run(ctx, repoString,
+		dockertest.WithTag(ipsImageTag),
+		dockertest.WithHostname(ipsContainerName),
+		dockertest.WithName(ipsContainerName),
+		dockertest.WithMounts([]string{
 			test.TestDir + "/docker/symcon:/root",
-		},
-	}, func(config *docker.HostConfig) {
-		// set AutoRemove to true so that stopped kmsContainer goes away by itself
-		config.AutoRemove = true
-		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
+		}),
+		dockertest.WithContainerConfig(func(config *container.Config) {
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = network.PortSet{}
+			}
+			config.ExposedPorts[network.MustParsePort("3777/tcp")] = struct{}{}
+		}),
+		dockertest.WithHostConfig(func(config *container.HostConfig) {
+			// set AutoRemove to true so that stopped kmsContainer goes away by itself
+			config.AutoRemove = true
+			config.RestartPolicy = container.RestartPolicy{Name: container.RestartPolicyDisabled}
+			config.PortBindings = network.PortMap{
+				network.MustParsePort("3777/tcp"): {
+					{HostIP: netip.MustParseAddr("0.0.0.0"), HostPort: fmt.Sprintf("%d", ipsPort)},
+				},
+			}
+		}),
+	)
 
-	if err != nil || ipsContainer == nil {
+	if err != nil || ipsResource == nil {
 		err = fmt.Errorf("error starting docker ips Container: %v", err)
 		return
 	}
-
-	pool.MaxWait = ipsContainerTimeout * time.Second
 
 	fmt.Printf("Wait to successfully connect to IPS with %s (max %ds)...\n", ipsTestURL, ipsContainerTimeout)
 	start := time.Now()
@@ -84,7 +95,7 @@ func prepareIpsContainer() (ipsContainer *dockertest.Resource, err error) {
 	// wait 15s to init IPS Container
 	time.Sleep(15 * time.Second)
 
-	if err = pool.Retry(func() error {
+	if err = pool.Retry(ctx, ipsContainerTimeout*time.Second, func() error {
 		resp, err := common.HTTPGet(ipsTestURL, 2)
 		if err != nil {
 			return err

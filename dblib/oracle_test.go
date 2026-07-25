@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/tommi2day/gomodules/common"
 
-	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v4"
 	"github.com/tommi2day/gomodules/test"
 
 	ora "github.com/sijms/go-ora/v2"
@@ -25,7 +25,7 @@ const DBPASSWORD = "XE-manager21"
 const TIMEOUT = 5
 
 var DBhost = common.GetEnv("DB_HOST", "127.0.0.1")
-var oracleContainer *dockertest.Resource
+var oracleContainer dockertest.ClosableResource
 var connectora = fmt.Sprintf("%s.local=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=%s)))", DBPDB, DBhost, DBPort, DBPDB)
 var target string
 

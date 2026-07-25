@@ -1,16 +1,19 @@
 package netlib
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"time"
 
 	"github.com/tommi2day/gomodules/common"
 	"github.com/tommi2day/gomodules/test"
 
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/ory/dockertest/v4"
 )
 
 const (
@@ -25,20 +28,19 @@ const (
 
 var (
 	netlibDNSContainerName  string
-	netlibDNSContainer      *dockertest.Resource
-	netlibDNSNetwork        *dockertest.Network
+	netlibDNSContainer      dockertest.ClosableResource
+	netlibDNSNetwork        dockertest.ClosableNetwork
 	netlibDNSNetworkCreated = false
 	netlibDNSServer         = "127.0.0.1"
 )
 
 // prepareNetlibDNSContainer create a Bind9 Docker Container
-func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
+func prepareNetlibDNSContainer() (resource dockertest.ClosableResource, err error) {
 	if os.Getenv("SKIP_NET_DNS") != "" {
 		return nil, fmt.Errorf("skipping Net DNS Container in CI environment")
 	}
 	netlibDNSContainerName = getContainerName()
-	// use versioned docker pool because of api error client version to old
-	pool, err := common.GetVersionedDockerPool("")
+	pool, err := common.GetDockerPool()
 	if err != nil {
 		return nil, err
 	}
@@ -48,14 +50,14 @@ func prepareNetlibDNSContainer() (container *dockertest.Resource, err error) {
 		return nil, err
 	}
 
-	container, err = buildAndRunContainer(pool)
+	resource, err = buildAndRunContainer(pool)
 	if err != nil {
 		return
 	}
 
 	time.Sleep(10 * time.Second)
 
-	ip := validateContainerIP(container)
+	ip := validateContainerIP(resource)
 	if ip == "" {
 		return
 	}
@@ -76,29 +78,9 @@ func getContainerName() string {
 	return name
 }
 
-func setupNetwork(pool *dockertest.Pool) error {
-	networks, err := pool.NetworksByName(netlibNetworkName)
-	if err != nil || len(networks) == 0 {
-		return createNetwork(pool)
-	}
-	netlibDNSNetwork = &networks[0]
-	return nil
-}
-
-func createNetwork(pool *dockertest.Pool) error {
+func setupNetwork(pool dockertest.Pool) error {
 	var err error
-	netlibDNSNetwork, err = pool.CreateNetwork(netlibNetworkName, func(options *docker.CreateNetworkOptions) {
-		options.Name = netlibNetworkName
-		options.CheckDuplicate = true
-		options.IPAM = &docker.IPAMOptions{
-			Driver: "default",
-			Config: []docker.IPAMConfig{{
-				Subnet:  netlibNetworkPrefix + ".0/24",
-				Gateway: netlibNetworkPrefix + ".1",
-			}},
-		}
-		options.EnableIPv6 = false
-	})
+	netlibDNSNetwork, err = common.CreateNetworkWithSubnet(pool, netlibNetworkName, netlibNetworkPrefix+".0/24", netlibNetworkPrefix+".1")
 	if err != nil {
 		return fmt.Errorf("could not create Network: %s:%s", netlibNetworkName, err)
 	}
@@ -106,49 +88,60 @@ func createNetwork(pool *dockertest.Pool) error {
 	return nil
 }
 
-func buildAndRunContainer(pool *dockertest.Pool) (*dockertest.Resource, error) {
+func buildAndRunContainer(pool dockertest.Pool) (dockertest.ClosableResource, error) {
 	vendorImagePrefix := os.Getenv("VENDOR_IMAGE_PREFIX")
 	fmt.Printf("Try to build and start docker container %s\n", netlibDNSContainerName)
-	// port := fmt.Sprintf("%d", netlibDNSPort)
-	// sport := fmt.Sprintf("%d", netlibDNSSecPort)
-	buildArgs := []docker.BuildArg{
-		{Name: "VENDOR_IMAGE_PREFIX", Value: vendorImagePrefix},
-		{Name: "BIND9_VERSION", Value: netlibRepoTag},
+	repoTagArg := netlibRepoTag
+	buildArgs := map[string]*string{
+		"VENDOR_IMAGE_PREFIX": &vendorImagePrefix,
+		"BIND9_VERSION":       &repoTagArg,
 	}
 
+	ctx := context.Background()
 	dockerContextDir := test.TestDir + "/docker/dns"
-	return pool.BuildAndRunWithBuildOptions(
+	resource, err := pool.BuildAndRun(ctx, "netlib-bind9:test",
 		&dockertest.BuildOptions{
 			BuildArgs:  buildArgs,
 			ContextDir: dockerContextDir,
 			Dockerfile: "Dockerfile",
 		},
-		&dockertest.RunOptions{
-			Hostname:     netlibDNSContainerName,
-			Name:         netlibDNSContainerName,
-			Networks:     []*dockertest.Network{netlibDNSNetwork},
-			ExposedPorts: []string{"9053/tcp"},
-			// need fixed mapping here
-
-			PortBindings: map[docker.Port][]docker.PortBinding{
-				"9053/tcp": {
-					{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", netlibDNSPort)},
-				},
-			},
-		}, func(config *docker.HostConfig) {
+		dockertest.WithHostname(netlibDNSContainerName),
+		dockertest.WithName(netlibDNSContainerName),
+		dockertest.WithContainerConfig(func(config *container.Config) {
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = network.PortSet{}
+			}
+			config.ExposedPorts[network.MustParsePort("9053/tcp")] = struct{}{}
+		}),
+		dockertest.WithHostConfig(func(config *container.HostConfig) {
 			config.AutoRemove = false
-			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-		})
+			config.RestartPolicy = container.RestartPolicy{Name: container.RestartPolicyDisabled}
+			// need fixed mapping here
+			config.PortBindings = network.PortMap{
+				network.MustParsePort("9053/tcp"): {
+					{HostIP: netip.MustParseAddr("0.0.0.0"), HostPort: fmt.Sprintf("%d", netlibDNSPort)},
+				},
+			}
+		}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = resource.ConnectToNetwork(ctx, netlibDNSNetwork); err != nil {
+		return nil, fmt.Errorf("could not connect container to network %s: %w", netlibNetworkName, err)
+	}
+	return resource, nil
 }
 
-func validateContainerIP(container *dockertest.Resource) string {
-	ip := container.GetIPInNetwork(netlibDNSNetwork)
+func validateContainerIP(resource dockertest.Resource) string {
+	ip := resource.GetIPInNetwork(netlibDNSNetwork)
 	fmt.Printf("NetDNS Container IP: %s\n", ip)
 	return ip
 }
 
-func waitForDNSServer(pool *dockertest.Pool) error {
-	dh := common.GetDockerHost(pool)
+func waitForDNSServer(pool dockertest.Pool) error {
+	dh := common.GetDockerHost(pool.Client().DaemonHost())
 	if dh != "" {
 		fmt.Printf("Docker Host: %s\n", dh)
 	}
@@ -172,9 +165,8 @@ func waitForDNSServer(pool *dockertest.Pool) error {
 	ip := lips[0]
 	netlibDNSServer = ns
 	fmt.Printf("DNS Host %s  IP resolved as %s\n", netlibDNSServer, ip)
-	pool.MaxWait = netlibDNSContainerTimeout * time.Second
 	start := time.Now()
-	err = pool.Retry(func() error {
+	err = pool.Retry(context.Background(), netlibDNSContainerTimeout*time.Second, func() error {
 		c, e := net.Dial("tcp", net.JoinHostPort(netlibDNSServer, fmt.Sprintf("%d", netlibDNSPort)))
 		if e != nil {
 			fmt.Printf("Err:%s\n", e)
@@ -211,12 +203,13 @@ func testDNSResolution() error {
 	return nil
 }
 
-func destroyDNSContainer(container *dockertest.Resource) {
-	if container != nil {
-		_ = container.Close()
+func destroyDNSContainer(resource dockertest.ClosableResource) {
+	ctx := context.Background()
+	if resource != nil {
+		_ = resource.Close(ctx)
 	}
 
 	if netlibDNSNetworkCreated && netlibDNSNetwork != nil {
-		_ = netlibDNSNetwork.Close()
+		_ = netlibDNSNetwork.Close(ctx)
 	}
 }
