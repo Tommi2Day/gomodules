@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 
 	if err != nil || dblibDNSContainer == nil {
 		_ = os.Setenv("SKIP_DB_DNS", "true")
-		log.Errorf("prepareNetlibDNSContainer failed: %s", err)
+		log.Errorf("prepare DNSContainer failed: %s", err)
 		destroyDNSContainer(dblibDNSContainer)
 	}
 
