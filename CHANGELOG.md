@@ -2,7 +2,7 @@
 
 ## [v1.26.0 - 2026-08-06]
 ### New
-- add TCPS wallet/SSL support for Oracle connections with tests and Docker setup
+- dblib: add TCPS wallet/SSL support for Oracle connections with tests and Docker setup
 ### Changed
 - update dependencies
 
