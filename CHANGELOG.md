@@ -1,5 +1,11 @@
 # Go Library
 
+## [v1.26.0 - 2026-08-06]
+### New
+- add TCPS wallet/SSL support for Oracle connections with tests and Docker setup
+### Changed
+- update dependencies
+
 ## [v1.25.4 - 2026-07-25]
 ### Changed
 - migrate all Docker integration tests from `ory/dockertest/v3` to `ory/dockertest/v4`

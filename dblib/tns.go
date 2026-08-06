@@ -33,6 +33,7 @@ type TNSEntry struct {
 type TNSEntries map[string]TNSEntry
 type TNSSSL struct {
 	WalletLocation      string
+	WalletPassword      string
 	ClientAthentication bool
 	ServerDNMatch       bool
 	Ciphers             string
