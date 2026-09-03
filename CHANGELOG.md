@@ -1,5 +1,10 @@
 # Go Library
 
+## [v1.27.0 - 2026-09-03]
+### Changed
+- update dependencies
+- maillib: add attachment overwrite option and deduplication logic
+
 ## [v1.26.0 - 2026-08-06]
 ### New
 - dblib: add TCPS wallet/SSL support for Oracle connections with tests and Docker setup

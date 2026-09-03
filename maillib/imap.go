@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
+	"time"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
@@ -14,10 +16,11 @@ import (
 
 // ImapType Server Config for Imap
 type ImapType struct {
-	Inbox        string
-	ServerConfig *MailConfigType
-	Client       *client.Client
-	DownloadDir  string
+	Inbox                string
+	ServerConfig         *MailConfigType
+	Client               *client.Client
+	DownloadDir          string
+	OverwriteAttachments bool
 }
 
 // ImapMsg hold a received message
@@ -39,6 +42,13 @@ func NewImapConfig(server string, port int, username string, password string) *I
 // SetDownloadDir target dir to save Attachments
 func (it *ImapType) SetDownloadDir(dir string) {
 	it.DownloadDir = dir
+}
+
+// SetOverwriteAttachments controls whether a saved attachment replaces an
+// existing file of the same name (keeping only the latest version) instead
+// of being saved alongside it with a "-yyyymmdd-N" suffix.
+func (it *ImapType) SetOverwriteAttachments(overwrite bool) {
+	it.OverwriteAttachments = overwrite
 }
 
 // Connect to server
@@ -318,7 +328,7 @@ func (it *ImapType) ParseMessage(imapData ImapMsg, saveAttachments bool) (mailCo
 			mailContent.Attachments = append(mailContent.Attachments, filename)
 			if saveAttachments {
 				fn := path.Join(dir, filename)
-				writeAttachment(fn, p.Body)
+				writeAttachment(fn, p.Body, it.OverwriteAttachments)
 			}
 		}
 	}
@@ -326,24 +336,49 @@ func (it *ImapType) ParseMessage(imapData ImapMsg, saveAttachments bool) (mailCo
 	return
 }
 
-func writeAttachment(fn string, body io.Reader) {
-	//nolint gosec
-	dst, err := os.Create(fn)
+func writeAttachment(fn string, body io.Reader, overwrite bool) {
+	var dst *os.File
+	var actualFn string
+	var err error
+	if overwrite {
+		//nolint gosec
+		dst, err = os.Create(fn)
+		actualFn = fn
+	} else {
+		dst, actualFn, err = createUniqueFile(fn)
+	}
 	if err != nil {
 		log.Errorf("imap: Create Attachement file '%s' failed:%s", fn, err)
 		return
 	}
 	defer func() {
 		if closeErr := dst.Close(); closeErr != nil {
-			log.Warnf("imap: Close attachment file '%s' failed:%s", fn, closeErr)
+			log.Warnf("imap: Close attachment file '%s' failed:%s", actualFn, closeErr)
 		}
 	}()
 	size, err := io.Copy(dst, body)
 	if err != nil {
-		log.Errorf("imap: write Attachment file '%s' failed:%s", fn, err)
+		log.Errorf("imap: write Attachment file '%s' failed:%s", actualFn, err)
 		return
 	}
-	log.Debugf("imap: Attachment file '%s' (%d bytes) written", fn, size)
+	log.Debugf("imap: Attachment file '%s' (%d bytes) written", actualFn, size)
+}
+
+// createUniqueFile creates fn exclusively. If fn already exists it retries with
+// "name-yyyymmdd-1.ext", "name-yyyymmdd-2.ext", ... appended before the extension.
+func createUniqueFile(fn string) (dst *os.File, actualFn string, err error) {
+	ext := path.Ext(fn)
+	base := strings.TrimSuffix(fn, ext)
+	date := time.Now().Format("20060102")
+	actualFn = fn
+	for i := 1; ; i++ {
+		//nolint gosec
+		dst, err = os.OpenFile(actualFn, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+		if err == nil || !os.IsExist(err) {
+			return dst, actualFn, err
+		}
+		actualFn = fmt.Sprintf("%s-%s-%d%s", base, date, i, ext)
+	}
 }
 
 // GetUnseenMessageIDs returns IDs of unseen Messages
