@@ -1,5 +1,16 @@
 # Go Library
 
+## [v1.28.0 - 2026-09-23]
+### New
+- pwlib: add AWS Secrets Manager integration (new `awssm` method) with read, write and list support (`secretsmanager.go`)
+- pwlib: add AWS RDS IAM authentication token generation via `GetRDSAuthToken`, exposed as new `rds` method for `GetPassword`
+- pwlib: add AWS profile and MFA token handling (`SetAWSProfile`, `SetAWSProfileWithTokenProvider`, `ResetAWSConfig`) shared by KMS and Secrets Manager connections
+### Changed
+- pwlib: `ConnectToKMS` now returns an error instead of calling `log.Fatal` on connection failure; `KMSEncryptFile`, `KMSDecryptFile`, `SignFile` and `VerifyFile` updated to handle and propagate the error instead of ignoring it
+- pwlib: KMS and Secrets Manager connections now share AWS config loading, honoring the configured profile/MFA settings
+- update test files to use PEM extensions and latest Docker image tags (dblib, ldaplib, pwlib)
+- update dependencies
+
 ## [v1.27.0 - 2026-09-03]
 ### Changed
 - update dependencies

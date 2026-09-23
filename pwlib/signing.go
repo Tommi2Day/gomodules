@@ -28,7 +28,10 @@ func (pc *PassConfig) SignFile() (err error) {
 		if err != nil {
 			return err
 		}
-		var svc = ConnectToKMS()
+		svc, cerr := ConnectToKMS()
+		if cerr != nil {
+			return cerr
+		}
 		var signature string
 		signature, err = KMSSignString(svc, keyID, plain)
 		if err == nil {
@@ -73,7 +76,10 @@ func (pc *PassConfig) VerifyFile() (valid bool, err error) {
 		if err != nil {
 			return false, err
 		}
-		var svc = ConnectToKMS()
+		svc, cerr := ConnectToKMS()
+		if cerr != nil {
+			return false, cerr
+		}
 		valid, err = KMSVerifyString(svc, keyID, plain, signature)
 	case typeAge:
 		err = fmt.Errorf("verification not supported for age")
