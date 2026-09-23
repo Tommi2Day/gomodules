@@ -11,8 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Methods all available methods for get_passwword
-var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault, typeGPG, typeGopass, typeKMS}
+// Methods all available methods for get_password
+var Methods = []string{typeGO, typeOpenssl, typeEnc, typePlain, typeVault, typeGPG, typeGopass, typeKMS, typeAWSSM, typeRDS}
 
 // DecryptFile decripts an rsa protected file
 func (pc *PassConfig) DecryptFile() (lines []string, err error) {
@@ -42,23 +42,18 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 		content, err = common.ReadFileToString(cryptedfile)
 	case typeVault:
 		content, err = GetVaultSecret(cryptedfile, "", "")
+	case typeAWSSM:
+		content, err = GetAWSSMSecret(cryptedfile, "")
 	case typeGPG:
 		content, err = GPGDecryptFile(cryptedfile, privatekeyfile, keypass, "")
 	case typeAge:
 		content, err = AgeDecryptFileAuto(cryptedfile, privatekeyfile, keypass)
 	case typeGopass:
-		var storeDir string
-		storeDir, err = GopassStoreDir(pc.DataDir)
-		if err != nil {
-			return
-		}
-		cryptoType, _ := GopassDetectCrypto(storeDir)
-		if cryptoType == "" {
-			cryptoType = GopassCryptoGPG
-		}
-		content, err = GopassReadSecretLines(storeDir, cryptedfile, privatekeyfile, keypass, cryptoType)
+		content, err = pc.decryptGopass()
 	case typeKMS:
 		content, err = KMSDecryptFile(cryptedfile, keyID, sessionpassfile)
+	case typeRDS:
+		err = fmt.Errorf("method %s does not support DecryptFile, use GetPassword", method)
 	default:
 		log.Fatalf("encryption method %s not known", method)
 		os.Exit(1)
@@ -72,6 +67,19 @@ func (pc *PassConfig) DecryptFile() (lines []string, err error) {
 	lines = strings.Split(content, "\n")
 	log.Debug("load data success")
 	return
+}
+
+// decryptGopass reads the secret from the gopass store with the detected crypto type
+func (pc *PassConfig) decryptGopass() (content string, err error) {
+	storeDir, err := GopassStoreDir(pc.DataDir)
+	if err != nil {
+		return
+	}
+	cryptoType, _ := GopassDetectCrypto(storeDir)
+	if cryptoType == "" {
+		cryptoType = GopassCryptoGPG
+	}
+	return GopassReadSecretLines(storeDir, pc.CryptedFile, pc.PrivateKeyFile, pc.KeyPass, cryptoType)
 }
 
 // EncryptFile encrypt plain text to rsa protected file
@@ -99,7 +107,7 @@ func (pc *PassConfig) EncryptFile() (err error) {
 		err = AgeEncryptFile(plaintextfile, cryptedFile, pubKeyFile)
 	case typeKMS:
 		err = KMSEncryptFile(plaintextfile, cryptedFile, keyID, sessionpassfile)
-	case typeVault, typeGopass:
+	case typeVault, typeGopass, typeAWSSM, typeRDS:
 		// not implemented yet
 		err = fmt.Errorf("encryption method %s not implemented yet", method)
 	default:
@@ -130,8 +138,12 @@ func (pc *PassConfig) ListPasswords() (lines []string, err error) {
 func (pc *PassConfig) GetPassword(system string, account string) (password string, err error) {
 	var lines []string
 	log.Debugf("GetPassword for '%s'@'%s' entered", account, system)
+	if pc.Method == typeRDS {
+		// system is the RDS endpoint host[:port], account the database user
+		return GetRDSAuthToken(system, "", account)
+	}
 	switch pc.Method {
-	case typeVault, typeGopass:
+	case typeVault, typeGopass, typeAWSSM:
 		pc.CryptedFile = system
 	case typeAge:
 		pc.CryptedFile = pc.DataDir + "/" + system + "/" + account + "." + extAge
@@ -143,8 +155,8 @@ func (pc *PassConfig) GetPassword(system string, account string) (password strin
 	}
 	found := false
 	direct := false
-	if pc.Method == typeVault {
-		// in vault mode we need to replace ":" in system = vault path to match
+	if pc.Method == typeVault || pc.Method == typeAWSSM {
+		// in vault/awssm mode we need to replace ":" in system = secret path to match
 		system = strings.ReplaceAll(system, ":", "_")
 		pc.CaseSensitive = true
 	}
@@ -208,7 +220,7 @@ func (pc *PassConfig) isDirectMatch(fields []string, system string, account stri
 
 func (pc *PassConfig) isDefaultMatch(fields []string, account string) bool {
 	const defaultSystem = "!default"
-	if pc.Method == typeVault || pc.Method == typeGopass {
+	if pc.Method == typeVault || pc.Method == typeGopass || pc.Method == typeAWSSM {
 		return false
 	}
 	if pc.CaseSensitive {
