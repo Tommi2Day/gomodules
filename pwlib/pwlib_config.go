@@ -21,6 +21,8 @@ var PCmethods = []string{
 	typeGopass,
 	typeKMS,
 	typeAge,
+	typeAWSSM,
+	typeRDS,
 }
 
 const (
@@ -39,6 +41,8 @@ const (
 	typeGPG           = "gpg"
 	typeGopass        = "gopass"
 	typeKMS           = "kms"
+	typeAWSSM         = "awssm"
+	typeRDS           = "rds"
 	defaultMethod     = typeGO
 	extGo             = "gp"
 	extOpenssl        = "pw"
@@ -81,13 +85,7 @@ type PassConfig struct {
 	SignatureFile   string
 }
 
-var (
-	label   = []byte("")
-	pubExt  = pubPemExt
-	privExt = privPemExt
-	ext     = extOpenssl
-	keyType = KeyTypeRSA
-)
+var label = []byte("")
 
 // SSLDigest specifies the digest algorithm used by OpenSSL for deriving encryption keys, set to SHA-256.
 var SSLDigest = openssl.BytesToKeySHA256
@@ -101,7 +99,7 @@ func NewConfig(appname, datadir, keydir, keypass, method string) *PassConfig {
 	method = getValidMethod(method)
 	defaultDir := getDefaultDir(keydir)
 
-	ext, privExt, pubExt, keyType = getExtensionsForMethod(method)
+	ext, privExt, pubExt, keyType := getExtensionsForMethod(method)
 	keypass = getKeypass(keypass, appname, method)
 
 	datadir = getOrDefault(datadir, defaultDir)
@@ -165,7 +163,7 @@ func getExtensionsForMethod(method string) (ext, privExt, pubExt string, keyType
 		return extGPG, privGPGExt, pubGPGExt, KeyTypeGPG
 	case typeKMS:
 		return extKMS, privKMSExt, pubKMSExt, KeyTypeKMS
-	case typeGopass, typeVault:
+	case typeGopass, typeVault, typeAWSSM, typeRDS:
 		return "", "", "", ""
 	default:
 		log.Warnf("invalid method %s, use method %s", method, defaultMethod)

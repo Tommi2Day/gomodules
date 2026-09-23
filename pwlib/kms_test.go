@@ -46,25 +46,14 @@ func TestKMS(t *testing.T) {
 	// test
 
 	t.Run("TestKMSConnect", func(t *testing.T) {
-		kmsClient = ConnectToKMS()
+		kmsClient, err = ConnectToKMS()
+		require.NoError(t, err, "Connect to KMS failed")
 		require.NotNil(t, kmsClient, "Connect to KMS failed")
 	})
 	if kmsClient == nil {
 		t.Fatal("Connect to KMS failed")
 	}
 
-	t.Run("TestKMSListKeys", func(t *testing.T) {
-		keys, err := ListKMSKeys(kmsClient)
-		require.NoErrorf(t, err, "ListKeys failed:%s", err)
-		require.NotNil(t, keys, "ListKeys empty")
-		l := len(keys)
-		t.Log("Keys found:", l)
-		assert.Greater(t, l, 0, "zero Keys returned")
-		if l > 0 {
-			key := keys[0]
-			t.Logf("KeyId=%s, KeyArn=%s", *key.KeyId, *key.KeyArn)
-		}
-	})
 	myKeyID := ""
 	mySignKeyID := ""
 	t.Run("TestKMSCreateKey", func(t *testing.T) {
@@ -95,6 +84,18 @@ func TestKMS(t *testing.T) {
 		t.Fatalf("Key creation failedempty")
 		return
 	}
+	t.Run("TestKMSListKeys", func(t *testing.T) {
+		keys, err := ListKMSKeys(kmsClient)
+		require.NoErrorf(t, err, "ListKeys failed:%s", err)
+		require.NotNil(t, keys, "ListKeys empty")
+		l := len(keys)
+		t.Log("Keys found:", l)
+		assert.Greater(t, l, 0, "zero Keys returned")
+		if l > 0 {
+			key := keys[0]
+			t.Logf("KeyId=%s, KeyArn=%s", *key.KeyId, *key.KeyArn)
+		}
+	})
 	t.Run("DescribeKey", func(t *testing.T) {
 		output, err := DescribeKMSKey(kmsClient, myKeyID)
 		require.NoErrorf(t, err, "DescribeKey failed:%s", err)

@@ -12,7 +12,6 @@ import (
 
 	"github.com/Luzifer/go-openssl/v4"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/aws/smithy-go"
@@ -25,11 +24,12 @@ var KmsEndpoint = ""
 const aliasPrefix = "alias/"
 
 // ConnectToKMS Establish a connection to AWS KMS
-func ConnectToKMS() (svc *kms.Client) {
+func ConnectToKMS() (svc *kms.Client, err error) {
 	log.Debugf("Connect to KMS")
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := loadAWSConfig(context.TODO())
 	if err != nil {
-		log.Fatal(err)
+		log.Warnf("cannot connect to KMS: %v", err)
+		return nil, err
 	}
 	ep := common.GetStringEnv("KMS_ENDPOINT", "")
 	if ep != "" {
@@ -41,7 +41,7 @@ func ConnectToKMS() (svc *kms.Client) {
 			o.BaseEndpoint = aws.String(KmsEndpoint)
 		}
 	})
-	return svc
+	return svc, nil
 }
 
 func checkOperationError(err error) error {
@@ -375,10 +375,8 @@ func KMSEncryptFile(plainFile string, targetFile string, keyID string, sessionPa
 		log.Debug(err)
 		return
 	}
-	svc := ConnectToKMS()
-	if svc == nil {
-		err = fmt.Errorf("cannot connect to KMS")
-		log.Debug(err)
+	svc, err := ConnectToKMS()
+	if err != nil {
 		return
 	}
 	random := make([]byte, rb)
@@ -430,10 +428,8 @@ func KMSDecryptFile(cryptedFile string, keyID string, sessionPassFile string) (c
 		return
 	}
 	log.Debugf("decrypt %s with KMS key %s", cryptedFile, keyID)
-	svc := ConnectToKMS()
-	if svc == nil {
-		err = fmt.Errorf("cannot connect to KMS")
-		log.Debug(err)
+	svc, err := ConnectToKMS()
+	if err != nil {
 		return
 	}
 
