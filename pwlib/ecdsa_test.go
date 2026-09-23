@@ -25,9 +25,9 @@ func TestGenEcdsaKey(t *testing.T) {
 func TestGetEcdsaKeyFromFile(t *testing.T) {
 	test.InitTestDirs()
 	app := "test_ecdsa_get"
-	testPubFile := path.Join(test.TestData, app+pubExt)
-	testNotEncPrivFile := path.Join(test.TestData, app+"_notenc"+privExt)
-	testEncPrivFile := path.Join(test.TestData, app+privExt)
+	testPubFile := path.Join(test.TestData, app+pubPemExt)
+	testNotEncPrivFile := path.Join(test.TestData, app+"_notenc"+privPemExt)
+	testEncPrivFile := path.Join(test.TestData, app+privPemExt)
 	defaultPassword := app
 	err := os.Chdir(test.TestDir)
 	require.NoError(t, err, "ChDir failed")

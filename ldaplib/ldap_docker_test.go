@@ -10,12 +10,13 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/ory/dockertest/v4"
 	"github.com/tommi2day/gomodules/common"
 )
 
 const Ldaprepo = "docker.io/cleanstart/openldap"
-const LdaprepoTag = "2.6.13"
+const LdaprepoTag = "latest"
 const LdapcontainerTimeout = 120
 
 var ldapcontainerName string
@@ -52,6 +53,13 @@ func prepareLdapContainer() (resource dockertest.ClosableResource, err error) {
 		}),
 		dockertest.WithHostname(ldapcontainerName),
 		dockertest.WithName(ldapcontainerName),
+		dockertest.WithContainerConfig(func(config *container.Config) {
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = network.PortSet{}
+			}
+			config.ExposedPorts[network.MustParsePort("389/tcp")] = struct{}{}
+			config.ExposedPorts[network.MustParsePort("636/tcp")] = struct{}{}
+		}),
 		dockertest.WithHostConfig(func(config *container.HostConfig) {
 			// set AutoRemove to true so that stopped container goes away by itself
 			config.AutoRemove = true
